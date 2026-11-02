@@ -127,6 +127,27 @@ def normalize_sample(sample, artifact_dir, schema):
             if source_status not in ("available", "no_applicable_data"):
                 raise ValueError("Part %s has unsupported source status %r" % (part_number, source_status))
 
+            part_file = _safe_source_file(root, sample_part.get("source_page_file"))
+            part_html = part_file.read_text(encoding="utf-8", errors="replace")
+            parsed_records = ToyotaAdapter.parse_ajax_records(part_html, source_row_id=part_number)
+            if source_status == "available":
+                expected_records = [
+                    (
+                        str(item.get("oem") or "").strip() or None,
+                        str(item.get("period") or "").strip() or None,
+                        str(item.get("applicability") or "").strip() or None,
+                    )
+                    for item in records
+                ]
+                actual_records = [
+                    (item.get("oem_number_raw"), item.get("production_period_raw"), item.get("applicability_raw"))
+                    for item in parsed_records
+                ]
+                if expected_records != actual_records:
+                    raise ValueError("Part %s JSON rows differ from its saved AJAX HTML" % part_number)
+            elif not any(item.get("source_status") == "no_applicable_data" for item in parsed_records):
+                raise ValueError("Part %s empty status is not confirmed by saved AJAX HTML" % part_number)
+
             normalized_parts.append({
                 "source_row_id": part_number,
                 "source_row_order": order,
