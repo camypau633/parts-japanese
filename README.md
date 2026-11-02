@@ -26,7 +26,7 @@
 - `docs/catcar-vw-fourth-brand-validation.md` — проверка Volkswagen / VAG.
 - `docs/catcar-normalized-extraction-contract-draft.md` — черновик общей структуры данных.
 - `docs/catcar-access-policy-discovery.md` — robots.txt и поиск опубликованных условий.
-- `tools/catcar_poc/README.md` — описание начального каркаса адаптеров и ограничений.
+- `tools/catcar_poc/README.md` — описание начального каркаса адаптеров и ограничений.\n- `schemas/catcar-extraction-v0.1.schema.json` — черновая JSON Schema общего формата.
 
 ## Основные правила извлечения
 
