@@ -15,6 +15,7 @@ jobs:
           set -euo pipefail
           mkdir -p out
           python - <<'PY'
+          import json
           import re
           import urllib.request
           from html import unescape
@@ -54,6 +55,29 @@ jobs:
           parser.feed(html)
           print("PART_ROWS_FOUND", len(parser.rows))
 
+          class DiagramParser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.hotspots = []
+                  self.images = []
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  if tag == "div" and "coord" in attrs.get("class", "").split():
+                      self.hotspots.append({
+                          "part_number": attrs.get("srcnum") or attrs.get("name"),
+                          "top": int(attrs["srctop"]) if attrs.get("srctop", "").isdigit() else None,
+                          "left": int(attrs["srcleft"]) if attrs.get("srcleft", "").isdigit() else None,
+                          "width": int(attrs["srcwidth"]) if attrs.get("srcwidth", "").isdigit() else None,
+                          "height": int(attrs["srcheight"]) if attrs.get("srcheight", "").isdigit() else None
+                      })
+                  if tag == "img" and attrs.get("src"):
+                      self.images.append(attrs["src"])
+
+          diagram_parser = DiagramParser()
+          diagram_parser.feed(html)
+          diagram_images = [src for src in diagram_parser.images if any(ext in src.lower() for ext in (".png", ".jpg", ".jpeg"))]
+          parts_output = {}
+
           for name, token, onclick in parser.rows:
               ajax_url = BASE + "/toyota/?l=" + quote(token, safe="") + "&st=81"
               try:
@@ -89,10 +113,41 @@ jobs:
                       values = [value for value in row if value]
                       if len(values) >= 3:
                           records.append({"oem": values[0], "period": values[1], "applicability": values[2]})
+                  parts_output[name] = {
+                      "part_number": name,
+                      "ajax_http_status": ajax_status,
+                      "records": records
+                  }
                   print("AJAX_RESULT", name, "HTTP", ajax_status, "BYTES", len(data), "FILE", filename)
                   print("CATALOG_RECORDS", name, records)
               except Exception as error:
                   print("AJAX_ERROR", name, repr(error))
+
+          result = {
+              "source": "CatCar.info",
+              "vehicle": {
+                  "make": "Toyota",
+                  "model": "Camry",
+                  "catalog_id": "284170",
+                  "modification": "ACV30-AEPNK",
+                  "engine": "2AZFE",
+                  "modification_period": "09/2001-01/2006"
+              },
+              "group": {
+                  "id": "15-02",
+                  "name": "ФИЛЬТР МАСЛЯНЫЙ"
+              },
+              "diagram": {
+                  "image_candidates": diagram_images,
+                  "hotspots": diagram_parser.hotspots
+              },
+              "parts": parts_output
+          }
+          with open("out/catalog_records.json", "w", encoding="utf-8") as output:
+              json.dump(result, output, ensure_ascii=False, indent=2)
+          print("STRUCTURED_JSON", "out/catalog_records.json",
+                "PARTS", len(parts_output),
+                "HOTSPOTS", len(diagram_parser.hotspots))
           PY
       - uses: actions/upload-artifact@v4
         with:
