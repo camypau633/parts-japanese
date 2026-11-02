@@ -78,6 +78,8 @@ class AdapterTests(unittest.TestCase):
         result = VagAdapter().parse(html)
         self.assertEqual(len(result["parts"]), 3)
         self.assertEqual(result["parts"][0]["diagram_position_code"], "3")
+        self.assertEqual(result["parts"][0]["quantity_raw"], "")
+        self.assertEqual(result["parts"][0]["additional_source_fields"]["st_raw"], "1")
         self.assertEqual(result["parts"][1]["row_kind"], "continuation")
         self.assertIsNone(result["parts"][1]["parent_position_code"])
         self.assertEqual(result["hotspot_matching"]["matched"], ["3"])
