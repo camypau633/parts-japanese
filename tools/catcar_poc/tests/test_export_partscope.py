@@ -187,6 +187,24 @@ class PartScopeExportTests(unittest.TestCase):
         report = validate_export_records(records)
         self.assertEqual(report["hotspots_validated"], 1)
 
+    def test_hotspot_lists_are_not_shared_between_different_skus(self):
+        doc = toyota_group_document("1103", "04111", "/diagrams/camry.png")
+        doc["oem_records"].append({
+            "source_row_id": "04111", "oem_number_raw": "11310-28072",
+            "production_period_raw": "01/2006-", "applicability_raw": "2AZFE",
+            "source_status": "available", "source_group_id": "1103",
+            "source_record_order": 1, "source_url": "https://www.catcar.info/toyota/ajax/04111b",
+        })
+        geometry = validate_geometry_report(verified_geometry(["https://www.catcar.info/diagrams/camry.png"]))
+        records = document_to_records(doc, geometry_index=geometry)
+        first = records["1131028071"]["diagram"]["hotspots"]
+        second = records["1131028072"]["diagram"]["hotspots"]
+        self.assertEqual(len(first), 1)
+        self.assertEqual(len(second), 1)
+        self.assertEqual(first[0]["oem"], "11310-28071")
+        self.assertEqual(second[0]["oem"], "11310-28072")
+        self.assertIsNot(first, second)
+
     def test_same_sku_in_different_groups_exports_separate_diagram_candidates(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
