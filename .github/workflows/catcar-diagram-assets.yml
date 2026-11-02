@@ -1,0 +1,32 @@
+name: CatCar diagram asset probe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  inspect-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch one diagram and coordinate script
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p inspect
+          curl -L --fail --max-time 30 -A "Mozilla/5.0" "https://ci.catcar.info/toyota_2017_04/japan/117469A.png" -o inspect/117469A.png
+          curl -L --fail --max-time 30 -A "Mozilla/5.0" "https://www.catcar.info/js/jquery.resizeImageCoords.js" -o inspect/jquery.resizeImageCoords.js
+          file inspect/117469A.png
+          wc -c inspect/117469A.png inspect/jquery.resizeImageCoords.js
+          python - <<'PY'
+          from PIL import Image
+          im = Image.open("inspect/117469A.png")
+          print("IMAGE_SIZE:", im.size)
+          print("IMAGE_FORMAT:", im.format)
+          PY
+          echo "=== RESIZE SCRIPT ==="
+          sed -n '1,240p' inspect/jquery.resizeImageCoords.js
+      - name: Upload bounded inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: catcar-diagram-asset-inspection
+          path: inspect/
+          retention-days: 7
