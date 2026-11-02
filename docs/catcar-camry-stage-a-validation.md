@@ -74,6 +74,10 @@ These cases remain distinct:
 3. explicit no-applicable-data response;
 4. request or parsing error.
 
+## Source-use gate
+
+This technical validation does not establish permission to redistribute CatCar catalogue data. No authoritative reuse/licensing terms for `catcar.info` were confirmed during this pass, and the site's `robots.txt` endpoint could not be independently retrieved. Keep the current bounded sample as a research artifact; do not expand the crawl to the remaining groups or publish the data in the public PartScope production catalogue until access and redistribution rights are confirmed.
+
 ## Limitations and next work
 
 - This is a bounded Camry sample of the first 8 catalog groups, not full coverage of the entire Camry catalog.
