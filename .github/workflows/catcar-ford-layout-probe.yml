@@ -1,0 +1,80 @@
+name: CatCar Ford third-brand layout probe
+on:
+  push:
+    paths:
+      - '.github/workflows/catcar-ford-layout-probe.yml'
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Inspect Ford Fiesta catalog layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python - <<'PY'
+          import json, re, urllib.request
+          from html.parser import HTMLParser
+          from urllib.parse import urljoin
+
+          URL = "https://www.catcar.info/ford/?l=bWFya2V0PT1ldXJvfHxjYXRfaWQ9PTQyNHx8Y2FiYnI9PURYfHx0aGs9PTB8fHN0PT00MHx8c3RzPT17IjIwIjoiRXVyb3BlIiwiMzAiOiJGaWVzdGEgRFggMTk5NS0yMDAyIiwiNDAiOiJBIEJvZHkgQW5kIFJlbGF0ZWQgUGFydHMifXx8YWxwaGE9PUF8fGdyb3VwPT1BMDR8fHNlY3Q9PUFZQTA2MDE0fHxzZXQ9PUFZQTA2fHxpbWc9PVowMDEwNzg2MDB8fGYxMj09MjE5MzM3NisyODh8fFA9PVBOS0JFMHx8Vz09V1NFQVQwfHxUUj09VFJSTjB8fFZTPT1WU0FOMHx8VD09MVRGMDAwfHxFPT18fERSPT1EUjAyNHx8MDAwPT0wMDBLVzA%3D&lang=en"
+
+          req = urllib.request.Request(URL, headers={"User-Agent":"Mozilla/5.0 Chrome/128 Safari/537.36","Accept-Language":"en-US,en;q=0.9"})
+          with urllib.request.urlopen(req, timeout=40) as r:
+              status, final, body = r.status, r.geturl(), r.read()
+          html = body.decode("utf-8","replace")
+          open("out/ford-fiesta-catalog.html","w",encoding="utf-8").write(html)
+
+          class P(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.rows=[]; self.row=None; self.cell=None
+                  self.images=[]; self.links=[]; self.scripts=[]
+              def handle_starttag(self,t,attrs):
+                  a=dict(attrs)
+                  if t=="tr": self.row=[]
+                  elif t in ("td","th") and self.row is not None: self.cell=[]
+                  elif t=="img" and (a.get("src") or a.get("data-src")): self.images.append(a)
+                  elif t=="a" and a.get("href"): self.links.append(a)
+                  elif t=="script": self.scripts.append(a.get("src","inline"))
+              def handle_data(self,d):
+                  if self.cell is not None: self.cell.append(d.strip())
+              def handle_endtag(self,t):
+                  if t in ("td","th") and self.row is not None and self.cell is not None:
+                      self.row.append(" ".join(" ".join(self.cell).split())); self.cell=None
+                  elif t=="tr" and self.row is not None:
+                      if any(self.row): self.rows.append(self.row)
+                      self.row=None; self.cell=None
+
+          p=P(); p.feed(html)
+          markers=["srcTop","srcLeft","srcWidth","srcHeight","srcNum","groups-parts__item","coord","getArticles"]
+          title=re.search(r"<title[^>]*>(.*?)</title>",html,re.I|re.S)
+          data={"http":status,"url":final,"bytes":len(body),"title":title.group(1).strip() if title else "",
+                "table_rows":len(p.rows),"sample_rows":p.rows[:15],"images":p.images[:30],
+                "links":p.links[:30],"scripts":p.scripts[:30],
+                "markers":{x:html.count(x) for x in markers}}
+          print(json.dumps(data,ensure_ascii=False,indent=2))
+          with open("out/ford-fiesta-inspection.json","w",encoding="utf-8") as f: json.dump(data,f,ensure_ascii=False,indent=2)
+
+          # Download the first page illustration assets, if present.
+          downloads=[]
+          for img in p.images:
+              src=img.get("src") or img.get("data-src") or ""
+              if "page_" not in src: continue
+              u=urljoin(final,src)
+              try:
+                  q=urllib.request.Request(u,headers={"User-Agent":"Mozilla/5.0"})
+                  with urllib.request.urlopen(q,timeout=30) as r: b=r.read(); st=r.status
+                  fn="out/ford-diagram-%02d.bin" % len(downloads)
+                  open(fn,"wb").write(b)
+                  downloads.append({"url":u,"http":st,"bytes":len(b),"file":fn})
+              except Exception as e: downloads.append({"url":u,"error":repr(e)})
+              if len(downloads)>=3: break
+          print("DIAGRAM_DOWNLOADS",json.dumps(downloads,ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catcar-ford-layout-inspection
+          path: out/
+          retention-days: 7
