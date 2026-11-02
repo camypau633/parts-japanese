@@ -8,7 +8,7 @@ Code commit used by latest end-to-end run: `655db39e0bdfff6e3d5d6bac5a14976b57bd
 
 ## Scope
 
-A bounded sample of 8 groups from Toyota Camry catalog 284170, modification ACV30-AEPNK, engine 2AZFE. The probe saved each of the 8 group HTML pages, all 34 sampled AJAX response pages, and the JSON extraction summary. It did not crawl the remaining catalog.
+A bounded sample of 8 groups from Toyota Camry catalog 284170, modification ACV30-AEPNK, engine 2AZFE. The probe saved each of the 8 group HTML pages, all 123 sampled AJAX response pages, and the JSON extraction summary. It did not crawl the remaining catalog.
 
 ## Raw source and normalized coverage
 
@@ -31,9 +31,9 @@ The same workflow passed the 8 normalized group documents into the existing Part
 - 8 normalized documents read.
 - 187 PartScope catalogue records exported for 183 unique SKU keys.
 - 322 factory catalogue rows validated.
-- All 77 catalogue records retained Toyota, Camry, 2AZFE and the explicitly encoded profile period 09/2001–01/2006.
-- All 76 records had a CatCar diagram URL.
-- 9 two-character JSON shards were generated in the isolated preview artifact.
+- All 187 catalogue records retained Toyota, Camry, 2AZFE and the explicitly encoded profile period 09/2001–01/2006.
+- All 187 records had a CatCar diagram URL.
+- 14 two-character JSON shards were generated in the isolated preview artifact.
 - OEM provenance in factory rows includes the AJAX source URL, group ID and record order.
 - 202 verified interactive hotspots were exported across all 187 catalogue records.
 - The hotspot coordinates use the centres of CatCar's source rectangles in natural image pixels. The bounded geometry probe verified PNG dimensions, image bounds, and the CatCar responsive-coordinate script before enabling export.
@@ -66,8 +66,10 @@ These cases remain distinct:
 
 ## Limitations and next work
 
-- This is a bounded Camry sample, not full coverage of the 123 part rows: 89 AJAX rows remain unsampled.
-- The 76 preview SKU records are not ready for production publication.
+- This is a bounded Camry sample of the first 8 catalog groups, not full coverage of the entire Camry catalog.
+- The 187 preview catalogue records are not ready for production publication.
+- Temporal scan found 167 overlapping-period pairs and 219 adjacent-period OEM changes. These are observations only, not proof of replacement or interchangeability.
+- 43 OEM table rows have both period and applicability cells empty. These are missing source values, not malformed dates; the original blanks are preserved.
 - No analogues or physical dimensions have been inferred.
 - Physical dimensions are not present in this sample; no diameter, height, thread or other measurements are fabricated.
 - No mass extraction was performed.
