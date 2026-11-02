@@ -48,7 +48,9 @@ class NormalizeTests(unittest.TestCase):
           <tr><td></td><td></td><td>7E7067027 92W</td><td>trim for windowsill moonrock grey</td><td>centre left 04.15 - ...</td><td></td><td></td></tr>
           <tr><td>(40)</td><td></td><td>TRANSFER</td><td>see illustration 127-020</td><td></td><td></td><td></td></tr>
         </table>
-        <img src="/diagrams/sample.png" />
+        <img src="/_sysimg/big_catalog2/ajax-loader.gif" />
+        <img src="/images/logo.png" />
+        <img src="/diagrams/sample.png" class="resize" />
         <div class="coord" name="3" srcTop="10" srcLeft="20" srcWidth="30" srcHeight="40"></div>
         """
         result = VagAdapter().parse(html)
@@ -60,6 +62,8 @@ class NormalizeTests(unittest.TestCase):
         self.assertEqual(normalized["schema_version"], "0.1-draft")
         self.assertEqual(normalized["catalog_context"]["brand"], "Volkswagen")
         self.assertEqual(len(normalized["parts"]), 3)
+        self.assertEqual(len(normalized["diagrams"]), 1)
+        self.assertEqual(normalized["diagrams"][0]["source_image_url"], "/diagrams/sample.png")
         self.assertEqual(normalized["parts"][1]["row_kind"], "continuation")
         self.assertEqual(normalized["parts"][1]["parent_position_code"], None)
         self.assertEqual(normalized["diagrams"][0]["source_image_url"], "/diagrams/sample.png")
