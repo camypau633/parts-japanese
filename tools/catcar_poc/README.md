@@ -29,6 +29,16 @@ Raw strings, all original static-table cells, table order, and original hotspot 
 - normalize ambiguous date formats;
 - write a production database or PartScope files.
 
+## Offline extraction command
+
+The CLI converts one previously saved HTML page into normalized JSON and performs no network access:
+
+```bash
+python -m tools.catcar_poc.cli --adapter ford --input page.html --output catalog.json --source-url "https://www.catcar.info/example/page" --context context.json
+```
+
+`--adapter` accepts `toyota`, `nissan`, `ford`, or `vag`. `--context` is optional explicit catalog metadata. For Toyota, already extracted AJAX records can be supplied with `--oem-records`. The command does not download pages, follow navigation, or fetch Toyota AJAX tokens itself.
+
 ## Tests
 
 GitHub Actions runs parser, adapter, regression, and JSON Schema tests on Python 3.12. Tests use synthetic HTML fragments based on the verified page structures. They are regression tests, not proof of full brand coverage.
