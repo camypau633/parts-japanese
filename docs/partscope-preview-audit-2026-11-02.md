@@ -37,3 +37,18 @@ This is a fixture-based preview only. It is not a production catalog and the Par
 **Schema compatibility: pass. Production readiness: fail / not yet approved.**
 
 Next work should improve source extraction and normalization for representative vehicle/catalog coverage, especially Nissan engine/year context, then add automated validation for every exported record and diagram URL. Only after that should a separate, explicitly reviewed change connect an approved dataset to the production `public/data/` path.
+
+
+## Follow-up: Nissan vehicle period extraction fix
+
+Commit `3642efc` updates the real-artifact validator to decode CatCar's existing `l=` filter in the captured Nissan URL. The filter explicitly contains:
+
+- vehicle/catalog period: `2009-03-01` to `2013-08-01`;
+- selected group period: `2012-01-01` to `2013-08-01`;
+- catalog ID: `43`.
+
+The normalized Nissan context now preserves both periods. The PartScope exporter maps the vehicle/catalog period to `compatibility[].years`; it does not replace the individual part-row production periods.
+
+The captured filter does **not** expose an engine code. The validator deliberately leaves `engine_code` absent rather than deriving it from the model label. The validation report now also records whether engine and vehicle production-period metadata were present.
+
+A unit test covers extraction of both date ranges and confirms that an absent engine code stays absent. The real-artifact and adapter-test workflows are triggered by these commits; their successful completion must be checked before replacing the existing preview artifact.
