@@ -41,10 +41,10 @@ jobs:
           for x in p.links:
               joined=urljoin(BASE,x["href"])
               text=(x["text"]+" "+x["href"]).lower()
-              if any(k in text for k in ["term","услов","правил","полит","privacy","agreement","license","оферт","польз"]):
+              if any(k in text for k in ["terms","услов","правил","полит","privacy","agreement","license","оферт","пользователь"]):
                   hits.append({"text":x["text"],"url":joined})
           out={"robots":{"url":robots.get("url"),"status":robots.get("status"),"error":robots.get("error"),"body":robots.get("body","")[:12000]},
                "homepage":{"url":home.get("url"),"status":home.get("status"),"error":home.get("error")},
-               "policy_like_links":hits}
+               "policy_like_links":hits,"all_homepage_links":p.links[:120]}
           print(json.dumps(out,ensure_ascii=False,indent=2))
           PY
