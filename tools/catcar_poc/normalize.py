@@ -14,6 +14,7 @@ def normalize_page(adapter_result, context, source_url, oem_records=None):
             "description_raw": part.get("description_raw", ""),
             "production_period_raw": part.get("production_period_raw", ""),
             "quantity_raw": part.get("quantity_raw", ""),
+            "alternative_number_raw": part.get("alternative_number_raw", ""),
             "row_kind": part.get("row_kind", "positioned"),
             "parent_position_code": part.get("parent_position_code"),
             "source_status": part.get("source_status", "available"),
