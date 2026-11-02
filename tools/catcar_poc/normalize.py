@@ -20,11 +20,11 @@ def normalize_page(adapter_result, context, source_url):
             "additional_source_fields": dict(part.get("additional_source_fields", {})),
         })
 
-    position_to_row = {}
+    position_to_rows = {}
     for part in parts:
         position = part.get("diagram_position_code")
-        if position and position not in position_to_row:
-            position_to_row[position] = part.get("source_row_id")
+        if position:
+            position_to_rows.setdefault(position, []).append(part.get("source_row_id"))
 
     images = adapter_result.get("images", [])
     diagrams = []
@@ -44,6 +44,7 @@ def normalize_page(adapter_result, context, source_url):
     hotspots = []
     for index, hotspot in enumerate(adapter_result.get("hotspots", [])):
         position = hotspot.get("position_code", "").strip()
+        linked_rows = position_to_rows.get(position, [])
         if position in matched:
             status = "matched"
         elif position in unresolved or position:
@@ -54,7 +55,8 @@ def normalize_page(adapter_result, context, source_url):
             "hotspot_id": "hotspot-%d" % (index + 1),
             "diagram_id": first_diagram_id,
             "source_position_code": position or None,
-            "source_row_id": position_to_row.get(position),
+            "source_row_id": linked_rows[0] if len(linked_rows) == 1 else None,
+            "source_row_ids": linked_rows,
             "top_raw": hotspot.get("top", ""),
             "left_raw": hotspot.get("left", ""),
             "width_raw": hotspot.get("width", ""),
