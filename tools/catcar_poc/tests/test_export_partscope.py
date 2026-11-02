@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from tools.catcar_poc.export_partscope import (
-    document_to_records, export_documents, validate_export_records,
+    document_to_records, export_documents, validate_export_records, validate_geometry_report,
 )
 
 
@@ -26,6 +26,61 @@ def sample(brand="Nissan"):
         "hotspots": [{
             "hotspot_id": "hotspot-1", "source_position_code": "12010S",
             "top_raw": "10", "left_raw": "20", "width_raw": "3", "height_raw": "4",
+        }],
+    }
+
+
+def verified_geometry(urls):
+    return {
+        "coordinate_script": {
+            "relevant_snippets": [
+                "srcTop srcLeft srcWidth srcHeight h/nh w/nw",
+            ],
+        },
+        "main_css": {
+            "relevant_snippets": [".resize { width:100%; height:100%; }"],
+        },
+        "images": [
+            {
+                "image_url": url,
+                "http_status": 206,
+                "content_type": "image/png",
+                "image_dimensions": {"width": 760, "height": 1112},
+                "hotspot_count": 1,
+                "all_hotspot_boxes_inside_image_bounds": True,
+            }
+            for url in urls
+        ],
+    }
+
+
+def toyota_group_document(group_id, position, image_path):
+    return {
+        "source": {"name": "CatCar", "url": "https://www.catcar.info/toyota/group/%s" % group_id},
+        "catalog_context": {
+            "brand": "Toyota", "model": "Camry", "engine_code": "2AZFE",
+            "production_period_raw": "09/2001-01/2006",
+            "source_group_id": group_id, "group_label_raw": "ENGINE GROUP",
+        },
+        "parts": [{
+            "source_row_id": position, "diagram_position_code": position,
+            "part_number_raw": None, "description_raw": "PART " + position,
+            "production_period_raw": "", "quantity_raw": "",
+            "source_status": "requires_ajax",
+        }],
+        "oem_records": [{
+            "source_row_id": position, "oem_number_raw": "11310-28071",
+            "production_period_raw": "09/2005-01/2006",
+            "applicability_raw": "2AZFE..ACV3#", "source_status": "available",
+            "source_group_id": group_id, "source_record_order": 0,
+            "source_url": "https://www.catcar.info/toyota/ajax/%s" % position,
+        }],
+        "diagrams": [{"diagram_id": "diagram-1", "source_image_url": image_path}],
+        "hotspots": [{
+            "hotspot_id": "hotspot-1", "diagram_id": "diagram-1",
+            "source_position_code": position, "source_row_id": position,
+            "source_row_ids": [position], "top_raw": "10", "left_raw": "20",
+            "width_raw": "40", "height_raw": "20", "resolution_status": "matched",
         }],
     }
 
@@ -116,6 +171,50 @@ class PartScopeExportTests(unittest.TestCase):
             shard = json.loads((output / "12.json").read_text(encoding="utf-8"))
             self.assertIn("120004A00A", shard)
             self.assertTrue((output / "export-report.json").exists())
+
+    def test_verified_toyota_hotspot_uses_natural_image_pixel_centres(self):
+        doc = toyota_group_document("1103", "04111", "/diagrams/camry.png")
+        url = "https://www.catcar.info/diagrams/camry.png"
+        geometry = validate_geometry_report(verified_geometry([url]))
+        records = document_to_records(doc, geometry_index=geometry)
+        hotspot = records["1131028071"]["diagram"]["hotspots"][0]
+        self.assertEqual(hotspot["id"], "04111")
+        self.assertEqual(hotspot["x"], 40.0)
+        self.assertEqual(hotspot["y"], 20.0)
+        self.assertEqual(hotspot["radius"], 28)
+        self.assertEqual(hotspot["oem"], "11310-28071")
+        self.assertIn("09/2005-01/2006", hotspot["details"])
+        report = validate_export_records(records)
+        self.assertEqual(report["hotspots_validated"], 1)
+
+    def test_same_sku_in_different_groups_exports_separate_diagram_candidates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first = root / "group-1104.json"
+            second = root / "group-1106.json"
+            first_doc = toyota_group_document("1104", "11101", "/diagrams/engine-head.png")
+            second_doc = toyota_group_document("1106", "11302", "/diagrams/timing-cover.png")
+            first.write_text(json.dumps(first_doc), encoding="utf-8")
+            second.write_text(json.dumps(second_doc), encoding="utf-8")
+            geometry = verified_geometry([
+                "https://www.catcar.info/diagrams/engine-head.png",
+                "https://www.catcar.info/diagrams/timing-cover.png",
+            ])
+            output = root / "out"
+            report = export_documents([first, second], output, geometry_report=geometry)
+            self.assertEqual(report["records_exported"], 2)
+            self.assertEqual(report["unique_skus_exported"], 1)
+            self.assertEqual(report["hotspots_exported"], 2)
+            shard = json.loads((output / "11.json").read_text(encoding="utf-8"))
+            variants = shard["1131028071"]
+            self.assertIsInstance(variants, list)
+            self.assertEqual(len(variants), 2)
+            self.assertEqual({item["part_id"] for item in variants}, {"toyota:1131028071:1104", "toyota:1131028071:1106"})
+            self.assertEqual({item["diagram"]["diagramUrl"] for item in variants}, {
+                "https://www.catcar.info/diagrams/engine-head.png",
+                "https://www.catcar.info/diagrams/timing-cover.png",
+            })
+            self.assertEqual({item["diagram"]["hotspots"][0]["id"] for item in variants}, {"11101", "11302"})
 
     def test_export_refuses_nonempty_output_directory(self):
         with tempfile.TemporaryDirectory() as directory:
