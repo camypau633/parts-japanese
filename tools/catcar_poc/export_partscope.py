@@ -1,6 +1,7 @@
 """Offline conversion from normalized Japanese CatCar JSON to PartScope shards."""
 import argparse
 import json
+import posixpath
 import re
 from collections import defaultdict
 from pathlib import Path
@@ -44,7 +45,7 @@ def normalize_diagram_url(source_url, image_url):
     if parts.hostname and parts.hostname.endswith("catcar.info"):
         parts = parts._replace(scheme="https")
     # Source paths occasionally contain literal spaces in image filenames.
-    path = quote(parts.path, safe="/%:@")
+    path = quote(posixpath.normpath(parts.path), safe="/%:@")
     return urlunsplit((parts.scheme, parts.netloc, path, parts.query, parts.fragment))
 
 
