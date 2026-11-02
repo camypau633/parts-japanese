@@ -159,7 +159,7 @@ class VagAdapter(StaticTableAdapter):
     part_number_index = 2
     description_index = 3
     period_index = None
-    quantity_index = 5
+    quantity_index = None
 
     def parse(self, html):
         result = super().parse(html)
