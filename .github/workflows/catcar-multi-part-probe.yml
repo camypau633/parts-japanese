@@ -1,4 +1,4 @@
-name: CatCar multi-part response probe
+name: CatCar nested groups probe
 on:
   push:
     paths:
@@ -8,38 +8,30 @@ on:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
-      - name: Fetch one group and test several part rows
+      - name: Probe nested groups and extract part responses
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p out
           python - <<'PY'
-          import re
-          import json
-          import base64
-          import urllib.parse
-          import urllib.request
+          import re, json, urllib.parse, urllib.request
           from html.parser import HTMLParser
 
+          BASE = "https://www.catcar.info/toyota/"
           GROUP_URL = "https://www.catcar.info/toyota/?l=bWFya2V0PT1qYXBhbnx8c3Q9PTcwfHxzdHM9PXsiMTAiOiJcdTA0MjBcdTA0NGJcdTA0M2RcdTA0M2VcdTA0M2EiLCIyMCI6Ilx1MDQyZlx1MDQxZlx1MDQxZVx1MDQxZFx1MDQxOFx1MDQyZiIsIjMwIjoiODYgMjY0MTEwIiwiNjAiOiJaTjYtQTI4OCIsIjcwIjoiMTUtMDIgXHUwNDI0XHUwNDE4XHUwNDFiXHUwNDJjXHUwNDIyXHUwNDIwIFx1MDQxY1x1MDQxMFx1MDQyMVx1MDQxYlx1MDQyZlx1MDQxZFx1MDQyYlx1MDQxOSIsIjcwIjoiMTEwNiBcdTA0MWFcdTA0MjBcdTA0MmJcdTA0MjhcdTA0MWFcdTA0MTAgXHUwNDIwXHUwNDE1XHUwNDFjXHUwNDFkXHUwNDJmIFx1MDQxM1x1MDQyMFx1MDQxYyJ9fHxjYXRhbG9nPT0yNjQxMTB8fHJlYz09QTF8fG1vZGlmbmFtZT09Wk42LUEyODh8fGVuZ2luZT09RkEyMHx8bW9kZWxubz09MDA2fHxQcm9kUGVyaW9kPT0yMDEzMDEyMDEzMDl8fG1vZF9pbmZvMD09UkNHfHxtb2RfaW5mbzE9PU1UTXx8bW9kX2luZm8yPT02Rnx8bW9kX2luZm8zPT0yRHx8bW9kX2luZm80PT1BfHxncm91cF9pZD09MTEwNnx8cGFnZTcwPT0wfHxncm91cF9uYW1lPT3QmtCg0KvQqNCa0JAg0KDQldCc0J3QryDQk9Cg0Jw%3D"
-          headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/128.0.0.0 Safari/537.36"}
+          HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/128.0.0.0 Safari/537.36"}
+
           def get(url):
-              req = urllib.request.Request(url, headers=headers)
+              req = urllib.request.Request(url, headers=HEADERS)
               with urllib.request.urlopen(req, timeout=30) as response:
                   return response.status, response.read().decode("utf-8", "replace")
 
-          status, page = get(GROUP_URL)
-          open("out/group.html", "w", encoding="utf-8").write(page)
-          print("GROUP_HTTP", status, "BYTES", len(page))
-
-          targets = ("11302", "11301G", "15330", "SU00304311")
           class RowParser(HTMLParser):
               def __init__(self):
                   super().__init__()
-                  self.rows = []
-                  self.current = None
+                  self.rows, self.current = [], None
               def handle_starttag(self, tag, attrs):
                   attrs = dict(attrs)
                   if tag == "tr":
@@ -54,36 +46,64 @@ jobs:
                       self.rows.append(self.current)
                       self.current = None
 
-          parser = RowParser()
-          parser.feed(page)
-          chosen = []
-          for row in parser.rows:
-              haystack = " ".join([str(v) for v in row["attrs"].values()]) + " " + row["text"]
-              if any(target in haystack for target in targets):
-                  if "getArticles" in row["onclick"] and ", 80," in row["onclick"]:
-                      parts = row["onclick"].split("'")
-                      if len(parts) >= 2:
-                          chosen.append((parts[1], haystack[:500]))
-          print("HTML_ROWS", len(parser.rows))
-          print("MATCHED_TARGETS", len(chosen))
+          def rows_from(html):
+              parser = RowParser()
+              parser.feed(html)
+              return parser.rows
+
+          def row_token(row, state):
+              click = row["onclick"]
+              if "getArticles" not in click or (", %s," % state) not in click:
+                  return None
+              pieces = click.split("'")
+              return pieces[1] if len(pieces) > 1 else None
+
+          def request_token(token, state):
+              return get(BASE + "?" + urllib.parse.urlencode({"l": token, "st": str(state)}))
+
+          status, root = get(GROUP_URL)
+          open("out/root-group.html", "w", encoding="utf-8").write(root)
+          print("ROOT_HTTP", status, "BYTES", len(root))
+          root_rows = rows_from(root)
+          subgroups = []
+          for row in root_rows:
+              token = row_token(row, 70)
+              if token:
+                  label = " ".join(row["text"].split())[:180]
+                  subgroups.append((token, label))
+          print("SUBGROUP_ROWS", len(subgroups))
+
           results = []
-          for token, decoded in chosen:
-              url = "https://www.catcar.info/toyota/?" + urllib.parse.urlencode({"l": token, "st": "81"})
+          seen = set()
+          for group_index, (group_token, group_label) in enumerate(subgroups[:4], 1):
               try:
-                  code, html = get(url)
-                  filename = "out/part-" + str(len(results)+1) + ".html"
-                  open(filename, "w", encoding="utf-8").write(html)
-                  numbers = sorted(set(re.findall(r"[A-Z]{0,3}[0-9]{5,}[A-Z0-9-]*", html)))
-                  item = {"row_token_decoded": decoded[:500], "http": code, "bytes": len(html), "filename": filename, "numbers": numbers, "html_title": re.findall(r"<title[^>]*>(.*?)</title>", html, re.I|re.S)[:1]}
-                  results.append(item)
-                  print("PART_RESULT", json.dumps(item, ensure_ascii=False))
+                  code, group_html = request_token(group_token, 70)
+                  group_file = "out/subgroup-%d.html" % group_index
+                  open(group_file, "w", encoding="utf-8").write(group_html)
+                  part_rows = rows_from(group_html)
+                  candidates = []
+                  for row in part_rows:
+                      token = row_token(row, 80)
+                      if token and token not in seen:
+                          seen.add(token)
+                          candidates.append((token, " ".join(row["text"].split())[:180]))
+                  print("SUBGROUP", group_index, json.dumps({"label":group_label,"http":code,"bytes":len(group_html),"part_rows":len(candidates)}, ensure_ascii=False))
+                  for token, label in candidates[:3]:
+                      pcode, part_html = request_token(token, 81)
+                      part_file = "out/part-%d.html" % (len(results)+1)
+                      open(part_file, "w", encoding="utf-8").write(part_html)
+                      # Preserve full OEM strings including prefixes and hyphens.
+                      cells = re.findall(r">\s*([A-Z0-9]{2,}(?:-[A-Z0-9]+)+|[A-Z]{1,4}[0-9]{4,}[A-Z0-9]*)\s*<", part_html, re.I)
+                      item = {"group":group_label,"row":label,"http":pcode,"bytes":len(part_html),"file":part_file,"oem_candidates":sorted(set(cells))}
+                      results.append(item)
+                      print("PART_RESULT", json.dumps(item, ensure_ascii=False))
               except Exception as exc:
-                  results.append({"row_token_decoded": decoded[:500], "error": str(exc)})
-                  print("PART_ERROR", str(exc))
-          open("out/summary.json", "w", encoding="utf-8").write(json.dumps(results, ensure_ascii=False, indent=2))
+                  print("SUBGROUP_ERROR", group_index, str(exc))
+          open("out/summary.json","w",encoding="utf-8").write(json.dumps(results,ensure_ascii=False,indent=2))
+          print("TOTAL_PART_RESPONSES",len(results))
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: catcar-multi-part-responses
+          name: catcar-nested-group-responses
           path: out/
           retention-days: 7
