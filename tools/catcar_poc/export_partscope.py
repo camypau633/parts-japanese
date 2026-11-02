@@ -187,7 +187,7 @@ def validate_export_records(records):
             raise ValueError("Analogs must be a list for %s" % sku)
         if not isinstance(record.get("compatibility"), list):
             raise ValueError("Compatibility must be a list for %s" % sku)
-        if any(text(vehicle.get("make")) != brand for vehicle in record["compatibility"]):
+        if any(text(vehicle.get("brand") or vehicle.get("make") or vehicle.get("manufacturer")).casefold() != brand.casefold() for vehicle in record["compatibility"]):
             raise ValueError("Compatibility make does not match record brand: %s" % sku)
         if any(text(vehicle.get("years")) for vehicle in record["compatibility"]):
             records_with_years += 1
