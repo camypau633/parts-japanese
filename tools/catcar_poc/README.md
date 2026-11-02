@@ -14,13 +14,13 @@ This package is the first implementation of the shared parser, brand/layout adap
 - `ToyotaAdapter`: extracts Toyota source-row identifiers and `getArticles` AJAX tokens; parses OEM, production-period, and applicability cells from an AJAX response. Blank AJAX cells remain blank and do not shift adjacent values.
 - `NissanAdapter`: reads the tested static table column order and matches `srcNum` hotspots to the first table column.
 - `FordAdapter`: reads the Ford leaf table and matches hotspot `name` values to the `Code` column.
-- `VagAdapter`: reads the combined VAG table, preserves blank-position continuation rows, and matches hotspot `name` values to the first position column.
+- `VagAdapter`: reads the combined VAG table, preserves blank-position continuation rows, and matches hotspot `name` values to the first position column. The `ST`, remark, and model-data columns remain separate raw fields; `ST` is not treated as quantity.
 
 ## Output behavior
 
 `normalize_page()` converts adapter results into the draft shared JSON structure defined by `schemas/catcar-extraction-v0.1.schema.json`. It preserves one-to-many hotspot-to-row mappings and accepts Toyota OEM variation records linked to their source row.
 
-Raw strings, table order, and original hotspot geometry are retained. The code does not:
+Raw strings, all original static-table cells, table order, and original hotspot geometry are retained. Image parsing distinguishes confirmed diagram images (`img.resize`) from logos, loaders, and other images; only confirmed diagram images enter the normalized `diagrams` collection. The code does not:
 
 - fetch pages or images;
 - traverse vehicle/group navigation;
