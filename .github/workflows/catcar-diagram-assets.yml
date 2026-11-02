@@ -1,7 +1,9 @@
 name: CatCar diagram asset probe
 
 on:
-  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/catcar-diagram-assets.yml'
 
 jobs:
   inspect-assets:
