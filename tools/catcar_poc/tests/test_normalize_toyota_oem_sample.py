@@ -17,8 +17,8 @@ class ToyotaOemSampleTests(unittest.TestCase):
             group_html.write_text(
                 """
                 <table>
-                  <tr name="04111" onclick="getArticles(this, 'TOKEN-04111')"><td>04111</td></tr>
-                  <tr name="04112" onclick="getArticles(this, 'TOKEN-04112')"><td>04112</td></tr>
+                  <tr name="04111" onclick="getArticles(this, 'TOKEN-04111')"><td>04111</td><td>GASKET KIT</td></tr>
+                  <tr name="04112" onclick="getArticles(this, 'TOKEN-04112')"><td>04112</td><td>WASHER</td></tr>
                 </table>
                 <img src="/diagrams/1103.png" class="resize" />
                 <div class="coord" srcNum="04111" srcTop="10" srcLeft="20" srcWidth="30" srcHeight="40"></div>
@@ -75,6 +75,8 @@ class ToyotaOemSampleTests(unittest.TestCase):
             self.assertEqual(document["catalog_context"]["source_group_id"], "1103")
             self.assertEqual(document["catalog_context"]["production_period_raw"], "09/2001-01/2006")
             self.assertEqual(document["parts"][0]["source_status"], "requires_ajax")
+            self.assertEqual(document["parts"][0]["description_raw"], "GASKET KIT")
+            self.assertEqual(document["parts"][1]["description_raw"], "WASHER")
             self.assertEqual(document["parts"][1]["source_row_id"], "04112")
             self.assertEqual(document["parts"][1]["source_status"], "requires_ajax")
             self.assertEqual(document["parts"][1]["additional_source_fields"]["ajax_sample_status"], "not_sampled")
