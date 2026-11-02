@@ -144,8 +144,8 @@ jobs:
           for group in unique_groups[:8]:
               try:
                   gs, gu, gb = get(group["url"])
-                  group_raw_name = "out/group-" + re.sub(r"[^A-Za-z0-9_-]", "_", group["group_id"] or str(sampled + 1)) + ".html"
-                  open(group_raw_name, "wb").write(gb)
+                  group_raw_name = "group-" + re.sub(r"[^A-Za-z0-9_-]", "_", group["group_id"] or str(sampled + 1)) + ".html"
+                  open("out/" + group_raw_name, "wb").write(gb)
                   gp = PartParser()
                   gp.feed(gb.decode("utf-8", "replace"))
                   group_result = {
@@ -163,8 +163,8 @@ jobs:
                       try:
                           au = BASE + "/toyota/?l=" + quote(part["token"], safe="") + "&st=81"
                           ast, af, ab = get(au)
-                          raw_name = "out/part-" + re.sub(r"[^A-Za-z0-9_-]", "_", part["part_number"]) + ".html"
-                          open(raw_name, "wb").write(ab)
+                          raw_name = "part-" + re.sub(r"[^A-Za-z0-9_-]", "_", part["part_number"]) + ".html"
+                          open("out/" + raw_name, "wb").write(ab)
                           cp = CellParser()
                           cp.feed(ab.decode("utf-8", "replace"))
                           records = []
@@ -177,6 +177,7 @@ jobs:
                               "ajax_http": ast,
                               "ajax_url": au,
                               "source_page_file": raw_name,
+                              "source_status": "available" if records else ("no_applicable_data" if "no applicable data" in ab.decode("utf-8", "replace").lower() else "empty_unclassified"),
                               "records": records,
                           }
                           group_result["parts"].append(part_result)
