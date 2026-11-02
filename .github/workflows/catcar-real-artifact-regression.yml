@@ -3,6 +3,10 @@ on:
   push:
     paths:
       - 'tools/catcar_poc/validate_real_artifacts.py'
+      - 'tools/catcar_poc/adapters.py'
+      - 'tools/catcar_poc/normalize.py'
+      - 'tools/catcar_poc/parser.py'
+      - 'schemas/catcar-extraction-v0.1.schema.json'
       - '.github/workflows/catcar-real-artifact-regression.yml'
   workflow_dispatch:
 permissions:
