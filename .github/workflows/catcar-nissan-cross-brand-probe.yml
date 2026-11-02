@@ -87,12 +87,12 @@ jobs:
                   row_ids.add(row[0].strip())
 
           coord_pattern = re.compile(
-              r'<div\\b(?=[^>]*class=["\\'][^"\\']*\\bcoord\\b[^"\\']*["\\'])([^>]*)>',
+              r'<div\b(?=[^>]*class=["\'][^"\']*\bcoord\b[^"\']*["\'])([^>]*)>',
               re.I | re.S
           )
           coords = []
           for match in coord_pattern.finditer(html):
-              attrs = dict(re.findall(r'([\\w-]+)=["\\']([^"\\']*)["\\']', match.group(1)))
+              attrs = dict(re.findall(r'([\w-]+)=["\']([^"\']*)["\']', match.group(1)))
               item = {
                   "part_row": attrs.get("name", ""),
                   "src_num": attrs.get("srcNum", ""),
