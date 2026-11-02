@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - 'tools/catcar_poc/validate_real_artifacts.py'
+      - 'tools/catcar_poc/export_partscope.py'
       - 'tools/catcar_poc/adapters.py'
       - 'tools/catcar_poc/normalize.py'
       - 'tools/catcar_poc/parser.py'
@@ -52,8 +53,14 @@ jobs:
             --root .catcar-fixtures \
             --schema schemas/catcar-extraction-v0.1.schema.json \
             --output out/normalized
+      - name: Export Toyota and Nissan fixtures to PartScope shards
+        run: |
+          python -m tools.catcar_poc.export_partscope \\
+            --input out/normalized/toyota-camry-oil-filter.json \\
+            --input out/normalized/nissan-pixo.json \\
+            --output out/partscope
       - uses: actions/upload-artifact@v4
         with:
           name: catcar-real-artifact-regression
-          path: out/normalized/
+          path: out/
           retention-days: 7
