@@ -10,14 +10,14 @@ class NormalizeTests(unittest.TestCase):
         html = """
         <table>
           <tr><th>№</th><th>Номер детали</th><th>Название</th><th>Дата производства</th><th>Alt</th><th>Qty</th></tr>
-          <tr><td>12010S</td><td>12000-4A00A</td><td>PISTON SET</td><td>03/2009-01/2012</td><td></td><td>03</td></tr>
+          <tr><td>12010S</td><td>12000-4A00A</td><td>PISTON SET</td><td>03/2009-01/2012</td><td>ALT-12000</td><td>03</td></tr>
           <tr><td>12010S</td><td>12000-4A00B</td><td>PISTON SET</td><td>01/2012-</td><td></td><td>03</td></tr>
         </table>
         <div class="coord" srcNum="12010S" srcTop="1" srcLeft="2" srcWidth="3" srcHeight="4"></div>
         """
         result = NissanAdapter().parse(html)
         normalized = normalize_page(result, {"brand": "Nissan"}, "https://example.test/nissan")
-        self.assertEqual(normalized["parts"][0]["alternative_number_raw"], "")
+        self.assertEqual(normalized["parts"][0]["alternative_number_raw"], "ALT-12000")
         hotspot = normalized["hotspots"][0]
         self.assertEqual(hotspot["resolution_status"], "matched")
         self.assertIsNone(hotspot["source_row_id"])
