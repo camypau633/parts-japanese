@@ -44,6 +44,9 @@ def validate_case(name, adapter, html_path, source_url, context, schema, output_
         "hotspots_without_row_count": len(matching["hotspots_without_row"]),
         "rows_without_hotspot_count": len(matching["rows_without_hotspot"]),
         "oem_record_count": len(document["oem_records"]),
+        "no_applicable_data_oem_record_count": sum(
+            item.get("source_status") == "no_applicable_data" for item in document["oem_records"]
+        ),
         "schema_valid": True,
         "output": str(output_path),
     }
@@ -78,7 +81,7 @@ def main(argv=None):
         body = page.read_text(encoding="utf-8", errors="replace")
         records = ToyotaAdapter.parse_ajax_records(body, source_row_id=source_row_id)
         oem_records.extend(records)
-        if not records and "no applicable data" in body.lower():
+        if any(item.get("source_status") == "no_applicable_data" for item in records):
             no_applicable_pages.append(source_row_id)
 
     vehicle = toyota_meta["vehicle"]
