@@ -15,17 +15,15 @@ jobs:
           set -euo pipefail
           mkdir -p inspect
           curl -L --fail --max-time 30 -A "Mozilla/5.0" "https://ci.catcar.info/toyota_2017_04/japan/117469A.png" -o inspect/117469A.png
-          curl -L --fail --max-time 30 -A "Mozilla/5.0" "https://www.catcar.info/js/jquery.resizeImageCoords.js" -o inspect/jquery.resizeImageCoords.js
+          curl -L --max-time 30 -A "Mozilla/5.0" -w "RESIZE_SCRIPT_HTTP:%{http_code}\\n" "https://www.catcar.info/js/jquery.resizeImageCoords.js" -o inspect/jquery.resizeImageCoords.js
+          curl -L --max-time 30 -A "Mozilla/5.0" -w "CATCAR_JS_HTTP:%{http_code}\\n" "https://www.catcar.info/js/script.js?v=2.0" -o inspect/script.js
           file inspect/117469A.png
           wc -c inspect/117469A.png inspect/jquery.resizeImageCoords.js
-          python - <<'PY'
-          from PIL import Image
-          im = Image.open("inspect/117469A.png")
-          print("IMAGE_SIZE:", im.size)
-          print("IMAGE_FORMAT:", im.format)
-          PY
+          identify inspect/117469A.png || true
           echo "=== RESIZE SCRIPT ==="
           sed -n '1,240p' inspect/jquery.resizeImageCoords.js
+          echo "=== CATCAR SCRIPT MATCHES ==="
+          grep -inE 'resizeImage|srcTop|srcLeft|srcWidth|srcHeight|srcNum|resize' inspect/script.js || true
       - name: Upload bounded inspection
         uses: actions/upload-artifact@v4
         with:
