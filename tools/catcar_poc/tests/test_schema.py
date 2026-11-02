@@ -65,5 +65,17 @@ class SchemaTests(unittest.TestCase):
                 jsonschema.validate(instance=document, schema=self.schema)
 
 
+    def test_no_applicable_data_oem_record_is_schema_valid(self):
+        records = ToyotaAdapter.parse_ajax_records("No applicable data!", source_row_id="12321A")
+        parsed = ToyotaAdapter().parse(
+            """<table><tr name="12321A" onclick="getArticles(this, 'T')"><td>12321A</td></tr></table>"""
+        )
+        document = normalize_page(
+            parsed, {"brand": "Toyota"}, "https://www.catcar.info/test", oem_records=records
+        )
+        jsonschema.validate(instance=document, schema=self.schema)
+        self.assertEqual(document["oem_records"][0]["source_status"], "no_applicable_data")
+
+
 if __name__ == "__main__":
     unittest.main()
