@@ -25,7 +25,12 @@ class CatalogHTMLParser(HTMLParser):
         elif tag == "img":
             src = attrs.get("src") or attrs.get("data-src")
             if src:
-                self.images.append({"src": src, "attrs": attrs})
+                image_classes = attrs.get("class", "").split()
+                self.images.append({
+                    "src": src,
+                    "attrs": attrs,
+                    "image_kind": "diagram" if "resize" in image_classes else "other",
+                })
         elif tag == "div" and "coord" in attrs.get("class", "").split():
             self.hotspots.append({
                 "position_code": attrs.get("srcnum") or attrs.get("name") or "",
