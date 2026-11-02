@@ -3,7 +3,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.catcar_poc.export_partscope import (\n    document_to_records, export_documents, validate_export_records,\n)
+from tools.catcar_poc.export_partscope import (
+    document_to_records, export_documents, validate_export_records,
+)
 
 
 def sample(brand="Nissan"):
