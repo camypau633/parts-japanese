@@ -1,25 +1,26 @@
 # CatCar extraction adapters — POC
 
-The package in this folder is a first implementation of the shared parsing and draft normalization layer. It is intentionally **not** a crawler, downloader, or production importer.
+This package is the first implementation of the shared parser, brand/layout adapters, and draft JSON normalization layer. It is intentionally **not** a crawler, downloader, or production importer.
 
 ## Runtime
 
-- Python 3.8+
-- Standard library only
-- No browser automation or external dependencies
+- Executed in GitHub Actions on Python 3.12.
+- Parser and adapters use the Python standard library.
+- Development tests use `jsonschema` to validate normalized output.
+- No local Windows/Python setup is required.
 
 ## Current adapters
 
-- `ToyotaAdapter`: extracts CatCar Toyota part-row names and `getArticles` AJAX tokens; parses OEM, production-period, and applicability cells from an AJAX response.
-- `NissanAdapter`: reads a static table using the tested Nissan column order and matches `srcNum` hotspots to the first table column.
+- `ToyotaAdapter`: extracts Toyota source-row identifiers and `getArticles` AJAX tokens; parses OEM, production-period, and applicability cells from an AJAX response. Blank AJAX cells remain blank and do not shift adjacent values.
+- `NissanAdapter`: reads the tested static table column order and matches `srcNum` hotspots to the first table column.
 - `FordAdapter`: reads the Ford leaf table and matches hotspot `name` values to the `Code` column.
 - `VagAdapter`: reads the combined VAG table, preserves blank-position continuation rows, and matches hotspot `name` values to the first position column.
 
 ## Output behavior
 
-Each adapter returns raw parsed rows, image references, hotspot records, part-row records, and a hotspot reconciliation summary. `normalize_page()` converts this result into the draft shared JSON shape. It preserves one-to-many mappings when one diagram position identifies multiple source part rows.
+`normalize_page()` converts adapter results into the draft shared JSON structure defined by `schemas/catcar-extraction-v0.1.schema.json`. It preserves one-to-many hotspot-to-row mappings and accepts Toyota OEM variation records linked to their source row.
 
-The parser preserves raw strings and original row order. It does not:
+Raw strings, table order, and original hotspot geometry are retained. The code does not:
 
 - fetch pages or images;
 - traverse vehicle/group navigation;
@@ -30,12 +31,6 @@ The parser preserves raw strings and original row order. It does not:
 
 ## Tests
 
-Run locally:
+GitHub Actions runs parser, adapter, regression, and JSON Schema tests on Python 3.12. Tests use synthetic HTML fragments based on the verified page structures. They are regression tests, not proof of full brand coverage.
 
-```bash
-python -m unittest discover -s tools/catcar_poc/tests -v
-```
-
-GitHub Actions runs the same tests on Python 3.8.
-
-Tests use small synthetic HTML fragments that represent the verified structures. They are regression tests for parser behavior, not proof of full brand coverage. Before a production importer is considered, the adapters still need fixture-based validation against additional real page variants and a permission review.
+Before a production importer is considered, the adapters still need fixture-based validation against additional real page variants and an explicit permission review.
