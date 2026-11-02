@@ -61,6 +61,7 @@ Each OEM record should retain:
 - `applicability_raw`
 - `source_record_id`, if present
 - `source_row_id`
+- `source_status`: `available` or `no_applicable_data`, so an explicit empty response is not silently lost
 
 Do not collapse multiple OEM records into one. Do not create replacement/supersession links from overlapping or adjacent dates alone. Any future inferred relationship must be stored separately with evidence and an explicit unverified status.
 
