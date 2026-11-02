@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/catcar-extraction-v0.1.schema.json",
+  "title": "CatCar normalized extraction draft v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "source",
+    "catalog_context",
+    "parts",
+    "oem_records",
+    "diagrams",
+    "hotspots",
+    "validation"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1-draft" },
+    "source": {
+      "type": "object",
+      "required": ["name", "adapter", "url"],
+      "properties": {
+        "name": { "const": "CatCar" },
+        "adapter": { "type": ["string", "null"] },
+        "url": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "catalog_context": {
+      "type": "object",
+      "description": "Caller-supplied vehicle/catalog metadata. The extractor must not guess missing values.",
+      "additionalProperties": true
+    },
+    "parts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "source_row_id",
+          "source_row_order",
+          "diagram_position_code",
+          "part_number_raw",
+          "description_raw",
+          "production_period_raw",
+          "quantity_raw",
+          "row_kind",
+          "parent_position_code",
+          "source_status",
+          "additional_source_fields"
+        ],
+        "properties": {
+          "source_row_id": { "type": ["string", "null"] },
+          "source_row_order": { "type": ["integer", "null"] },
+          "diagram_position_code": { "type": ["string", "null"] },
+          "part_number_raw": { "type": ["string", "null"] },
+          "description_raw": { "type": "string" },
+          "production_period_raw": { "type": "string" },
+          "quantity_raw": { "type": "string" },
+          "row_kind": {
+            "enum": ["positioned", "continuation", "group_header", "unknown"]
+          },
+          "parent_position_code": { "type": ["string", "null"] },
+          "source_status": {
+            "enum": ["available", "unresolved", "requires_ajax", "no_applicable_data"]
+          },
+          "additional_source_fields": { "type": "object" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "oem_records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "oem_number_raw",
+          "production_period_raw",
+          "applicability_raw",
+          "source_row_id"
+        ],
+        "properties": {
+          "oem_number_raw": { "type": ["string", "null"] },
+          "production_period_raw": { "type": ["string", "null"] },
+          "applicability_raw": { "type": ["string", "null"] },
+          "source_record_id": { "type": ["string", "null"] },
+          "source_row_id": { "type": ["string", "null"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "diagrams": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "diagram_id",
+          "source_image_url",
+          "source_image_path",
+          "source_format",
+          "source_group_id"
+        ],
+        "properties": {
+          "diagram_id": { "type": "string" },
+          "source_image_url": { "type": "string" },
+          "source_image_path": { "type": ["string", "null"] },
+          "source_format": { "type": ["string", "null"] },
+          "source_group_id": { "type": ["string", "null"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "hotspots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "hotspot_id",
+          "diagram_id",
+          "source_position_code",
+          "source_row_id",
+          "source_row_ids",
+          "top_raw",
+          "left_raw",
+          "width_raw",
+          "height_raw",
+          "resolution_status"
+        ],
+        "properties": {
+          "hotspot_id": { "type": "string" },
+          "diagram_id": { "type": ["string", "null"] },
+          "source_position_code": { "type": ["string", "null"] },
+          "source_row_id": { "type": ["string", "null"] },
+          "source_row_ids": {
+            "type": "array",
+            "items": { "type": ["string", "null"] }
+          },
+          "top_raw": { "type": "string" },
+          "left_raw": { "type": "string" },
+          "width_raw": { "type": "string" },
+          "height_raw": { "type": "string" },
+          "resolution_status": {
+            "enum": ["matched", "unmatched", "ambiguous"]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "validation": {
+      "type": "object",
+      "required": [
+        "hotspot_matching",
+        "raw_table_row_count",
+        "part_row_count",
+        "diagram_count",
+        "hotspot_count"
+      ],
+      "properties": {
+        "hotspot_matching": {
+          "type": "object",
+          "required": ["matched", "hotspots_without_row", "rows_without_hotspot"],
+          "properties": {
+            "matched": { "type": "array", "items": { "type": "string" } },
+            "hotspots_without_row": { "type": "array", "items": { "type": "string" } },
+            "rows_without_hotspot": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": false
+        },
+        "raw_table_row_count": { "type": "integer", "minimum": 0 },
+        "part_row_count": { "type": "integer", "minimum": 0 },
+        "diagram_count": { "type": "integer", "minimum": 0 },
+        "hotspot_count": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
