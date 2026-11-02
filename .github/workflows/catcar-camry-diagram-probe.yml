@@ -60,8 +60,15 @@ jobs:
                   super().__init__()
                   self.hotspots = []
                   self.images = []
+                  self.wrapper_depth = 0
               def handle_starttag(self, tag, attrs):
                   attrs = dict(attrs)
+                  if tag == "div":
+                      classes = attrs.get("class", "").split()
+                      if "img_wrapper" in classes:
+                          self.wrapper_depth = 1
+                      elif self.wrapper_depth:
+                          self.wrapper_depth += 1
                   if tag == "div" and "coord" in attrs.get("class", "").split():
                       self.hotspots.append({
                           "part_number": attrs.get("srcnum") or attrs.get("name"),
@@ -70,12 +77,15 @@ jobs:
                           "width": int(attrs["srcwidth"]) if attrs.get("srcwidth", "").isdigit() else None,
                           "height": int(attrs["srcheight"]) if attrs.get("srcheight", "").isdigit() else None
                       })
-                  if tag == "img" and attrs.get("src"):
+                  if tag == "img" and self.wrapper_depth and attrs.get("src"):
                       self.images.append(attrs["src"])
+              def handle_endtag(self, tag):
+                  if tag == "div" and self.wrapper_depth:
+                      self.wrapper_depth -= 1
 
           diagram_parser = DiagramParser()
           diagram_parser.feed(html)
-          diagram_images = [src for src in diagram_parser.images if any(ext in src.lower() for ext in (".png", ".jpg", ".jpeg"))]
+          diagram_images = [src for src in diagram_parser.images if any(ext in src.lower() for ext in (".png", ".jpg", ".jpeg")) and "logo" not in src.lower()]
           parts_output = {}
 
           for name, token, onclick in parser.rows:
