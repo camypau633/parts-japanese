@@ -1,0 +1,82 @@
+name: CatCar Ford detail-page probe
+on:
+  push:
+    paths:
+      - '.github/workflows/catcar-ford-detail-probe.yml'
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Follow Ford group and inspect parts diagram
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python - <<'PY'
+          import json, re, urllib.request
+          from html.parser import HTMLParser
+          from urllib.parse import urljoin
+
+          START = "https://www.catcar.info/ford/?l=bWFya2V0PT1ldXJvfHxjYXRfaWQ9PTQyNHx8Y2FiYnI9PURYfHx0aGs9PTB8fHN0PT00MHx8c3RzPT17IjIwIjoiRXVyb3BlIiwiMzAiOiJGaWVzdGEgRFggMTk5NS0yMDAyIiwiNDAiOiJBIEJvZHkgQW5kIFJlbGF0ZWQgUGFydHMifXx8YWxwaGE9PUF8fGdyb3VwPT1BMDR8fHNlY3Q9PUFZQTA2MDE0fHxzZXQ9PUFZQTA2fHxtZz09WjAwMTA3ODYwMHx8ZjEyPT0yMTkzMzc2KzI4OHx8UD09UE5LQkUwfHxXPT1XU0VBVDB8fFRSPT1UUlJOMHx8VlM9PVZTQU4wfHxUPT0xVEYwMDB8fEU9PXx8RFI9PURSMDI0fHwwMDA9PTAwMEtXMA%3D%3D&lang=en"
+
+          def get(url):
+              req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0 Chrome/128 Safari/537.36","Accept-Language":"en-US,en;q=0.9"})
+              with urllib.request.urlopen(req,timeout=40) as r: return r.status,r.geturl(),r.read()
+
+          class P(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.rows=[]; self.row=None; self.cell=None; self.images=[]; self.links=[]; self.scripts=[]; self.coords=[]
+              def handle_starttag(self,t,attrs):
+                  a=dict(attrs)
+                  if t=="tr": self.row=[]
+                  elif t in ("td","th") and self.row is not None: self.cell=[]
+                  elif t=="img" and (a.get("src") or a.get("data-src")): self.images.append(a)
+                  elif t=="a" and a.get("href"): self.links.append({"href":a["href"],"class":a.get("class","")})
+                  elif t=="script": self.scripts.append(a.get("src","inline"))
+                  elif t=="div" and "coord" in a.get("class","").split(): self.coords.append(a)
+              def handle_data(self,d):
+                  if self.cell is not None: self.cell.append(d.strip())
+              def handle_endtag(self,t):
+                  if t in ("td","th") and self.row is not None and self.cell is not None:
+                      self.row.append(" ".join(" ".join(self.cell).split())); self.cell=None
+                  elif t=="tr" and self.row is not None:
+                      if any(self.row): self.rows.append(self.row)
+                      self.row=None; self.cell=None
+
+          st,final,body=get(START); first=body.decode("utf-8","replace")
+          p0=P(); p0.feed(first)
+          group_links=[x["href"] for x in p0.links if "groups-parts__item" in x["class"]]
+          if not group_links: raise RuntimeError("No Ford groups-parts__item links found")
+          # Pick A04 (dash/apron/heater/windscreen) as a representative body subgroup.
+          target=next((urljoin(final,x) for x in group_links if "group==A04" in x),urljoin(final,group_links[0]))
+          st2,final2,body2=get(target); html=body2.decode("utf-8","replace")
+          open("out/ford-fiesta-detail.html","w",encoding="utf-8").write(html)
+          p=P(); p.feed(html)
+          markers=["srcTop","srcLeft","srcWidth","srcHeight","srcNum","coord","groups-parts__item","getArticles"]
+          result={"start_http":st,"start_url":final,"group_links":len(group_links),"selected_group_url":target,
+                  "detail_http":st2,"detail_url":final2,"detail_bytes":len(body2),
+                  "table_rows":len(p.rows),"sample_rows":p.rows[:20],"images":p.images[:40],
+                  "links":p.links[:40],"scripts":p.scripts[:30],
+                  "markers":{x:html.count(x) for x in markers},"coord_divs":p.coords[:80]}
+          print(json.dumps(result,ensure_ascii=False,indent=2))
+          with open("out/ford-fiesta-detail.json","w",encoding="utf-8") as f: json.dump(result,f,ensure_ascii=False,indent=2)
+
+          downloads=[]
+          for img in p.images:
+              src=img.get("src") or img.get("data-src") or ""
+              if not any(k in src.lower() for k in ("page_","scheme","image")): continue
+              u=urljoin(final2,src)
+              try:
+                  s,fu,b=get(u); fn="out/ford-diagram-%02d.bin"%len(downloads); open(fn,"wb").write(b)
+                  downloads.append({"url":fu,"http":s,"bytes":len(b),"file":fn})
+              except Exception as e: downloads.append({"url":u,"error":repr(e)})
+              if len(downloads)>=4: break
+          print("DIAGRAM_DOWNLOADS",json.dumps(downloads,ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catcar-ford-detail-inspection
+          path: out/
+          retention-days: 7
