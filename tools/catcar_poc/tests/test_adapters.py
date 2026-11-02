@@ -25,6 +25,22 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(len(records), 2)
         self.assertEqual(records[0]["oem_number_raw"], "SU003-00302")
 
+    def test_toyota_ajax_preserves_empty_columns(self):
+        ajax = """
+        <table>
+          <tr><td>OEM number</td><td>Production period</td><td>Applicability</td></tr>
+          <tr><td>9151180830</td><td></td><td></td></tr>
+          <tr><td>SU003-00302</td><td>09/2012-06/2013</td><td>FA20</td></tr>
+        </table>
+        """
+        records = ToyotaAdapter.parse_ajax_records(ajax, source_row_id="ROW-1")
+        self.assertEqual(len(records), 2)
+        self.assertEqual(records[0]["source_row_id"], "ROW-1")
+        self.assertEqual(records[0]["oem_number_raw"], "9151180830")
+        self.assertIsNone(records[0]["production_period_raw"])
+        self.assertIsNone(records[0]["applicability_raw"])
+        self.assertEqual(records[1]["production_period_raw"], "09/2012-06/2013")
+
     def test_nissan_static_table_and_srcnum(self):
         html = """
         <table>
