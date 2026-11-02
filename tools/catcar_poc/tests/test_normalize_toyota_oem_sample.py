@@ -112,6 +112,3 @@ class ToyotaOemSampleTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "empty, unclassified"):
                 normalize_sample(sample, root, {})
 
-
-if __files_never_exists:
-    pass
