@@ -142,6 +142,79 @@ jobs:
               except Exception as e:
                   print("GROUP_ERROR", group["url"], repr(e))
 
+          def month_index(value):
+              match = re.fullmatch(r"(\\d{2})/(\\d{4})", value.strip())
+              if not match:
+                  return None
+              month, year = int(match.group(1)), int(match.group(2))
+              if month < 1 or month > 12:
+                  return None
+              return year * 12 + month - 1
+
+          overlap_cases = []
+          sequential_cases = []
+          unparsed_periods = []
+          for group in output["sampled_groups"]:
+              for part in group["parts"]:
+                  records = part.get("records", [])
+                  normalized = []
+                  for record in records:
+                      raw_period = record.get("period", "")
+                      bits = raw_period.split("-", 1)
+                      start = month_index(bits[0]) if bits else None
+                      end = month_index(bits[1]) if len(bits) > 1 and bits[1].strip() else None
+                      if start is None or (len(bits) > 1 and bits[1].strip() and end is None):
+                          unparsed_periods.append({"part_number": part["part_number"], "record": record})
+                          continue
+                      normalized.append((record, start, end))
+
+                  for i in range(len(normalized)):
+                      left, ls, le = normalized[i]
+                      for right, rs, re_ in normalized[i + 1:]:
+                          left_end = le if le is not None else 10**9
+                          right_end = re_ if re_ is not None else 10**9
+                          if max(ls, rs) < min(left_end, right_end) and left.get("oem") != right.get("oem"):
+                              overlap_cases.append({
+                                  "part_number": part["part_number"],
+                                  "left": left,
+                                  "right": right,
+                                  "same_applicability": left.get("applicability") == right.get("applicability")
+                              })
+
+                  by_oem = sorted(normalized, key=lambda x: (x[1], x[2] if x[2] is not None else 10**9, x[0].get("oem", "")))
+                  for i in range(len(by_oem)):
+                      left, ls, le = by_oem[i]
+                      if le is None:
+                          continue
+                      for right, rs, re_ in by_oem[i + 1:]:
+                          if rs == le and left.get("oem") != right.get("oem"):
+                              sequential_cases.append({
+                                  "part_number": part["part_number"],
+                                  "previous": left,
+                                  "next": right,
+                                  "same_applicability": left.get("applicability") == right.get("applicability")
+                              })
+
+          output["temporal_analysis"] = {
+              "different_oem_overlapping_periods": overlap_cases,
+              "different_oem_adjacent_periods": sequential_cases,
+              "unparsed_periods": unparsed_periods
+          }
+          print("TEMPORAL_ANALYSIS",
+                "OVERLAPS", len(overlap_cases),
+                "ADJACENT_OEM_CHANGES", len(sequential_cases),
+                "UNPARSED_PERIODS", len(unparsed_periods))
+          for item in overlap_cases[:15]:
+              print("OEM_OVERLAP", item["part_number"],
+                    item["left"]["oem"], item["left"]["period"],
+                    "<>", item["right"]["oem"], item["right"]["period"],
+                    "SAME_APPLICABILITY", item["same_applicability"])
+          for item in sequential_cases[:15]:
+              print("OEM_ADJACENT", item["part_number"],
+                    item["previous"]["oem"], item["previous"]["period"],
+                    "->", item["next"]["oem"], item["next"]["period"],
+                    "SAME_APPLICABILITY", item["same_applicability"])
+
           with open("out/oem_variation_sample.json", "w", encoding="utf-8") as f:
               json.dump(output, f, ensure_ascii=False, indent=2)
           print("SAMPLE_COMPLETE", "GROUPS", sampled, "PARTS", sampled_parts)
