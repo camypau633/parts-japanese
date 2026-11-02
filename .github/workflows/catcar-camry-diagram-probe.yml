@@ -61,14 +61,36 @@ jobs:
                   body = data.decode("utf-8", "replace")
                   filename = "out/part-" + re.sub(r"[^A-Za-z0-9_-]", "_", name) + ".html"
                   open(filename, "w", encoding="utf-8").write(body)
-                  text = unescape(re.sub(r"<[^>]+>", " ", body))
-                  text = re.sub(r"\\s+", " ", text).strip()
-                  oems = sorted(set(re.findall(r"\\b[A-Z0-9]{2,}(?:-[A-Z0-9]{2,})+\\b", text)))
-                  dates = sorted(set(re.findall(r"\\b\\d{2}/\\d{4}-\\d{2}/\\d{4}\\b", text)))
+                  class CellParser(HTMLParser):
+                      def __init__(self):
+                          super().__init__()
+                          self.rows = []
+                          self.current = None
+                          self.in_cell = False
+                      def handle_starttag(self, tag, attrs):
+                          if tag == "tr":
+                              self.current = []
+                          elif tag == "td" and self.current is not None:
+                              self.in_cell = True
+                      def handle_endtag(self, tag):
+                          if tag == "td":
+                              self.in_cell = False
+                          elif tag == "tr" and self.current is not None:
+                              if self.current:
+                                  self.rows.append(self.current)
+                              self.current = None
+                      def handle_data(self, value):
+                          if self.in_cell and self.current is not None:
+                              self.current.append(value.strip())
+                  cells = CellParser()
+                  cells.feed(body)
+                  records = []
+                  for row in cells.rows:
+                      values = [value for value in row if value]
+                      if len(values) >= 3:
+                          records.append({"oem": values[0], "period": values[1], "applicability": values[2]})
                   print("AJAX_RESULT", name, "HTTP", ajax_status, "BYTES", len(data), "FILE", filename)
-                  print("AJAX_TEXT", name, text[:1800])
-                  print("OEM_CANDIDATES", name, oems)
-                  print("PRODUCTION_PERIODS", name, dates)
+                  print("CATALOG_RECORDS", name, records)
               except Exception as error:
                   print("AJAX_ERROR", name, repr(error))
           PY
