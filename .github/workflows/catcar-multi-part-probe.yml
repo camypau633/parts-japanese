@@ -43,7 +43,7 @@ jobs:
               def handle_starttag(self, tag, attrs):
                   attrs = dict(attrs)
                   if tag == "tr":
-                      self.current = {"attrs": attrs, "text": "", "onclick": ""}
+                      self.current = {"attrs": attrs, "text": "", "onclick": attrs.get("onclick", "")}
                   elif self.current is not None and attrs.get("onclick"):
                       self.current["onclick"] += " " + attrs["onclick"]
               def handle_data(self, data):
