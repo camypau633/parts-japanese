@@ -24,7 +24,9 @@
 - `docs/catcar-nissan-cross-brand-validation.md` — проверка Nissan Pixo.
 - `docs/catcar-ford-third-brand-validation.md` — проверка Ford Fiesta.
 - `docs/catcar-vw-fourth-brand-validation.md` — проверка Volkswagen / VAG.
-- `docs/catcar-normalized-extraction-contract-draft.md` — черновик общей структуры данных.\n- `docs/catcar-access-policy-discovery.md` — robots.txt и поиск опубликованных условий.\n- `tools/catcar_poc/README.md` — описание начального каркаса адаптеров и ограничений.
+- `docs/catcar-normalized-extraction-contract-draft.md` — черновик общей структуры данных.
+- `docs/catcar-access-policy-discovery.md` — robots.txt и поиск опубликованных условий.
+- `tools/catcar_poc/README.md` — описание начального каркаса адаптеров и ограничений.
 
 ## Основные правила извлечения
 
