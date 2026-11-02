@@ -142,7 +142,11 @@ jobs:
           output = {"vehicle": {"make": "Toyota", "model": "Camry", "catalog_id": "284170", "modification": "ACV30-AEPNK", "engine": "2AZFE"}, "sampled_groups": []}
           sampled = 0
           sampled_parts = 0
-          for group in unique_groups[:8]:
+          max_groups = 8
+          max_ajax_rows = 125
+          request_delay_seconds = 0.2
+          print("BOUNDED_SAMPLE_LIMITS", "GROUPS", max_groups, "AJAX_ROWS", max_ajax_rows, "DELAY_SECONDS", request_delay_seconds)
+          for group in unique_groups[:max_groups]:
               try:
                   gs, gu, gb = get(group["url"])
                   group_raw_name = "group-" + re.sub(r"[^A-Za-z0-9_-]", "_", group["group_id"] or str(sampled + 1)) + ".html"
@@ -157,12 +161,13 @@ jobs:
                       "source_page_file": group_raw_name,
                       "parts": [],
                   }
-                  for part in gp.rows[:6]:
-                      if sampled_parts >= 40:
+                  for part in gp.rows:
+                      if sampled_parts >= max_ajax_rows:
                           break
                       sampled_parts += 1
                       try:
                           au = BASE + "/toyota/?l=" + quote(part["token"], safe="") + "&st=81"
+                          time.sleep(request_delay_seconds)
                           ast, af, ab = get(au)
                           raw_name = "part-" + re.sub(r"[^A-Za-z0-9_-]", "_", part["part_number"]) + ".html"
                           open("out/" + raw_name, "wb").write(ab)
@@ -188,7 +193,7 @@ jobs:
                   output["sampled_groups"].append(group_result)
                   sampled += 1
                   print("GROUP_SAMPLE", sampled, "HTTP", gs, "ROWS", len(gp.rows))
-                  if sampled_parts >= 40:
+                  if sampled_parts >= max_ajax_rows:
                       break
               except Exception as e:
                   print("GROUP_ERROR", group["url"], repr(e))
