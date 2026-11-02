@@ -74,7 +74,8 @@
           "oem_number_raw",
           "production_period_raw",
           "applicability_raw",
-          "source_row_id"
+          "source_row_id",
+          "source_status"
         ],
         "properties": {
           "oem_number_raw": { "type": ["string", "null"] },
