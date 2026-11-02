@@ -54,14 +54,7 @@ jobs:
             --root .catcar-fixtures \
             --schema schemas/catcar-extraction-v0.1.schema.json \
             --output out/normalized
-      - name: Probe confirmed CatCar diagram URLs (bounded, no full downloads)
-        run: |
-          python -m tools.catcar_poc.check_diagram_urls \
-            --input out/normalized/toyota-camry-oil-filter.json \\
-            --input out/normalized/nissan-pixo.json \\
-            --output out/diagram-url-check.json \\
-            --max-urls 20 --timeout 10
-      - name: Export Toyota and Nissan fixtures to PartScope shards
+      - name: Probe confirmed CatCar diagram URLs (bounded, no full downloads)\n        run: python -m tools.catcar_poc.check_diagram_urls --input out/normalized/toyota-camry-oil-filter.json --input out/normalized/nissan-pixo.json --output out/diagram-url-check.json --max-urls 20 --timeout 10\n      - name: Export Toyota and Nissan fixtures to PartScope shards
         run: python -m tools.catcar_poc.export_partscope --input out/normalized/toyota-camry-oil-filter.json --input out/normalized/nissan-pixo.json --output out/partscope
       - uses: actions/upload-artifact@v4
         with:
