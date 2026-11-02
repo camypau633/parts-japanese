@@ -145,6 +145,7 @@ def normalize_sample(sample, artifact_dir, schema):
                 },
             })
 
+            total_parts += 1
             if source_status == "no_applicable_data":
                 oem_records.append({
                     "oem_number_raw": None,
@@ -157,6 +158,7 @@ def normalize_sample(sample, artifact_dir, schema):
                     "source_group_id": group_id,
                     "source_url": ajax_url,
                 })
+                total_oem_records += 1
                 continue
 
             for record_order, record in enumerate(records):
@@ -176,7 +178,6 @@ def normalize_sample(sample, artifact_dir, schema):
                 })
                 if oem:
                     unique_oems.add(oem)
-            total_parts += 1
             total_oem_records += len(records)
 
         profile_period = _profile_period(filter_params.get("ProfPeriod"))
