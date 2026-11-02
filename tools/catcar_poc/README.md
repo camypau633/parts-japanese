@@ -41,6 +41,8 @@ python -m tools.catcar_poc.cli --adapter ford --input page.html --output catalog
 
 ## Tests
 
-GitHub Actions runs parser, adapter, regression, and JSON Schema tests on Python 3.12. Tests use synthetic HTML fragments based on the verified page structures. They are regression tests, not proof of full brand coverage.
+GitHub Actions runs parser, adapter, regression, and JSON Schema tests on Python 3.12. Synthetic tests cover edge cases. A separate offline real-artifact regression replays the previously captured Toyota, Nissan, Ford, and VAG HTML pages without contacting CatCar, validates each normalized document against the shared schema, and uploads the JSON report as a short-lived workflow artifact. This confirms the tested layouts only; it is not proof of full brand coverage.
+
+Toyota AJAX responses with the source message `No applicable data!` are retained as OEM records with `source_status: no_applicable_data`, rather than silently disappearing. Blank OEM period/applicability cells remain null.
 
 Before a production importer is considered, the adapters still need fixture-based validation against additional real page variants and an explicit permission review.
