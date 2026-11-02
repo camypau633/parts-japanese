@@ -18,7 +18,7 @@ jobs:
           import json,re,urllib.request
           from html.parser import HTMLParser
           from urllib.parse import urljoin
-          URL="https://www.catcar.info/audivw/?l=c3RzPT17IjEwIjoiQnJhbmQiLCIyMCI6IlZXIiwiNDAiOiJDYW1wbW9iLiAoVHlwMlwvVHJhbnNwLlwvTFQpIEV1cm9wZSIsIjUwIjoiMjAxOCIsIjYwIjoiQm9keSIsIjcwIjoiODY3MzUifXx8c3Q9PTcwfHxicmFuZD09dnd8fG1hcmtldD09UkRXfHxtZG49PUNBTVAgfHxFcGlzPT04NzF8fEVpbnNhdHo9PTIwMTh8fE1haW5Hcm91cD09OHx8QmlsZHRhZmVsPT04NjczNXx8R3JhZmlrPT0wODY3MzU0NTI%3D&lang=en"
+          # Re-run probe after initial workflow registration.\n          URL="https://www.catcar.info/audivw/?l=c3RzPT17IjEwIjoiQnJhbmQiLCIyMCI6IlZXIiwiNDAiOiJDYW1wbW9iLiAoVHlwMlwvVHJhbnNwLlwvTFQpIEV1cm9wZSIsIjUwIjoiMjAxOCIsIjYwIjoiQm9keSIsIjcwIjoiODY3MzUifXx8c3Q9PTcwfHxicmFuZD09dnd8fG1hcmtldD09UkRXfHxtZG49PUNBTVAgfHxFcGlzPT04NzF8fEVpbnNhdHo9PTIwMTh8fE1haW5Hcm91cD09OHx8QmlsZHRhZmVsPT04NjczNXx8R3JhZmlrPT0wODY3MzU0NTI%3D&lang=en"
           req=urllib.request.Request(URL,headers={"User-Agent":"Mozilla/5.0 Chrome/128 Safari/537.36","Accept-Language":"en-US,en;q=0.9"})
           with urllib.request.urlopen(req,timeout=40) as r:
               status,final,body=r.status,r.geturl(),r.read()
