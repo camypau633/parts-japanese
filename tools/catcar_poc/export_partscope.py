@@ -1,6 +1,7 @@
 """Offline conversion from normalized Japanese CatCar JSON to PartScope shards."""
 import argparse
 import json
+import math
 import posixpath
 import re
 from collections import Counter, defaultdict
@@ -9,6 +10,7 @@ from urllib.parse import quote, urljoin, urlsplit, urlunsplit
 
 SUPPORTED_BRANDS = {"Toyota", "Nissan"}
 DEFAULT_MAX_SHARD_BYTES = 2 * 1024 * 1024
+DEFAULT_HOTSPOT_RADIUS = 28
 
 
 def clean_sku(value):
@@ -40,11 +42,8 @@ def normalize_diagram_url(source_url, image_url):
         return ""
     resolved = urljoin(source_url, image_url)
     parts = urlsplit(resolved)
-    # PartScope is hosted over HTTPS; HTTP images would be blocked as mixed
-    # content. CatCar's image host uses the site's wildcard TLS certificate.
-    if parts.hostname and parts.hostname.endswith("catcar.info"):
+    if parts.hostname and (parts.hostname == "catcar.info" or parts.hostname.endswith(".catcar.info")):
         parts = parts._replace(scheme="https")
-    # Source paths occasionally contain literal spaces in image filenames.
     path = quote(posixpath.normpath(parts.path), safe="/%:@")
     return urlunsplit((parts.scheme, parts.netloc, path, parts.query, parts.fragment))
 
@@ -61,7 +60,112 @@ def diagram_data(document):
     }
 
 
-def document_to_records(document):
+def validate_geometry_report(report):
+    """Validate the bounded image/header and CatCar resize-script evidence."""
+    script = "\n".join((report.get("coordinate_script") or {}).get("relevant_snippets") or [])
+    css = "\n".join((report.get("main_css") or {}).get("relevant_snippets") or [])
+    required_script = ("srcTop", "srcLeft", "srcWidth", "srcHeight", "h/nh", "w/nw")
+    if not all(token in script for token in required_script):
+        raise ValueError("CatCar coordinate resize script evidence is incomplete")
+    if ".resize" not in css or "width:100%" not in css or "height:100%" not in css:
+        raise ValueError("CatCar diagram CSS resize evidence is incomplete")
+
+    index = {}
+    for image in report.get("images") or []:
+        url = text(image.get("image_url"))
+        dimensions = image.get("image_dimensions") or {}
+        width = dimensions.get("width")
+        height = dimensions.get("height")
+        if not url:
+            raise ValueError("Geometry report contains an image without URL")
+        if image.get("http_status") != 206 or not text(image.get("content_type")).lower().startswith("image/png"):
+            raise ValueError("Diagram image was not verified as a PNG range response: %s" % url)
+        if not isinstance(width, int) or not isinstance(height, int) or width <= 0 or height <= 0:
+            raise ValueError("Diagram image dimensions are missing: %s" % url)
+        if image.get("hotspot_count", 0) and image.get("all_hotspot_boxes_inside_image_bounds") is not True:
+            raise ValueError("Hotspot bounds were not verified for diagram: %s" % url)
+        index[url] = image
+    if not index:
+        raise ValueError("Geometry report contains no verified diagram images")
+    return index
+
+
+def _coordinate(value, field, position):
+    try:
+        result = float(str(value).strip())
+    except (TypeError, ValueError):
+        raise ValueError("Invalid hotspot %s for position %s" % (field, position))
+    if not math.isfinite(result):
+        raise ValueError("Non-finite hotspot %s for position %s" % (field, position))
+    return result
+
+
+def _append_hotspot(hotspots, hotspot):
+    for existing in hotspots:
+        if existing.get("id") == hotspot.get("id") and existing.get("x") == hotspot.get("x") and existing.get("y") == hotspot.get("y"):
+            details = text(hotspot.get("details"))
+            current = text(existing.get("details"))
+            if details and details not in current.split(" | "):
+                existing["details"] = (current + " | " + details).strip(" |")
+            return
+    hotspots.append(hotspot)
+
+
+def hotspots_for_row(document, row, oem, description, diagram_url, geometry_index):
+    if not geometry_index or not diagram_url:
+        return []
+    image = geometry_index.get(diagram_url)
+    if image is None:
+        raise ValueError("No verified geometry report for Toyota diagram %s" % diagram_url)
+    dimensions = image["image_dimensions"]
+    image_width = dimensions["width"]
+    image_height = dimensions["height"]
+    row_id = text(row.get("source_row_id"))
+    if not row_id:
+        return []
+
+    raw_number = text(oem.get("oem_number_raw"))
+    period = text(oem.get("production_period_raw"))
+    applicability = text(oem.get("applicability_raw"))
+    details = []
+    if period:
+        details.append("Период: " + period)
+    if applicability:
+        details.append("Применимость: " + applicability)
+
+    result = []
+    for item in document.get("hotspots") or []:
+        if item.get("resolution_status") != "matched":
+            continue
+        linked_rows = item.get("source_row_ids") or []
+        if not linked_rows and item.get("source_row_id"):
+            linked_rows = [item.get("source_row_id")]
+        if row_id not in [text(value) for value in linked_rows]:
+            continue
+
+        position = text(item.get("source_position_code") or row.get("diagram_position_code"))
+        if not position:
+            continue
+        top = _coordinate(item.get("top_raw"), "top", position)
+        left = _coordinate(item.get("left_raw"), "left", position)
+        width = _coordinate(item.get("width_raw"), "width", position)
+        height = _coordinate(item.get("height_raw"), "height", position)
+        if width <= 0 or height <= 0 or left < 0 or top < 0 or left + width > image_width or top + height > image_height:
+            raise ValueError("Hotspot position %s exceeds verified image dimensions" % position)
+
+        result.append({
+            "id": position,
+            "x": left + width / 2.0,
+            "y": top + height / 2.0,
+            "radius": DEFAULT_HOTSPOT_RADIUS,
+            "name": description,
+            "oem": raw_number,
+            "details": "; ".join(details),
+        })
+    return result
+
+
+def document_to_records(document, geometry_index=None):
     source = document.get("source") or {}
     context = document.get("catalog_context") or {}
     brand = text(context.get("brand"))
@@ -97,6 +201,10 @@ def document_to_records(document):
     compatibility = vehicle_context(context)
     diagram = diagram_data(document)
     catalog_name = text(context.get("group_label_raw"))
+    group_id = text(context.get("source_group_id"))
+    if geometry_index and brand == "Toyota" and diagram["diagramUrl"] and diagram["diagramUrl"] not in geometry_index:
+        raise ValueError("Toyota diagram is missing from the verified geometry report")
+
     for row, oem in candidates:
         raw_number = text(oem.get("oem_number_raw"))
         sku = clean_sku(raw_number)
@@ -130,8 +238,11 @@ def document_to_records(document):
 
         record = result.get(sku)
         if record is None:
+            part_id = "%s:%s" % (brand.lower(), sku)
+            if group_id:
+                part_id += ":" + group_id
             record = {
-                "part_id": "%s:%s" % (brand.lower(), sku),
+                "part_id": part_id,
                 "sku": sku,
                 "name": description,
                 "brand": brand,
@@ -148,8 +259,20 @@ def document_to_records(document):
             record["factory_parts"].append(factory)
         if not record["name"] and description:
             record["name"] = description
+
+        if geometry_index and brand == "Toyota":
+            for hotspot in hotspots_for_row(
+                document, row, oem, description, diagram["diagramUrl"], geometry_index
+            ):
+                _append_hotspot(record["diagram"]["hotspots"], hotspot)
     return result
 
+
+def _iter_records(records):
+    for sku, value in records.items():
+        variants = value if isinstance(value, list) else [value]
+        for record in variants:
+            yield sku, record
 
 
 def validate_export_records(records):
@@ -159,8 +282,12 @@ def validate_export_records(records):
     records_with_engine = 0
     records_with_diagram = 0
     factory_part_count = 0
+    hotspot_count = 0
+    records_with_hotspots = 0
+    record_count = 0
 
-    for sku, record in records.items():
+    for sku, record in _iter_records(records):
+        record_count += 1
         if not sku or clean_sku(sku) != sku:
             raise ValueError("Invalid cleaned SKU key: %r" % sku)
         if record.get("sku") != sku:
@@ -198,49 +325,84 @@ def validate_export_records(records):
         if any(text(vehicle.get("engine")) for vehicle in record["compatibility"]):
             records_with_engine += 1
 
-        diagram_url = text((record.get("diagram") or {}).get("diagramUrl"))
+        diagram = record.get("diagram") or {}
+        diagram_url = text(diagram.get("diagramUrl"))
         if diagram_url:
             parsed_diagram = urlsplit(diagram_url)
             if parsed_diagram.scheme not in ("http", "https") or not parsed_diagram.hostname or not (parsed_diagram.hostname == "catcar.info" or parsed_diagram.hostname.endswith(".catcar.info")):
                 raise ValueError("Invalid CatCar diagram URL for %s" % sku)
             records_with_diagram += 1
 
+        hotspots = diagram.get("hotspots") or []
+        if not isinstance(hotspots, list):
+            raise ValueError("Diagram hotspots must be a list for %s" % sku)
+        if hotspots:
+            records_with_hotspots += 1
+        for hotspot in hotspots:
+            hotspot_count += 1
+            if not text(hotspot.get("id")) or not text(hotspot.get("oem")):
+                raise ValueError("Hotspot is missing position or OEM for %s" % sku)
+            if clean_sku(hotspot.get("oem")) != sku:
+                raise ValueError("Hotspot OEM does not match record SKU: %s" % sku)
+            for field in ("x", "y", "radius"):
+                value = hotspot.get(field)
+                if not isinstance(value, (int, float)) or not math.isfinite(value):
+                    raise ValueError("Hotspot %s is not numeric for %s" % (field, sku))
+            if hotspot["radius"] <= 0:
+                raise ValueError("Hotspot radius must be positive for %s" % sku)
+
     return {
-        "records_validated": len(records),
+        "records_validated": record_count,
         "factory_parts_validated": factory_part_count,
         "records_by_brand": dict(sorted(brands.items())),
         "records_with_compatibility_years": records_with_years,
         "records_with_engine": records_with_engine,
         "records_with_diagram_url": records_with_diagram,
+        "records_with_hotspots": records_with_hotspots,
+        "hotspots_validated": hotspot_count,
         "validation_passed": True,
     }
 
-def export_documents(input_paths, output_dir, max_shard_bytes=DEFAULT_MAX_SHARD_BYTES):
+
+def _merge_record(existing, incoming):
+    for item in incoming["factory_parts"]:
+        if item not in existing["factory_parts"]:
+            existing["factory_parts"].append(item)
+    for vehicle in incoming["compatibility"]:
+        if vehicle not in existing["compatibility"]:
+            existing["compatibility"].append(vehicle)
+    if text((existing.get("diagram") or {}).get("diagramUrl")) == text((incoming.get("diagram") or {}).get("diagramUrl")):
+        for hotspot in (incoming.get("diagram") or {}).get("hotspots") or []:
+            _append_hotspot(existing["diagram"]["hotspots"], hotspot)
+    else:
+        for url in incoming.get("technical_drawings") or []:
+            if url not in existing["technical_drawings"]:
+                existing["technical_drawings"].append(url)
+
+
+def export_documents(input_paths, output_dir, max_shard_bytes=DEFAULT_MAX_SHARD_BYTES, geometry_report=None):
     output_dir = Path(output_dir)
     if output_dir.exists() and any(output_dir.iterdir()):
         raise ValueError("Output directory must be empty; refusing stale shards")
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    merged = {}
+    geometry_index = validate_geometry_report(geometry_report) if geometry_report is not None else None
+    merged = defaultdict(list)
     for input_path in input_paths:
         document = json.loads(Path(input_path).read_text(encoding="utf-8"))
-        for sku, record in document_to_records(document).items():
-            existing = merged.get(sku)
+        for sku, record in document_to_records(document, geometry_index=geometry_index).items():
+            variants = merged[sku]
+            existing = next((item for item in variants if item.get("part_id") == record.get("part_id")), None)
             if existing is None:
-                merged[sku] = record
-                continue
-            for item in record["factory_parts"]:
-                if item not in existing["factory_parts"]:
-                    existing["factory_parts"].append(item)
-            for vehicle in record["compatibility"]:
-                if vehicle not in existing["compatibility"]:
-                    existing["compatibility"].append(vehicle)
+                variants.append(record)
+            else:
+                _merge_record(existing, record)
 
     validation = validate_export_records(merged)
 
     shards = defaultdict(dict)
-    for sku, record in merged.items():
-        shards[sku[:2]][sku] = record
+    for sku, variants in merged.items():
+        shards[sku[:2]][sku] = variants[0] if len(variants) == 1 else variants
 
     report_shards = []
     for prefix in sorted(shards):
@@ -250,21 +412,30 @@ def export_documents(input_paths, output_dir, max_shard_bytes=DEFAULT_MAX_SHARD_
         if len(encoded) > max_shard_bytes:
             raise ValueError("Shard %s exceeds the %d-byte limit" % (name, max_shard_bytes))
         (output_dir / name).write_bytes(encoded)
-        report_shards.append({"file": name, "records": len(shards[prefix]), "bytes": len(encoded)})
+        variant_count = sum(len(value) if isinstance(value, list) else 1 for value in shards[prefix].values())
+        report_shards.append({
+            "file": name,
+            "sku_keys": len(shards[prefix]),
+            "records": variant_count,
+            "bytes": len(encoded),
+        })
 
+    record_count = sum(len(value) for value in merged.values())
     report = {
         "exporter": "partscope-catcar-japanese-v1",
         "documents_read": len(input_paths),
-        "records_exported": len(merged),
+        "records_exported": record_count,
+        "unique_skus_exported": len(merged),
         "validation": validation,
         "shards": report_shards,
         "analogs_exported": 0,
         "physical_dimensions_exported": 0,
-        "hotspots_exported": 0,
+        "hotspots_exported": validation["hotspots_validated"],
         "notes": [
             "Factory catalogue rows are stored only in factory_parts.",
             "No analogues or physical dimensions are inferred.",
-            "Hotspots are omitted until source coordinates are calibrated to image coordinates.",
+            "Toyota hotspots use source rectangle centres in natural image pixels after bounded image and resize-script verification." if geometry_index else "Hotspots are omitted without a verified geometry report.",
+            "Multiple catalog-group records for one SKU remain separate PartScope candidates.",
             "Production export is restricted to Toyota and Nissan.",
         ],
     }
@@ -279,8 +450,10 @@ def main(argv=None):
     parser.add_argument("--input", action="append", required=True)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--max-shard-bytes", type=int, default=DEFAULT_MAX_SHARD_BYTES)
+    parser.add_argument("--geometry-report", type=Path, help="Verified CatCar diagram geometry report")
     args = parser.parse_args(argv)
-    report = export_documents(args.input, args.output, args.max_shard_bytes)
+    geometry_report = json.loads(args.geometry_report.read_text(encoding="utf-8")) if args.geometry_report else None
+    report = export_documents(args.input, args.output, args.max_shard_bytes, geometry_report=geometry_report)
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0
 
