@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.catcar_poc.export_partscope import document_to_records, export_documents
+from tools.catcar_poc.export_partscope import (\n    document_to_records, export_documents, validate_export_records,\n)
 
 
 def sample(brand="Nissan"):
@@ -71,6 +71,29 @@ class PartScopeExportTests(unittest.TestCase):
         self.assertEqual(records["90915YZZE1"]["factory_parts"][0]["position"], "15600A")
         self.assertEqual(records["90915YZZE1"]["factory_parts"][0]["applicability"], "1AZ-FE")
         self.assertEqual(records["90915YZZE2"]["factory_parts"][0]["production_period"], "2006-")
+
+    def test_export_validator_reports_provenance_and_context_coverage(self):
+        records = document_to_records(sample())
+        report = validate_export_records(records)
+        self.assertTrue(report["validation_passed"])
+        self.assertEqual(report["records_validated"], 1)
+        self.assertEqual(report["factory_parts_validated"], 1)
+        self.assertEqual(report["records_by_brand"], {"Nissan": 1})
+        self.assertEqual(report["records_with_compatibility_years"], 1)
+        self.assertEqual(report["records_with_engine"], 1)
+        self.assertEqual(report["records_with_diagram_url"], 1)
+
+    def test_export_validator_rejects_factory_sku_mismatch(self):
+        records = document_to_records(sample())
+        records["120004A00A"]["factory_parts"][0]["sku"] = "99999"
+        with self.assertRaisesRegex(ValueError, "does not match record SKU"):
+            validate_export_records(records)
+
+    def test_export_validator_rejects_missing_factory_provenance(self):
+        records = document_to_records(sample())
+        records["120004A00A"]["factory_parts"][0]["source_url"] = ""
+        with self.assertRaisesRegex(ValueError, "missing source provenance"):
+            validate_export_records(records)
 
     def test_non_japanese_research_brand_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "not enabled"):
