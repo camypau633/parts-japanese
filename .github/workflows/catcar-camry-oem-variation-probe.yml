@@ -15,13 +15,14 @@ jobs:
           set -euo pipefail
           mkdir -p out
           python - <<'PY'
+          import base64
           import json
           import re
           import time
           import urllib.error
           import urllib.request
           from html.parser import HTMLParser
-          from urllib.parse import quote, urljoin
+          from urllib.parse import parse_qs, quote, urljoin, urlsplit
 
           BASE = "https://www.catcar.info"
           MOD_URL = "https://www.catcar.info/toyota/?l=bWFya2V0PT1qYXBhbnx8c3Q9PTYwfHxzdHM9PXsiMTAiOiLQoNGL0L3QvtC6IiwiMjAiOiLQr9Cf0J7QndCY0K8iLCIzMCI6IkNBTVJZIDI4NDE3MCIsIjYwIjoiQUNWMzAtQUVQTksifXx8Y2F0YWxvZz09Mjg0MTcwfHxyZWM9PUExfHxtb2RpZm5hbWU9PUFDVjMwLUFFUE5LfHxlbmdpbmU9PTJBWkZFfHxtb2RlbG5vPT0wMDF8fFByb2ZQZXJpb2Q9PTIwMDEwOTIwMDYwMXx8bW9kX2luZm8wPT0yNEd8fHBhZ2U3MD09MA=="
@@ -43,6 +44,33 @@ jobs:
                           raise
                   time.sleep(2 * (attempt + 1))
               raise last_error
+
+          def catcar_filter_params(url):
+              encoded = parse_qs(urlsplit(url).query).get("l", [""])[0]
+              if not encoded:
+                  return {}
+              padded = encoded + ("=" * (-len(encoded) % 4))
+              try:
+                  decoded = base64.b64decode(padded).decode("utf-8")
+              except (ValueError, UnicodeDecodeError):
+                  return {}
+              params = {}
+              for item in decoded.split("||"):
+                  if "==" in item:
+                      key, value = item.split("==", 1)
+                      params[key.strip()] = value.strip()
+              return params
+
+          def group_metadata(url):
+              params = catcar_filter_params(url)
+              try:
+                  labels = json.loads(params.get("sts", "{}"))
+              except (TypeError, ValueError):
+                  labels = {}
+              return {
+                  "group_id": params.get("group_id", ""),
+                  "label_raw": labels.get("70", ""),
+              }
 
           class GroupParser(HTMLParser):
               def __init__(self):
@@ -101,7 +129,13 @@ jobs:
               url = urljoin(final_url, g["href"])
               if url not in seen:
                   seen.add(url)
-                  unique_groups.append({"url": url, "label": g["label"]})
+                  metadata = group_metadata(url)
+                  unique_groups.append({
+                      "url": url,
+                      "label": g["label"] or metadata["label_raw"],
+                      "group_id": metadata["group_id"],
+                      "label_raw": metadata["label_raw"],
+                  })
           print("MODIFICATION_HTTP", status, "GROUPS_FOUND", len(unique_groups))
 
           output = {"vehicle": {"make": "Toyota", "model": "Camry", "catalog_id": "284170", "modification": "ACV30-AEPNK", "engine": "2AZFE"}, "sampled_groups": []}
@@ -112,7 +146,13 @@ jobs:
                   gs, gu, gb = get(group["url"])
                   gp = PartParser()
                   gp.feed(gb.decode("utf-8", "replace"))
-                  group_result = {"url": gu, "http": gs, "parts": []}
+                  group_result = {
+                      "url": gu,
+                      "http": gs,
+                      "group_id": group["group_id"],
+                      "label_raw": group["label_raw"],
+                      "parts": [],
+                  }
                   for part in gp.rows[:6]:
                       if sampled_parts >= 40:
                           break
@@ -129,7 +169,13 @@ jobs:
                               values = [v.strip() for v in row]
                               if len(values) >= 3 and any(values):
                                   records.append({"oem": values[0], "period": values[1], "applicability": values[2]})
-                          part_result = {"part_number": part["part_number"], "ajax_http": ast, "records": records}
+                          part_result = {
+                              "part_number": part["part_number"],
+                              "ajax_http": ast,
+                              "ajax_url": au,
+                              "source_page_file": raw_name,
+                              "records": records,
+                          }
                           group_result["parts"].append(part_result)
                           print("SAMPLED_PART", part["part_number"], "RECORDS", len(records), "UNIQUE_OEM", len(set(x["oem"] for x in records)))
                       except Exception as e:
