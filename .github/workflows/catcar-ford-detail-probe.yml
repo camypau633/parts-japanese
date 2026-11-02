@@ -57,28 +57,37 @@ jobs:
                   return base64.b64decode(token + "="*((4-len(token)%4)%4)).decode("utf-8","replace")
               except Exception: return ""
           target=next((urljoin(final,x) for x in group_links if "group==A04" in decoded_link(x)),urljoin(final,group_links[0]))
-          st2,final2,body2=get(target); html=body2.decode("utf-8","replace")
+          st2,final2,body2=get(target); html2=body2.decode("utf-8","replace")
+          p2=P(); p2.feed(html2)
+          subgroup_links=p2.links
+          leaf=next((x["href"] for x in subgroup_links if "sect==A04041" in decoded_link(x["href"])),None)
+          if leaf:
+              detail_target=urljoin(final2,leaf)
+              st3,final3,body3=get(detail_target); html=body3.decode("utf-8","replace")
+          else:
+              detail_target=target; st3,final3,body3=st2,final2,body2; html=html2
           open("out/ford-fiesta-detail.html","w",encoding="utf-8").write(html)
           p=P(); p.feed(html)
           markers=["srcTop","srcLeft","srcWidth","srcHeight","srcNum","coord","groups-parts__item","getArticles"]
           result={"start_http":st,"start_url":final,"group_links":len(group_links),"selected_group_url":target,
-                  "detail_http":st2,"detail_url":final2,"detail_bytes":len(body2),
-                  "table_rows":len(p.rows),"sample_rows":p.rows[:20],"images":p.images[:40],
-                  "links":p.links[:40],"scripts":p.scripts[:30],
-                  "markers":{x:html.count(x) for x in markers},"coord_divs":p.coords[:80]}
+                  "subgroup_links":len(subgroup_links),"selected_leaf_url":detail_target,
+                  "detail_http":st3,"detail_url":final3,"detail_bytes":len(body3),
+                  "table_rows":len(p.rows),"sample_rows":p.rows[:25],"images":p.images[:50],
+                  "links":p.links[:50],"scripts":p.scripts[:30],
+                  "markers":{x:html.count(x) for x in markers},"coord_divs":p.coords[:100]}
           print(json.dumps(result,ensure_ascii=False,indent=2))
           with open("out/ford-fiesta-detail.json","w",encoding="utf-8") as f: json.dump(result,f,ensure_ascii=False,indent=2)
 
           downloads=[]
           for img in p.images:
               src=img.get("src") or img.get("data-src") or ""
-              if not any(k in src.lower() for k in ("page_","scheme","image")): continue
+              if not src or "logo" in src.lower() or src.startswith("data:"): continue
               u=urljoin(final2,src)
               try:
                   s,fu,b=get(u); fn="out/ford-diagram-%02d.bin"%len(downloads); open(fn,"wb").write(b)
                   downloads.append({"url":fu,"http":s,"bytes":len(b),"file":fn})
               except Exception as e: downloads.append({"url":u,"error":repr(e)})
-              if len(downloads)>=4: break
+              if len(downloads)>=6: break
           print("DIAGRAM_DOWNLOADS",json.dumps(downloads,ensure_ascii=False))
           PY
       - uses: actions/upload-artifact@v4
