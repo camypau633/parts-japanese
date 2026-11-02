@@ -1,6 +1,6 @@
 # CatCar normalized extraction contract (draft)
 
-Status: research draft, based on bounded Toyota, Nissan, and Ford probes. This is not a production importer specification and does not authorize bulk collection.
+Status: research draft, based on bounded Toyota, Nissan, Ford, and Volkswagen probes. This is not a production importer specification and does not authorize bulk collection.
 
 ## Design rule
 
@@ -33,19 +33,19 @@ Represent catalog navigation as parent-child nodes:
 - `source_url`
 - `sort_order` (only when explicitly observable)
 
-This supports Ford's multi-level navigation without assuming that Toyota/Nissan have the same hierarchy.
+This supports Ford's multi-level navigation without assuming that Toyota/Nissan/VAG have the same hierarchy.
 
 ## 3. Part row
 
 A part row is the source's displayed position in a catalog diagram/table:
 
 - `source_row_id`
-- `diagram_position_code` — e.g. Ford's Code or Nissan's table position identifier
+- `diagram_position_code` — e.g. Ford's `Code`, Nissan's position identifier, or VAG's position column
 - `part_number_raw`
 - `description_raw`
 - `production_period_raw`
 - `quantity_raw`
-- `additional_source_fields`
+- `row_kind`: `positioned`, `continuation`, `group_header`, or `unknown` when the source structure supports this distinction\n- `parent_position_code` (nullable; populate only when source markup or behavior confirms the continuation relationship)\n- `source_row_order`\n- `additional_source_fields`
 - `source_status`: `available`, `no_applicable_data`, or `unresolved`
 
 Do not assume `part_number_raw` is a confirmed OEM number in every adapter. Keep a separate OEM record collection only when the source explicitly exposes OEM values.
@@ -92,9 +92,9 @@ Keep original coordinate values. Do not scale or rewrite coordinates until the o
 |---|---|---|
 | Toyota | AJAX row reveal using row token; OEM variation records returned separately | HTML hotspot coordinates; match by source row identifier |
 | Nissan | Static HTML table | `srcNum` matches table part-row identifiers on tested page |
-| Ford | Hierarchical group navigation; static leaf table | hotspot `name` matches table `Code` on tested page |
+| Ford | Hierarchical group navigation; static leaf table | hotspot `name` matches table `Code` on tested page |\n| Volkswagen / VAG | Combined Audi/VW/Skoda/Seat catalog; static table with blank-position continuation rows | hotspot `name` matches table position column on tested page; one table marker `(40)` had no hotspot |
 
-These are tested page patterns, not universal brand-wide guarantees.
+For VAG continuation rows, preserve raw row order and blank position cells. Do not inherit the preceding position code until the source markup or browser behavior proves that relationship. Treat the unmatched `(40)` marker as unresolved.\n\nThese are tested page patterns, not universal brand-wide guarantees.
 
 ## 7. Required quality checks per page
 
