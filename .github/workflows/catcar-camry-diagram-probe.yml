@@ -38,14 +38,18 @@ jobs:
                       attrs = dict(attrs)
                       onclick = attrs.get("onclick", "")
                       name = attrs.get("name", "")
-                      match = re.search(r"getArticles\\(this,\\s*'([^']+)'\\s*,\\s*80", onclick)
+                      marker = "getArticles(this, '"
+                      match = None
+                      if marker in onclick:
+                          token = onclick.split(marker, 1)[1].split("'", 1)[0]
+                          match = (token,)
                       if name and match:
                           self.rows.append((name, match.group(1), onclick))
 
           status, final_url, raw = get(URL)
           html = raw.decode("utf-8", "replace")
           open("out/camry-oil-filter.html", "w", encoding="utf-8").write(html)
-          print("GROUP_HTTP", status, "BYTES", len(raw))
+          print("GROUP_HTTP", status, "BYTES", len(raw), "AJAX_PROBE_VERSION", 2)
           parser = PartsParser()
           parser.feed(html)
           print("PART_ROWS_FOUND", len(parser.rows))
