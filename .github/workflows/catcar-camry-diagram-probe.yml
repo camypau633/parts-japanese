@@ -15,54 +15,69 @@ jobs:
           set -euo pipefail
           mkdir -p out
           python - <<'PY'
-          import re, urllib.request
+          import re
+          import urllib.request
           from html.parser import HTMLParser
-          from html import unescape
           from urllib.parse import quote, urlsplit, urlunsplit
-          BASE="https://www.catcar.info"
-          URL="https://www.catcar.info/toyota/?l=bWFya2V0PT1qYXBhbnx8c3Q9PTcwfHxzdHM9PXsiMTAiOiJcdTA0MjBcdTA0NGJcdTA0M2RcdTA0M2VcdTA0M2EiLCIyMCI6Ilx1MDQyZlx1MDQxZlx1MDQxZVx1MDQxZFx1MDQxOFx1MDQyZiIsIjMwIjoiQ0FNUlkgMjg0MTcwIiwiNjAiOiJBQ1YzMC1BRVBOSyIsIjcwIjoiMTUtMDIgXHUwNDI0XHUwNDE4XHUwNDFiXHUwNDJjXHUwNDIyXHUwNDIwIFx1MDQxY1x1MDQxMFx1MDQyMVx1MDQxYlx1MDQyZlx1MDQxZFx1MDQyYlx1MDQxOSJ9fHxjYXRhbG9nPT0yODQxNzB8fHJlYz09QTF8fG1vZGlmbmFtZT09QUNWMzAtQUVQTkt8fGVuZ2luZT09MkFaRkV8fG1vZGVsbm89PTAwMXx8UHJvZlBlcmlvZD09MjAwMTA5MjAwNjAxfHxtb2RfaW5mbzA9PTI0R3x8Z3JvdXBfaWQ9PTE1MDJ8fHBhZ2U3MD09MA%3D%3D"
+
+          BASE = "https://www.catcar.info"
+          URL = "https://www.catcar.info/toyota/?l=bWFya2V0PT1qYXBhbnx8c3Q9PTcwfHxzdHM9PXsiMTAiOiJcdTA0MjBcdTA0NGJcdTA0M2RcdTA0M2VcdTA0M2EiLCIyMCI6Ilx1MDQyZlx1MDQxZlx1MDQxZVx1MDQxZFx1MDQxOFx1MDQyZiIsIjMwIjoiQ0FNUlkgMjg0MTcwIiwiNjAiOiJBQ1YzMC1BRVBOSyIsIjcwIjoiMTUtMDIgXHUwNDI0XHUwNDE4XHUwNDFiXHUwNDJjXHUwNDIyXHUwNDIwIFx1MDQxY1x1MDQxMFx1MDQyMVx1MDQxYlx1MDQyZlx1MDQxZFx1MDQyYlx1MDQxOSJ9fHxjYXRhbG9nPT0yODQxNzB8fHJlYz09QTF8fG1vZGlmbmFtZT09QUNWMzAtQUVQTkt8fGVuZ2luZT09MkFaRkV8fG1vZGVsbm89PTAwMXx8UHJvZlBlcmlvZD09MjAwMTA5MjAwNjAxfHxtb2RfaW5mbzA9PTI0R3x8Z3JvdXBfaWQ9PTE1MDJ8fHBhZ2U3MD09MA%3D%3D"
+
           def get(url):
-              req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0"})
-              with urllib.request.urlopen(req,timeout=30) as r: return r.status,r.geturl(),r.read()
-          status,final,raw=get(URL)
-          html=raw.decode("utf-8","replace")
-          open("out/camry-oil-filter.html","w",encoding="utf-8").write(html)
-          print("GROUP_HTTP",status,"BYTES",len(raw),"URL",final)
-          print("HOTSPOT_MARKERS", {k:html.count(k) for k in ["srcTop","srcLeft","srcWidth","srcHeight","hotspot","area","map"]})
-          import os
-          from html.parser import HTMLParser
-          class ImgParser(HTMLParser):
+              req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  return response.status, response.geturl(), response.read()
+
+          status, final_url, raw = get(URL)
+          html = raw.decode("utf-8", "replace")
+          with open("out/camry-oil-filter.html", "w", encoding="utf-8") as output:
+              output.write(html)
+          print("GROUP_HTTP", status, "BYTES", len(raw), "URL", final_url)
+          print("HOTSPOT_MARKERS", {key: html.count(key) for key in ["srcTop", "srcLeft", "srcWidth", "srcHeight", "hotspot", "area", "map"]})
+
+          class ImageParser(HTMLParser):
               def __init__(self):
-                  super().__init__(); self.images=[]
-              def handle_starttag(self,tag,attrs):
-                  if tag=="img":
-                      a=dict(attrs)
-                      src=a.get("src") or a.get("data-src")
-                      if src and any(ext in src.lower() for ext in [".png",".jpg",".gif"]) and "ajax-loader" not in src and "/loader" not in src and "logo" not in src:
-                          self.images.append(src)
-          parser=ImgParser(); parser.feed(html)
-          for idx,src in enumerate(dict.fromkeys(parser.images)):
-              full=src if src.startswith("http") else BASE+src
-              parts=urlsplit(full)
-              full=urlunsplit((parts.scheme,parts.netloc,quote(parts.path,safe="/:._-"),parts.query,parts.fragment))
+                  super().__init__()
+                  self.images = []
+
+              def handle_starttag(self, tag, attrs):
+                  if tag == "img":
+                      attrs = dict(attrs)
+                      src = attrs.get("src") or attrs.get("data-src")
+                      if src and any(ext in src.lower() for ext in [".png", ".jpg", ".gif"]):
+                          if "ajax-loader" not in src and "/loader" not in src and "logo" not in src:
+                              self.images.append(src)
+
+          parser = ImageParser()
+          parser.feed(html)
+          for index, src in enumerate(dict.fromkeys(parser.images)):
+              full_url = src if src.startswith("http") else BASE + src
+              parts = urlsplit(full_url)
+              full_url = urlunsplit((parts.scheme, parts.netloc, quote(parts.path, safe="/:._-"), parts.query, parts.fragment))
               try:
-                  st,u,data=get(full)
-                  name="out/diagram-%02d.bin"%idx
-                  open(name,"wb").write(data)
-                  print("IMAGE",st,len(data),u,"SAVED",name)
-              except Exception as e: print("IMAGE_ERROR",full,repr(e))
-          for key in ["srcTop","srcLeft","srcWidth","srcHeight"]:
-              vals=[]
-              pos=0
+                  image_status, image_url, data = get(full_url)
+                  filename = "out/diagram-%02d.bin" % index
+                  with open(filename, "wb") as output:
+                      output.write(data)
+                  print("IMAGE", image_status, len(data), image_url, "SAVED", filename)
+              except Exception as error:
+                  print("IMAGE_ERROR", full_url, repr(error))
+
+          for key in ["srcTop", "srcLeft", "srcWidth", "srcHeight"]:
+              position = 0
+              count = 0
               while True:
-                  pos=html.find(key,pos)
-                  if pos<0: break
-                  vals.append(html[max(0,pos-100):pos+180].replace("\
-"," "))
-                  pos+=len(key)
-              for v in vals[:8]: print("HOTSPOT_CONTEXT",v[:300])
-          for row in re.findall(r"<tr[^>]*>",html,re.I):
-              if "getArticles" in row: print("PART_ROW_TAG",row[:500])
+                  position = html.find(key, position)
+                  if position < 0 or count >= 8:
+                      break
+                  context = html[max(0, position - 100):position + 180]
+                  print("HOTSPOT_CONTEXT", context[:300].replace(chr(10), " "))
+                  position += len(key)
+                  count += 1
+
+          for row in re.findall(r"<tr[^>]*>", html, re.I):
+              if "getArticles" in row:
+                  print("PART_ROW_TAG", row[:500])
           PY
       - uses: actions/upload-artifact@v4
         with:
