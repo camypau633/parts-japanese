@@ -312,7 +312,7 @@ jobs:
             echo "No normalized Toyota group documents were created"
             exit 1
           fi
-          python -m tools.catcar_poc.export_partscope "${args[@]}" --output out/partscope-preview
+          python -m tools.catcar_poc.export_partscope "${args[@]}" --output out/partscope-preview --geometry-report out/diagram-geometry.json
           cat out/partscope-preview/export-report.json
       - uses: actions/upload-artifact@v4
         with:
