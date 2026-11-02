@@ -29,6 +29,7 @@ class NormalizeTests(unittest.TestCase):
         self.assertEqual(normalized["parts"][1]["parent_position_code"], None)
         self.assertEqual(normalized["diagrams"][0]["source_image_url"], "/diagrams/sample.png")
         self.assertEqual(normalized["hotspots"][0]["resolution_status"], "matched")
+        self.assertEqual(normalized["hotspots"][0]["source_row_id"], normalized["parts"][0]["source_row_id"])
         self.assertEqual(normalized["validation"]["hotspot_matching"]["rows_without_hotspot"], ["(40)"])
 
 
