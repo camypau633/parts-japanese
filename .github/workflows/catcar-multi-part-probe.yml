@@ -60,9 +60,10 @@ jobs:
           for row in parser.rows:
               haystack = " ".join([str(v) for v in row["attrs"].values()]) + " " + row["text"]
               if any(target in haystack for target in targets):
-                  match = re.search(r"getArticles\\(this,\\s*'([^']+)'\\s*,\\s*80", row["onclick"])
-                  if match:
-                      chosen.append((match.group(1), haystack[:500]))
+                  if "getArticles" in row["onclick"] and ", 80," in row["onclick"]:
+                      parts = row["onclick"].split("'")
+                      if len(parts) >= 2:
+                          chosen.append((parts[1], haystack[:500]))
           print("HTML_ROWS", len(parser.rows))
           print("MATCHED_TARGETS", len(chosen))
           results = []
