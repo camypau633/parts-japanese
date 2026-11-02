@@ -119,14 +119,24 @@ jobs:
 
           script_checks = []
           for script in p.scripts:
-              if script.startswith("inline") or not script:
+              if script not in ("/js/script.js?v=2.0", "/js/jquery.resizeImageCoords.js"):
                   continue
               script_url = urljoin(final, script)
               try:
                   st, sf, sb = get(script_url)
                   js = sb.decode("utf-8","replace")
-                  interesting = [line.strip() for line in js.splitlines() if "coord" in line.lower() or "srcNum" in line or "srcTop" in line]
-                  script_checks.append({"url":sf,"http":st,"bytes":len(sb),"matches":interesting[:12]})
+                  interesting = []
+                  for needle in ("coord", "srcNum", "srcTop", "click", "resize"):
+                      pos = 0
+                      count = 0
+                      while True:
+                          pos = js.lower().find(needle.lower(), pos)
+                          if pos < 0 or count >= 4:
+                              break
+                          interesting.append({"needle":needle,"snippet":js[max(0,pos-180):pos+320]})
+                          pos += len(needle)
+                          count += 1
+                  script_checks.append({"url":sf,"http":st,"bytes":len(sb),"matches":interesting[:20]})
               except Exception as e:
                   script_checks.append({"url":script_url,"error":repr(e)})
 
