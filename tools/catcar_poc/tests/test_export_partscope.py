@@ -48,7 +48,7 @@ class PartScopeExportTests(unittest.TestCase):
         doc["diagrams"] = [{"diagram_id": "diagram-1", "source_image_url": "http://ci.catcar.info/toyota_2017_04/japan/./150397 .png"}]
         doc["parts"] = [{
             "source_row_id": "15600A", "diagram_position_code": "15600A",
-            "part_number_raw": None, "description_raw": "OIL FILTER",
+            "part_number_raw": None, "description_raw": "",
             "production_period_raw": "", "quantity_raw": "",
             "source_status": "requires_ajax",
         }]
