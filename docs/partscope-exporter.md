@@ -30,7 +30,8 @@ Repeat `--input` for each normalized document. The output directory must be empt
 - The converter is offline and makes no HTTP requests.
 - It does not crawl pages or download image assets.
 - Shards are keyed by the first two characters of the cleaned SKU and capped at 2 MiB by default.
-- `export-report.json` records counts and explicit omissions.
+- `export-report.json` records counts, explicit omissions, and a fail-closed integrity report: SKU/shard-key agreement, OEM row-to-SKU agreement, Toyota/Nissan-only brands, CatCar provenance/hosts, compatibility make consistency, and diagram URL format.
+- Export stops before writing shards if an integrity check fails. The report also measures how many records have explicit compatibility years, engine codes, and diagram URLs; missing source fields remain missing rather than being inferred.
 
 ## Real-fixture regression
 
