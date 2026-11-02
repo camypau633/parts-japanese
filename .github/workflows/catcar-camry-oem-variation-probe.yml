@@ -1,0 +1,133 @@
+name: CatCar Camry OEM variation probe
+on:
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Sample Camry groups and part catalog records
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python - <<'PY'
+          import json
+          import re
+          import urllib.request
+          from html.parser import HTMLParser
+          from urllib.parse import quote, urljoin
+
+          BASE = "https://www.catcar.info"
+          MOD_URL = "https://www.catcar.info/toyota/?l=bWFya2V0PT1qYXBhbnx8c3Q9PTcwfHxzdHM9PXsiMTAiOiLQoNGL0L3QvtC6IiwiMjAiOiLQr9Cf0J7QndCY0K8iLCIzMCI6IkNBTVJZIDI4NDE3MCIsIjYwIjoiQUNWMzAtQUVQTksifXx8Y2F0YWxvZz09Mjg0MTcwfHxyZWM9PUExfHxtb2RpZm5hbWU9PUFDVjMwLUFFUE5LfHxlbmdpbmU9PTJBWkZFfHxtb2RlbG5vPT0wMDF8fFByb2ZQZXJpb2Q9PTIwMDEwOTIwMDYwMXx8bW9kX2luZm8wPT0yNEd8fHBhZ2U3MD09MA=="
+
+          def get(url):
+              req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "X-Requested-With": "XMLHttpRequest"})
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  return response.status, response.geturl(), response.read()
+
+          class GroupParser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.groups = []
+              def handle_starttag(self, tag, attrs):
+                  if tag == "a":
+                      a = dict(attrs)
+                      if "groups-parts__item" in a.get("class", "").split() and a.get("href"):
+                          self.groups.append({"href": a["href"], "label": a.get("title") or a.get("aria-label") or ""})
+
+          class PartParser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.rows = []
+              def handle_starttag(self, tag, attrs):
+                  if tag == "tr":
+                      a = dict(attrs)
+                      onclick = a.get("onclick", "")
+                      marker = "getArticles(this, '"
+                      if a.get("name") and marker in onclick:
+                          token = onclick.split(marker, 1)[1].split("'", 1)[0]
+                          self.rows.append({"part_number": a["name"], "token": token})
+
+          class CellParser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.rows = []
+                  self.current = None
+                  self.in_cell = False
+              def handle_starttag(self, tag, attrs):
+                  if tag == "tr":
+                      self.current = []
+                  elif tag == "td" and self.current is not None:
+                      self.in_cell = True
+              def handle_endtag(self, tag):
+                  if tag == "td":
+                      self.in_cell = False
+                  elif tag == "tr" and self.current is not None:
+                      if self.current:
+                          self.rows.append(self.current)
+                      self.current = None
+              def handle_data(self, value):
+                  if self.in_cell and self.current is not None:
+                      value = value.strip()
+                      if value:
+                          self.current.append(value)
+
+          status, final_url, body = get(MOD_URL)
+          open("out/camry-modification.html", "wb").write(body)
+          groups = GroupParser()
+          groups.feed(body.decode("utf-8", "replace"))
+          unique_groups = []
+          seen = set()
+          for g in groups.groups:
+              url = urljoin(final_url, g["href"])
+              if url not in seen:
+                  seen.add(url)
+                  unique_groups.append({"url": url, "label": g["label"]})
+          print("MODIFICATION_HTTP", status, "GROUPS_FOUND", len(unique_groups))
+
+          output = {"vehicle": {"make": "Toyota", "model": "Camry", "catalog_id": "284170", "modification": "ACV30-AEPNK", "engine": "2AZFE"}, "sampled_groups": []}
+          sampled = 0
+          sampled_parts = 0
+          for group in unique_groups[:8]:
+              try:
+                  gs, gu, gb = get(group["url"])
+                  gp = PartParser()
+                  gp.feed(gb.decode("utf-8", "replace"))
+                  group_result = {"url": gu, "http": gs, "parts": []}
+                  for part in gp.rows[:6]:
+                      if sampled_parts >= 40:
+                          break
+                      sampled_parts += 1
+                      try:
+                          au = BASE + "/toyota/?l=" + quote(part["token"], safe="") + "&st=81"
+                          ast, af, ab = get(au)
+                          cp = CellParser()
+                          cp.feed(ab.decode("utf-8", "replace"))
+                          records = []
+                          for row in cp.rows:
+                              values = [v for v in row if v]
+                              if len(values) >= 3:
+                                  records.append({"oem": values[0], "period": values[1], "applicability": values[2]})
+                          part_result = {"part_number": part["part_number"], "ajax_http": ast, "records": records}
+                          group_result["parts"].append(part_result)
+                          print("SAMPLED_PART", part["part_number"], "RECORDS", len(records), "UNIQUE_OEM", len(set(x["oem"] for x in records)))
+                      except Exception as e:
+                          group_result["parts"].append({"part_number": part["part_number"], "error": repr(e)})
+                  output["sampled_groups"].append(group_result)
+                  sampled += 1
+                  print("GROUP_SAMPLE", sampled, "HTTP", gs, "ROWS", len(gp.rows))
+                  if sampled_parts >= 40:
+                      break
+              except Exception as e:
+                  print("GROUP_ERROR", group["url"], repr(e))
+
+          with open("out/oem_variation_sample.json", "w", encoding="utf-8") as f:
+              json.dump(output, f, ensure_ascii=False, indent=2)
+          print("SAMPLE_COMPLETE", "GROUPS", sampled, "PARTS", sampled_parts)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catcar-camry-oem-variation-sample
+          path: out/
+          retention-days: 7
