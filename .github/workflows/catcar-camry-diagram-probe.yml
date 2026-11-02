@@ -17,7 +17,7 @@ jobs:
           python - <<'PY'
           import re, urllib.request
           from html.parser import HTMLParser
-          from html import unescape
+          from html import unescape\n          from urllib.parse import quote, urlsplit, urlunsplit
           BASE="https://www.catcar.info"
           URL="https://www.catcar.info/toyota/?l=bWFya2V0PT1qYXBhbnx8c3Q9PTcwfHxzdHM9PXsiMTAiOiJcdTA0MjBcdTA0NGJcdTA0M2RcdTA0M2VcdTA0M2EiLCIyMCI6Ilx1MDQyZlx1MDQxZlx1MDQxZVx1MDQxZFx1MDQxOFx1MDQyZiIsIjMwIjoiQ0FNUlkgMjg0MTcwIiwiNjAiOiJBQ1YzMC1BRVBOSyIsIjcwIjoiMTUtMDIgXHUwNDI0XHUwNDE4XHUwNDFiXHUwNDJjXHUwNDIyXHUwNDIwIFx1MDQxY1x1MDQxMFx1MDQyMVx1MDQxYlx1MDQyZlx1MDQxZFx1MDQyYlx1MDQxOSJ9fHxjYXRhbG9nPT0yODQxNzB8fHJlYz09QTF8fG1vZGlmbmFtZT09QUNWMzAtQUVQTkt8fGVuZ2luZT09MkFaRkV8fG1vZGVsbm89PTAwMXx8UHJvZlBlcmlvZD09MjAwMTA5MjAwNjAxfHxtb2RfaW5mbzA9PTI0R3x8Z3JvdXBfaWQ9PTE1MDJ8fHBhZ2U3MD09MA%3D%3D"
           def get(url):
@@ -37,11 +37,11 @@ jobs:
                   if tag=="img":
                       a=dict(attrs)
                       src=a.get("src") or a.get("data-src")
-                      if src and any(ext in src.lower() for ext in [".png",".jpg",".gif"]):
+                      if src and any(ext in src.lower() for ext in [".png",".jpg",".gif"]) and "ajax-loader" not in src and "/loader" not in src and "logo" not in src:
                           self.images.append(src)
           parser=ImgParser(); parser.feed(html)
           for idx,src in enumerate(dict.fromkeys(parser.images)):
-              full=src if src.startswith("http") else BASE+src
+              full=src if src.startswith("http") else BASE+src\n              parts=urlsplit(full)\n              full=urlunsplit((parts.scheme,parts.netloc,quote(parts.path,safe="/:._-"),parts.query,parts.fragment))
               try:
                   st,u,data=get(full)
                   name="out/diagram-%02d.bin"%idx
