@@ -26,7 +26,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          mkdir -p .catcar-fixtures/{toyota-group,toyota-oem,nissan,ford,vag}
+          mkdir -p .catcar-fixtures/{toyota-group,nissan,ford,vag}
           download_artifact() {
             artifact_id="$1"
             destination="$2"
@@ -41,7 +41,6 @@ jobs:
             rm -f "$archive"
           }
           download_artifact 13143620621 .catcar-fixtures/toyota-group
-          download_artifact 13144256189 .catcar-fixtures/toyota-oem
           download_artifact 13144167306 .catcar-fixtures/nissan
           download_artifact 13144338363 .catcar-fixtures/ford
           download_artifact 13144454095 .catcar-fixtures/vag
