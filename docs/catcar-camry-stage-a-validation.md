@@ -4,7 +4,7 @@ Date: 2026-11-02
 Repository: `camypau633/parts-japanese`  
 Latest end-to-end workflow: [41469187861](https://github.com/camypau633/parts-japanese/actions/runs/41469187861)  
 Normalizer-only workflow: [41466769287](https://github.com/camypau633/parts-japanese/actions/runs/41466769287)  
-Code commit used by latest end-to-end run: `6056c78091029efbc568efd7a0fd4139c8fe28bf`
+Code commit used by latest end-to-end run: `f33d0e217c42c219f523cb452f3a0d27306fdb44`
 
 ## Scope
 
@@ -31,7 +31,7 @@ The same workflow passed the 8 normalized group documents into the existing Part
 - 8 normalized documents read.
 - 77 PartScope catalogue records exported for 76 unique SKU keys.
 - 148 factory catalogue rows validated.
-- All 76 records retained Toyota, Camry, 2AZFE and the explicitly encoded profile period 09/2001–01/2006.
+- All 77 catalogue records retained Toyota, Camry, 2AZFE and the explicitly encoded profile period 09/2001–01/2006.
 - All 76 records had a CatCar diagram URL.
 - 9 two-character JSON shards were generated in the isolated preview artifact.
 - OEM provenance in factory rows includes the AJAX source URL, group ID and record order.
@@ -69,7 +69,6 @@ These cases remain distinct:
 - This is a bounded Camry sample, not full coverage of the 123 part rows: 89 AJAX rows remain unsampled.
 - The 76 preview SKU records are not ready for production publication.
 - No analogues or physical dimensions have been inferred.
-- The 89 unsampled AJAX rows still need bounded extraction before the 8-group sample can be considered complete.
 - Physical dimensions are not present in this sample; no diameter, height, thread or other measurements are fabricated.
 - No mass extraction was performed.
 - The workflow is still a research/preview pipeline; production publication remains disabled.
