@@ -4,7 +4,7 @@ import json
 import re
 from collections import defaultdict
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin, urlsplit, urlunsplit
 
 SUPPORTED_BRANDS = {"Toyota", "Nissan"}
 DEFAULT_MAX_SHARD_BYTES = 2 * 1024 * 1024
@@ -34,16 +34,30 @@ def vehicle_context(context):
     }]
 
 
+def normalize_diagram_url(source_url, image_url):
+    if not image_url:
+        return ""
+    resolved = urljoin(source_url, image_url)
+    parts = urlsplit(resolved)
+    # PartScope is hosted over HTTPS; HTTP images would be blocked as mixed
+    # content. CatCar's image host uses the site's wildcard TLS certificate.
+    if parts.hostname and parts.hostname.endswith("catcar.info"):
+        parts = parts._replace(scheme="https")
+    # Source paths occasionally contain literal spaces in image filenames.
+    path = quote(parts.path, safe="/%:@")
+    return urlunsplit((parts.scheme, parts.netloc, path, parts.query, parts.fragment))
+
+
 def diagram_data(document):
     diagrams = document.get("diagrams") or []
     if not diagrams:
         return {"diagramUrl": "", "hotspots": []}
     source_url = text((document.get("source") or {}).get("url"))
     image_url = text(diagrams[0].get("source_image_url"))
-    if image_url:
-        image_url = urljoin(source_url, image_url)
-    # Raw source coordinates are not SVG coordinates until calibrated.
-    return {"diagramUrl": image_url, "hotspots": []}
+    return {
+        "diagramUrl": normalize_diagram_url(source_url, image_url),
+        "hotspots": [],
+    }
 
 
 def document_to_records(document):
@@ -81,12 +95,13 @@ def document_to_records(document):
     result = {}
     compatibility = vehicle_context(context)
     diagram = diagram_data(document)
+    catalog_name = text(context.get("group_label_raw"))
     for row, oem in candidates:
         raw_number = text(oem.get("oem_number_raw"))
         sku = clean_sku(raw_number)
         if len(sku) < 2:
             continue
-        description = text(row.get("description_raw"))
+        description = text(row.get("description_raw")) or catalog_name
         factory = {
             "sku": raw_number,
             "name": description,
