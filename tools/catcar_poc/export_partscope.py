@@ -107,8 +107,12 @@ def document_to_records(document):
             "sku": raw_number,
             "name": description,
             "source_name": "CatCar",
-            "source_url": source_url,
+            "source_url": text(oem.get("source_url")) or source_url,
         }
+        if oem.get("source_group_id") is not None:
+            factory["source_group_id"] = text(oem.get("source_group_id"))
+        if oem.get("source_record_order") is not None:
+            factory["source_record_order"] = oem.get("source_record_order")
         for target, source_key in (
             ("position", "diagram_position_code"),
             ("quantity", "quantity_raw"),
