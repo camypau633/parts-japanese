@@ -18,6 +18,7 @@ class ToyotaOemSampleTests(unittest.TestCase):
                 """
                 <table>
                   <tr name="04111" onclick="getArticles(this, 'TOKEN-04111')"><td>04111</td></tr>
+                  <tr name="04112" onclick="getArticles(this, 'TOKEN-04112')"><td>04112</td></tr>
                 </table>
                 <img src="/diagrams/1103.png" class="resize" />
                 <div class="coord" srcNum="04111" srcTop="10" srcLeft="20" srcWidth="30" srcHeight="40"></div>
@@ -66,12 +67,17 @@ class ToyotaOemSampleTests(unittest.TestCase):
 
             documents, report = normalize_sample(sample, root, schema)
             self.assertEqual(report["group_count"], 1)
-            self.assertEqual(report["part_row_count"], 1)
+            self.assertEqual(report["part_row_count"], 2)
+            self.assertEqual(report["sampled_part_row_count"], 1)
+            self.assertEqual(report["unsampled_part_row_count"], 1)
             self.assertEqual(report["oem_record_count"], 2)
             document = documents[0][1]
             self.assertEqual(document["catalog_context"]["source_group_id"], "1103")
             self.assertEqual(document["catalog_context"]["production_period_raw"], "09/2001-01/2006")
             self.assertEqual(document["parts"][0]["source_status"], "requires_ajax")
+            self.assertEqual(document["parts"][1]["source_row_id"], "04112")
+            self.assertEqual(document["parts"][1]["source_status"], "requires_ajax")
+            self.assertEqual(document["parts"][1]["additional_source_fields"]["ajax_sample_status"], "not_sampled")
             self.assertEqual(document["oem_records"][0]["source_row_id"], "04111")
             self.assertEqual(document["oem_records"][0]["source_record_order"], 0)
             self.assertEqual(document["oem_records"][0]["source_url"], sample["sampled_groups"][0]["parts"][0]["ajax_url"])
