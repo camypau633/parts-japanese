@@ -1,0 +1,52 @@
+{
+  "source": {
+    "name": "CatCar",
+    "url": "https://www.catcar.info/",
+    "market": "Japan",
+    "retrieved_from": "https://www.catcar.info/toyota/?l=bWFya2V0PT1qYXBhbnx8c3Q9PTIwfHxzdHM9PXsiMTAiOiJcdTA0MjBcdTA0NGJcdTA0M2RcdTA0M2VcdTA0M2EiLCIyMCI6Ilx1MDQyZlx1MDQxZlx1MDQxZVx1MDQxZFx1MDQxOFx1MDQyZiJ9"
+  },
+  "catalogs": [
+    {
+      "brand": "Toyota",
+      "catalog_id": "264110",
+      "model": "86",
+      "production_period": "03/2012-07/2016",
+      "modifications": [
+        {
+          "code": "ZN6-A288",
+          "engine": "FA20",
+          "production_period": "01/2013-09/2013",
+          "grade": "RCG",
+          "transmission": "MTM",
+          "gear_shift_type": "6F",
+          "doors": "2D",
+          "category": "A",
+          "groups": [
+            {
+              "group_id": "11",
+              "name": "Двигатель/топливо"
+            },
+            {
+              "group_id": "12",
+              "name": "Трансмиссия"
+            },
+            {
+              "group_id": "13",
+              "name": "Кузов"
+            },
+            {
+              "group_id": "14",
+              "name": "Электричество"
+            }
+          ],
+          "example_subgroup": {
+            "group_id": "1502",
+            "code": "15-02",
+            "name": "Фильтр масляный",
+            "source_page": "https://www.catcar.info/toyota/?l=bWFya2V0PT1qYXBhbnx8c3Q9PTcwfHxzdHM9PXsiMTAiOiJcdTA0MjBcdTA0NGJcdTA0M2RcdTA0M2VcdTA0M2EiLCIyMCI6Ilx1MDQyZlx1MDQxZlx1MDQxZVx1MDQxZFx1MDQxOFx1MDQyZiIsIjMwIjoiODYgMjY0MTEwIiwiNjAiOiJaTjYtQTI4OCIsIjcwIjoiMTUtMDIgXHUwNDI0XHUwNDE4XHUwNDFiXHUwNDJjXHUwNDIyXHUwNDIwIFx1MDQxY1x1MDQxMFx1MDQyMVx1MDQxYlx1MDQyZlx1MDQxZFx1MDQyYlx1MDQxOSJ9fHxjYXRhbG9nPT0yNjQxMTB8fHJlYz09QTF8fG1vZGlmbmFtZT09Wk42LUEyODh8fGVuZ2luZT09RkEyMHx8bW9kZWxubz09MDA2fHxQcm9kUGVyaW9kPT0yMDEzMDEyMDEzMDl8fG1vZF9pbmZvMD09UkNHfHxtb2RfaW5mbzE9PU1UTXx8bW9kX2luZm8yPT02Rnx8bW9kX2luZm8zPT0yRHx8bW9kX2luZm80PT1BfHxncm91cF9pZD09MTUwMnx8cGFnZTcwPT0w"
+          }
+        }
+      ]
+    }
+  ]
+}
