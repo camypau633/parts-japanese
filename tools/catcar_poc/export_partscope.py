@@ -343,7 +343,10 @@ def validate_export_records(records):
             if not text(hotspot.get("id")) or not text(hotspot.get("oem")):
                 raise ValueError("Hotspot is missing position or OEM for %s" % sku)
             if clean_sku(hotspot.get("oem")) != sku:
-                raise ValueError("Hotspot OEM does not match record SKU: %s" % sku)
+                raise ValueError(
+                    "Hotspot OEM %r (clean=%r, position=%r, part_id=%r) does not match record SKU %s"
+                    % (hotspot.get("oem"), clean_sku(hotspot.get("oem")), hotspot.get("id"), record.get("part_id"), sku)
+                )
             for field in ("x", "y", "radius"):
                 value = hotspot.get(field)
                 if not isinstance(value, (int, float)) or not math.isfinite(value):
