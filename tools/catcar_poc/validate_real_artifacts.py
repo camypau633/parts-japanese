@@ -4,8 +4,10 @@ This tool is offline: it reads only the supplied artifact directories and never
 contacts CatCar. Raw HTML stays in the temporary GitHub Actions workspace.
 """
 import argparse
+import base64
 import json
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 import jsonschema
 
@@ -15,6 +17,45 @@ from .normalize import normalize_page
 
 def load_json(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def catcar_filter_params(source_url):
+    """Decode CatCar's l= filter without guessing absent vehicle fields."""
+    encoded = parse_qs(urlsplit(source_url).query).get("l", [""])[0]
+    if not encoded:
+        return {}
+    padded = encoded + ("=" * (-len(encoded) % 4))
+    try:
+        decoded = base64.b64decode(padded).decode("utf-8")
+    except (ValueError, UnicodeDecodeError):
+        return {}
+    params = {}
+    for item in decoded.split("||"):
+        if "==" not in item:
+            continue
+        key, value = item.split("==", 1)
+        params[key.strip()] = value.strip()
+    return params
+
+
+def nissan_context_from_url(source_url):
+    """Build only the Nissan context explicitly encoded in the captured URL."""
+    params = catcar_filter_params(source_url)
+    context = {
+        "brand": "Nissan",
+        "model": "PIXO (UA0)",
+        "catalog_id": params.get("mod_id", "43"),
+        "region": "Europe LHD",
+    }
+    start = params.get("start")
+    end = params.get("end")
+    if start or end:
+        context["production_period_raw"] = "%s — %s" % (start or "", end or "")
+    group_start = params.get("startgrp")
+    group_end = params.get("endgrp")
+    if group_start or group_end:
+        context["source_group_period_raw"] = "%s — %s" % (group_start or "", group_end or "")
+    return context
 
 
 def validate_case(name, adapter, html_path, source_url, context, schema, output_dir, oem_records=None):
@@ -44,6 +85,8 @@ def validate_case(name, adapter, html_path, source_url, context, schema, output_
         "hotspots_without_row_count": len(matching["hotspots_without_row"]),
         "rows_without_hotspot_count": len(matching["rows_without_hotspot"]),
         "oem_record_count": len(document["oem_records"]),
+        "catalog_engine_present": bool(document["catalog_context"].get("engine_code") or document["catalog_context"].get("engine")),
+        "catalog_production_period_present": bool(document["catalog_context"].get("production_period_raw") or document["catalog_context"].get("production_period")),
         "no_applicable_data_oem_record_count": sum(
             item.get("source_status") == "no_applicable_data" for item in document["oem_records"]
         ),
@@ -119,7 +162,7 @@ def main(argv=None):
         NissanAdapter(),
         nissan_dir / "nissan-pixo-catalog.html",
         nissan_meta["url"],
-        {"brand": "Nissan", "model": "PIXO (UA0)", "catalog_id": "43", "region": "Europe LHD"},
+        nissan_context_from_url(nissan_meta["url"]),
         schema,
         args.output,
     ))
