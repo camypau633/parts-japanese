@@ -1,9 +1,10 @@
 """Bounded CatCar diagram URL probe; never downloads full image files."""
 import argparse
 import json
+import posixpath
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlsplit
+from urllib.parse import quote, urljoin, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
 
@@ -11,10 +12,17 @@ def collect_urls(paths, max_urls):
     urls = set()
     for path in paths:
         document = json.loads(Path(path).read_text(encoding="utf-8"))
+        source_url = str((document.get("source") or {}).get("url") or "").strip()
         for diagram in document.get("diagrams") or []:
-            url = str(diagram.get("source_image_url") or "").strip()
-            if url:
-                urls.add(url)
+            image_url = str(diagram.get("source_image_url") or "").strip()
+            if not image_url:
+                continue
+            url = urljoin(source_url, image_url)
+            parsed = urlsplit(url)
+            if parsed.hostname and (parsed.hostname == "catcar.info" or parsed.hostname.endswith(".catcar.info")):
+                parsed = parsed._replace(scheme="https")
+            parsed = parsed._replace(path=quote(posixpath.normpath(parsed.path), safe="/%:@"))
+            urls.add(urlunsplit((parsed.scheme, parsed.netloc, parsed.path, parsed.query, parsed.fragment)))
     ordered = sorted(urls)
     if len(ordered) > max_urls:
         raise ValueError("Found %d unique diagram URLs; limit is %d" % (len(ordered), max_urls))
