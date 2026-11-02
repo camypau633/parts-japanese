@@ -64,16 +64,21 @@ class ToyotaAdapter(BaseAdapter):
         parsed = parse_html(html)
         records = []
         for row in parsed.rows:
-            values = [x for x in cell_texts(row) if x]
-            if len(values) >= 3 and values[0].strip().lower() not in (
-                "oem", "oem number", "номер детали", "номер запчасти"
+            values = cell_texts(row)
+            if len(values) < 3:
+                continue
+            first = values[0].strip().lower()
+            if first in (
+                "oem", "oem number", "part number", "number",
+                "номер детали", "номер запчасти"
             ):
-                records.append({
-                    "source_row_id": source_row_id,
-                    "oem_number_raw": values[0],
-                    "production_period_raw": values[1],
-                    "applicability_raw": values[2],
-                })
+                continue
+            records.append({
+                "source_row_id": source_row_id,
+                "oem_number_raw": values[0].strip() or None,
+                "production_period_raw": values[1].strip() or None,
+                "applicability_raw": values[2].strip() or None,
+            })
         return records
 
 
