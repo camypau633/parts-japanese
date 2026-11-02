@@ -52,3 +52,12 @@ The normalized Nissan context now preserves both periods. The PartScope exporter
 The captured filter does **not** expose an engine code. The validator deliberately leaves `engine_code` absent rather than deriving it from the model label. The validation report now also records whether engine and vehicle production-period metadata were present.
 
 A unit test covers extraction of both date ranges and confirms that an absent engine code stays absent. The real-artifact and adapter-test workflows are triggered by these commits; their successful completion must be checked before replacing the existing preview artifact.
+
+
+## Follow-up validation result
+
+The corrected real-artifact regression completed successfully (run [41461861328](https://github.com/camypau633/parts-japanese/actions/runs/41461861328)); the adapter/unit test workflow also completed successfully (run [41461881367](https://github.com/camypau633/parts-japanese/actions/runs/41461881367)).
+
+The regenerated export still contains 77 records: 75 Nissan and 2 Toyota. All 75 Nissan records now carry the explicit vehicle period `2009-03-01 — 2013-08-01` in `compatibility[].years`. None has an engine code, because the captured Nissan filter and page context do not provide one. Both Toyota records retain their engine and period metadata.
+
+The corrected artifact is `catcar-real-artifact-regression` from run `41461861328`. The preview publisher's default source run ID has been updated to this run. The PartScope preview directory has not yet been replaced; publication remains a separate manual workflow action and production search remains untouched.
