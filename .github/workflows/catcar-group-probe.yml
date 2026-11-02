@@ -1,5 +1,8 @@
 name: CatCar group probe
 on:
+  push:
+    paths:
+      - '.github/workflows/catcar-group-probe.yml'
   workflow_dispatch:
 jobs:
   probe:
