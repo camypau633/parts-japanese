@@ -1,6 +1,6 @@
 # CatCar extraction adapters — POC
 
-The package in this folder is a first implementation of the shared parsing layer. It is intentionally **not** a crawler, downloader, or production importer.
+The package in this folder is a first implementation of the shared parsing and draft normalization layer. It is intentionally **not** a crawler, downloader, or production importer.
 
 ## Runtime
 
@@ -17,7 +17,7 @@ The package in this folder is a first implementation of the shared parsing layer
 
 ## Output behavior
 
-Each adapter returns raw parsed rows, image references, hotspot records, part-row records, and a hotspot reconciliation summary.
+Each adapter returns raw parsed rows, image references, hotspot records, part-row records, and a hotspot reconciliation summary. `normalize_page()` converts this result into the draft shared JSON shape. It preserves one-to-many mappings when one diagram position identifies multiple source part rows.
 
 The parser preserves raw strings and original row order. It does not:
 
