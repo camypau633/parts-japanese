@@ -60,16 +60,17 @@ The current PartScope loader reads compact JSON shards from `data/{first2}.json`
 
 The application currently recognizes these fields (exact property names are kept for compatibility):
 - `part_id`, `sku`, `name`, `brand`;
+- `factory_parts` — factory OEM rows with `sku`, `name`, optional `position`, `quantity`, `production_period`, `applicability`, and source provenance;
 - `analogs` / `analogues`;
 - `compatibility` / `applicability`;
 - `specifications` / `specs`;
 - `diagram` with image URL, dimensions and hotspots;
 - `technical_drawings` / `technicalDrawings`.
 
-The current UI has an analogue/cross-reference tab, an applicability tab, and a combined drawings/dimensions tab. The data contract must keep factory catalogue records independent so the UI can add a clearly named **Factory parts** tab without presenting factory OEM rows as analogues. Physical dimensions should be independently sourced and independently displayable from drawing files.
+The current UI has separate **Factory parts**, **Analogues**, **Applicability**, and **Drawings and dimensions** tabs. The `factory_parts` array contains factory catalogue rows only; never place these rows in `analogs` / `analogues`. Physical dimensions should be independently sourced and independently displayable from drawing files.
 
 A later application change should expose separate views for:
-1. Factory parts (OEM catalogue rows and their vehicle/period context);
+1. Factory parts (`factory_parts`: OEM catalogue rows and their vehicle/period context);
 2. Analogues (only confirmed source cross-references);
 3. Applicability;
 4. Dimensions (structured physical measurements);
