@@ -92,7 +92,9 @@ class StaticTableAdapter(BaseAdapter):
                 continue
             position = cells[self.position_index].strip()
             part_number = cells[self.part_number_index].strip()
-            if not part_number:
+            if not part_number or part_number.lower() in (
+                "part number", "номер детали", "номер запчасти"
+            ):
                 continue
             parts.append({
                 "source_row_id": str(order),
