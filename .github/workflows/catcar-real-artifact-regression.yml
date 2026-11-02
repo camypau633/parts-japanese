@@ -56,7 +56,7 @@ jobs:
             --output out/normalized
       - name: Probe confirmed CatCar diagram URLs (bounded, no full downloads)
         run: |
-          python -m tools.catcar_poc.check_diagram_urls \\
+          python -m tools.catcar_poc.check_diagram_urls \
             --input out/normalized/toyota-camry-oil-filter.json \\
             --input out/normalized/nissan-pixo.json \\
             --output out/diagram-url-check.json \\
