@@ -79,6 +79,16 @@ class ToyotaAdapter(BaseAdapter):
                 "production_period_raw": values[1].strip() or None,
                 "applicability_raw": values[2].strip() or None,
             })
+        if not records and "no applicable data" in (html or "").lower():
+            return [{
+                "source_row_id": source_row_id,
+                "oem_number_raw": None,
+                "production_period_raw": None,
+                "applicability_raw": None,
+                "source_status": "no_applicable_data",
+            }]
+        for record in records:
+            record["source_status"] = "available"
         return records
 
 
