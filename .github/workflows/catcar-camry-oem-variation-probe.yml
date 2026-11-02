@@ -57,24 +57,24 @@ jobs:
                   super().__init__()
                   self.rows = []
                   self.current = None
-                  self.in_cell = False
+                  self.cell = None
               def handle_starttag(self, tag, attrs):
                   if tag == "tr":
                       self.current = []
-                  elif tag == "td" and self.current is not None:
-                      self.in_cell = True
+                  elif tag in ("td", "th") and self.current is not None:
+                      self.cell = []
               def handle_endtag(self, tag):
-                  if tag == "td":
-                      self.in_cell = False
+                  if tag in ("td", "th") and self.current is not None and self.cell is not None:
+                      self.current.append(" ".join(" ".join(self.cell).split()))
+                      self.cell = None
                   elif tag == "tr" and self.current is not None:
                       if self.current:
                           self.rows.append(self.current)
                       self.current = None
+                      self.cell = None
               def handle_data(self, value):
-                  if self.in_cell and self.current is not None:
-                      value = value.strip()
-                      if value:
-                          self.current.append(value)
+                  if self.cell is not None:
+                      self.cell.append(value.strip())
 
           status, final_url, body = get(MOD_URL)
           open("out/camry-modification.html", "wb").write(body)
@@ -105,12 +105,14 @@ jobs:
                       try:
                           au = BASE + "/toyota/?l=" + quote(part["token"], safe="") + "&st=81"
                           ast, af, ab = get(au)
+                          raw_name = "out/part-" + re.sub(r"[^A-Za-z0-9_-]", "_", part["part_number"]) + ".html"
+                          open(raw_name, "wb").write(ab)
                           cp = CellParser()
                           cp.feed(ab.decode("utf-8", "replace"))
                           records = []
                           for row in cp.rows:
-                              values = [v for v in row if v]
-                              if len(values) >= 3:
+                              values = [v.strip() for v in row]
+                              if len(values) >= 3 and any(values):
                                   records.append({"oem": values[0], "period": values[1], "applicability": values[2]})
                           part_result = {"part_number": part["part_number"], "ajax_http": ast, "records": records}
                           group_result["parts"].append(part_result)
