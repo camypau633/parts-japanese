@@ -1,0 +1,97 @@
+name: Publish CatCar preview to PartScope
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "Successful CatCar real-artifact regression run ID"
+        required: true
+        default: "41458970389"
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: catcar-partscope-preview-publish
+  cancel-in-progress: false
+
+jobs:
+  publish-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate required secret
+        env:
+          PARTSCOPE_TOKEN: ${{ secrets.PARTSCOPE_TOKEN }}
+        run: |
+          if [ -z "$PARTSCOPE_TOKEN" ]; then
+            echo "::error::Add PARTSCOPE_TOKEN in parts-japanese repository secrets."
+            exit 1
+          fi
+
+      - name: Download regression artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p source-artifact
+          gh run download "$SOURCE_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name catcar-real-artifact-regression \
+            --dir source-artifact
+          test -s source-artifact/partscope/export-report.json
+          test -n "$(find source-artifact/partscope -maxdepth 1 -type f -name '*.json' ! -name 'export-report.json' -print -quit)"
+
+      - name: Check out PartScope main
+        uses: actions/checkout@v4
+        with:
+          repository: camypau633/partscope
+          ref: main
+          token: ${{ secrets.PARTSCOPE_TOKEN }}
+          path: partscope
+
+      - name: Copy preview files and write manifest
+        run: |
+          set -euo pipefail
+          destination="partscope/public/data-preview/catcar"
+          mkdir -p "$destination"
+          find "$destination" -maxdepth 1 -type f -name '*.json' -delete
+          cp source-artifact/partscope/*.json "$destination/"
+          cp source-artifact/partscope/export-report.json "$destination/"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("partscope/public/data-preview/catcar")
+          report = json.loads((root / "export-report.json").read_text(encoding="utf-8"))
+          manifest = {
+              "status": "preview-only",
+              "source_repository": "camypau633/parts-japanese",
+              "source_workflow": "CatCar real artifact regression",
+              "records_exported": report["records_exported"],
+              "shards": report["shards"],
+              "production_enabled": False,
+              "note": "Preview data only. PartScope search does not read this directory."
+          }
+          (root / "manifest.json").write_text(
+              json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8"
+          )
+          print("Preview records:", manifest["records_exported"])
+          print("Preview shards:", len(manifest["shards"]))
+          PY
+
+      - name: Commit preview to PartScope main
+        working-directory: partscope
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data-preview/catcar
+          if git diff --cached --quiet; then
+            echo "Preview is already up to date."
+            exit 0
+          fi
+          git commit -m "Add CatCar Japanese preview dataset"
+          git push origin main
