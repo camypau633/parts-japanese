@@ -34,24 +34,37 @@ jobs:
           open("out/group.html", "w", encoding="utf-8").write(page)
           print("GROUP_HTTP", status, "BYTES", len(page))
 
-          calls = re.findall(r"getArticles\(this,\s*'([^']+)'\s*,\s*(\d+)", page)
-          rows = []
-          seen = set()
-          for token, state in calls:
-              if state != "80" or token in seen:
-                  continue
-              seen.add(token)
-              decoded = base64.b64decode(token + '=' * (-len(token) % 4)).decode('utf-8', 'replace')
-              rows.append((token, decoded))
-          print("PART_ROW_TOKENS", len(rows))
-
           targets = ("11302", "11301G", "15330", "SU00304311")
-          chosen = []
-          for token, decoded in rows:
-              if any(target in decoded for target in targets):
-                  chosen.append((token, decoded))
-          print("MATCHED_TARGETS", len(chosen))
+          class RowParser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.rows = []
+                  self.current = None
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  if tag == "tr":
+                      self.current = {"attrs": attrs, "text": "", "onclick": ""}
+                  elif self.current is not None and attrs.get("onclick"):
+                      self.current["onclick"] += " " + attrs["onclick"]
+              def handle_data(self, data):
+                  if self.current is not None:
+                      self.current["text"] += data
+              def handle_endtag(self, tag):
+                  if tag == "tr" and self.current is not None:
+                      self.rows.append(self.current)
+                      self.current = None
 
+          parser = RowParser()
+          parser.feed(page)
+          chosen = []
+          for row in parser.rows:
+              haystack = " ".join([str(v) for v in row["attrs"].values()]) + " " + row["text"]
+              if any(target in haystack for target in targets):
+                  match = re.search(r"getArticles\\(this,\\s*'([^']+)'\\s*,\\s*80", row["onclick"])
+                  if match:
+                      chosen.append((match.group(1), haystack[:500]))
+          print("HTML_ROWS", len(parser.rows))
+          print("MATCHED_TARGETS", len(chosen))
           results = []
           for token, decoded in chosen:
               url = "https://www.catcar.info/toyota/?" + urllib.parse.urlencode({"l": token, "st": "81"})
