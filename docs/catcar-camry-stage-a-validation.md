@@ -41,6 +41,15 @@ The same workflow passed the 8 normalized group documents into the existing Part
 - Analogues exported: 0.
 - Physical dimensions exported: 0.
 
+## PartScope UI compatibility
+
+The corresponding UI changes were committed to `camypau633/partscope` and the GitHub Pages deployment completed successfully: [build and deploy run 41469868745](https://github.com/camypau633/partscope/actions/runs/41469868745).
+
+- Diagram hotspot popovers display the saved period and applicability text.
+- Multiple records for one SKU are labelled as separate catalogue records, not separate manufacturers.
+- Sharing a diagram preserves the selected catalogue record ID.
+- Only application code was deployed. The Camry preview shards remain in the Actions artifact; production catalogue data was not changed.
+
 ## Verified multi-OEM examples
 
 | Part row | Records | Distinct OEMs |
