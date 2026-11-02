@@ -171,6 +171,11 @@ class VagAdapter(StaticTableAdapter):
                 "st_raw": self._value(cells, 5),
                 "model_data_raw": self._value(cells, 6),
             }
-            if part["diagram_position_code"] == "(40)":
+            if part["part_number_raw"].strip().lower() in ("переход к группе", "group transition"):
+                part["row_kind"] = "group_header"
+                part["source_status"] = "unresolved"
+                part["additional_source_fields"]["entry_type_raw"] = part["part_number_raw"]
+                part["part_number_raw"] = None
+            elif part["diagram_position_code"] == "(40)":
                 part["source_status"] = "unresolved"
         return result
