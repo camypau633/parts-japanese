@@ -53,13 +53,13 @@ class AdapterTests(unittest.TestCase):
         html = """
         <table>
           <tr><th>№</th><th>Номер детали</th><th>Название</th><th>Дата производства</th><th>Альтернатива</th><th>Количество</th></tr>
-          <tr><td>12010S</td><td>12000-4A00A</td><td>PISTON SET</td><td>03/2009-01/2012</td><td></td><td>03</td></tr>
+          <tr><td>12010S</td><td>12000-4A00A</td><td>PISTON SET</td><td>03/2009-01/2012</td><td>ALT-12000</td><td>03</td></tr>
         </table>
         <div class="coord" srcNum="12010S" srcTop="1" srcLeft="2" srcWidth="3" srcHeight="4"></div>
         """
         result = NissanAdapter().parse(html)
         self.assertEqual(result["parts"][0]["part_number_raw"], "12000-4A00A")
-        self.assertEqual(result["parts"][0]["alternative_number_raw"], "")
+        self.assertEqual(result["parts"][0]["alternative_number_raw"], "ALT-12000")
         self.assertEqual(result["parts"][0]["additional_source_fields"]["raw_cells"][4], "")
         self.assertEqual(result["parts"][0]["additional_source_fields"]["raw_cells"][5], "03")
         self.assertEqual(result["hotspot_matching"]["matched"], ["12010S"])
