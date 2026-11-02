@@ -60,7 +60,7 @@ class AdapterTests(unittest.TestCase):
         result = NissanAdapter().parse(html)
         self.assertEqual(result["parts"][0]["part_number_raw"], "12000-4A00A")
         self.assertEqual(result["parts"][0]["alternative_number_raw"], "ALT-12000")
-        self.assertEqual(result["parts"][0]["additional_source_fields"]["raw_cells"][4], "")
+        self.assertEqual(result["parts"][0]["additional_source_fields"]["raw_cells"][4], "ALT-12000")
         self.assertEqual(result["parts"][0]["additional_source_fields"]["raw_cells"][5], "03")
         self.assertEqual(result["hotspot_matching"]["matched"], ["12010S"])
 
