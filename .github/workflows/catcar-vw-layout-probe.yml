@@ -1,0 +1,74 @@
+name: CatCar VW fourth-brand layout probe
+on:
+  push:
+    paths:
+      - '.github/workflows/catcar-vw-layout-probe.yml'
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Inspect VW catalog leaf
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python - <<'PY'
+          import json,re,urllib.request
+          from html.parser import HTMLParser
+          from urllib.parse import urljoin
+          URL="https://www.catcar.info/audivw/?l=c3RzPT17IjEwIjoiQnJhbmQiLCIyMCI6IlZXIiwiNDAiOiJDYW1wbW9iLiAoVHlwMlwvVHJhbnNwLlwvTFQpIEV1cm9wZSIsIjUwIjoiMjAxOCIsIjYwIjoiQm9keSIsIjcwIjoiODY3MzUifXx8c3Q9PTcwfHxicmFuZD09dnd8fG1hcmtldD09UkRXfHxtZG49PUNBTVAgfHxFcGlzPT04NzF8fEVpbnNhdHo9PTIwMTh8fE1haW5Hcm91cD09OHx8QmlsZHRhZmVsPT04NjczNXx8R3JhZmlrPT0wODY3MzU0NTI%3D&lang=en"
+          req=urllib.request.Request(URL,headers={"User-Agent":"Mozilla/5.0 Chrome/128 Safari/537.36","Accept-Language":"en-US,en;q=0.9"})
+          with urllib.request.urlopen(req,timeout=40) as r:
+              status,final,body=r.status,r.geturl(),r.read()
+          html=body.decode("utf-8","replace")
+          open("out/vw-leaf.html","w",encoding="utf-8").write(html)
+          class P(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.rows=[]; self.row=None; self.cell=None; self.images=[]; self.links=[]; self.scripts=[]; self.coords=[]
+              def handle_starttag(self,t,attrs):
+                  a=dict(attrs)
+                  if t=="tr": self.row=[]
+                  elif t in ("td","th") and self.row is not None: self.cell=[]
+                  elif t=="img" and (a.get("src") or a.get("data-src")): self.images.append(a)
+                  elif t=="a" and a.get("href"): self.links.append({"href":a["href"],"class":a.get("class","")})
+                  elif t=="script": self.scripts.append(a.get("src","inline"))
+                  elif "coord" in a.get("class","").split(): self.coords.append(a)
+              def handle_data(self,d):
+                  if self.cell is not None: self.cell.append(d.strip())
+              def handle_endtag(self,t):
+                  if t in ("td","th") and self.row is not None and self.cell is not None:
+                      self.row.append(" ".join(" ".join(self.cell).split())); self.cell=None
+                  elif t=="tr" and self.row is not None:
+                      if any(self.row): self.rows.append(self.row)
+                      self.row=None; self.cell=None
+          p=P(); p.feed(html)
+          markers=["srcTop","srcLeft","srcWidth","srcHeight","srcNum","coord","groups-parts__item","getArticles","Bildtafel","Grafik"]
+          title=re.search(r"<title[^>]*>(.*?)</title>",html,re.I|re.S)
+          ids=sorted(set(x.get("name","").strip() for x in p.coords if x.get("name","").strip()))
+          result={"http":status,"url":final,"bytes":len(body),"title":title.group(1).strip() if title else "",
+                  "table_rows":len(p.rows),"sample_rows":p.rows[:30],"images":p.images[:60],
+                  "links":p.links[:40],"scripts":p.scripts[:40],"coord_elements":len(p.coords),
+                  "hotspot_ids":ids,"markers":{x:html.count(x) for x in markers}}
+          print(json.dumps(result,ensure_ascii=False,indent=2))
+          open("out/vw-inspection.json","w",encoding="utf-8").write(json.dumps(result,ensure_ascii=False,indent=2))
+          downloads=[]
+          for img in p.images:
+              src=img.get("src") or img.get("data-src") or ""
+              if not src or "ajax-loader" in src or "logo" in src.lower(): continue
+              u=urljoin(final,src)
+              try:
+                  q=urllib.request.Request(u,headers={"User-Agent":"Mozilla/5.0"})
+                  with urllib.request.urlopen(q,timeout=30) as r: b=r.read(); st=r.status; ct=r.headers.get("Content-Type")
+                  fn="out/vw-image-%02d.bin"%len(downloads); open(fn,"wb").write(b)
+                  downloads.append({"url":u,"http":st,"bytes":len(b),"content_type":ct,"file":fn})
+              except Exception as e: downloads.append({"url":u,"error":repr(e)})
+              if len(downloads)>=5: break
+          print("IMAGE_DOWNLOADS",json.dumps(downloads,ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catcar-vw-layout-inspection
+          path: out/
+          retention-days: 7
