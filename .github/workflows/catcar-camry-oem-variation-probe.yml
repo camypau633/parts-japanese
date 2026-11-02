@@ -276,6 +276,23 @@ jobs:
           python -m tools.catcar_poc.normalize_toyota_oem_sample --sample out/oem_variation_sample.json --schema schemas/catcar-extraction-v0.1.schema.json --output out/normalized
       - name: Print normalized sample coverage report
         run: cat out/normalized/report.json
+      - name: Export bounded sample to isolated PartScope preview shards
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          count=0
+          for file in out/normalized/toyota-camry-group-*.json; do
+            [ -f "$file" ] || continue
+            args+=(--input "$file")
+            count=$((count + 1))
+          done
+          if [ "$count" -eq 0 ]; then
+            echo "No normalized Toyota group documents were created"
+            exit 1
+          fi
+          python -m tools.catcar_poc.export_partscope "${args[@]}" --output out/partscope-preview
+          cat out/partscope-preview/export-report.json
       - uses: actions/upload-artifact@v4
         with:
           name: catcar-camry-oem-variation-sample
