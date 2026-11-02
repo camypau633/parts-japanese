@@ -98,6 +98,7 @@ class StaticTableAdapter(BaseAdapter):
     description_index = 2
     period_index = None
     quantity_index = None
+    alternative_number_index = None
     name = "static"
 
     def parse(self, html):
@@ -123,6 +124,7 @@ class StaticTableAdapter(BaseAdapter):
                 "description_raw": self._value(cells, self.description_index),
                 "production_period_raw": self._value(cells, self.period_index),
                 "quantity_raw": self._value(cells, self.quantity_index),
+                "alternative_number_raw": self._value(cells, self.alternative_number_index),
                 "row_kind": "positioned" if position else "continuation",
                 "parent_position_code": None,
                 "additional_source_fields": {"raw_cells": list(cells)},
@@ -152,6 +154,7 @@ class NissanAdapter(StaticTableAdapter):
     description_index = 2
     period_index = 3
     quantity_index = 5
+    alternative_number_index = 4
 
 
 class FordAdapter(StaticTableAdapter):
