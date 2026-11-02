@@ -18,6 +18,7 @@ jobs:
           python - <<'PY'
           import re
           import json
+          import base64
           import urllib.parse
           import urllib.request
           from html.parser import HTMLParser
@@ -40,7 +41,7 @@ jobs:
               if state != "80" or token in seen:
                   continue
               seen.add(token)
-              decoded = urllib.parse.unquote(token)
+              decoded = base64.b64decode(token + '=' * (-len(token) % 4)).decode('utf-8', 'replace')
               rows.append((token, decoded))
           print("PART_ROW_TOKENS", len(rows))
 
