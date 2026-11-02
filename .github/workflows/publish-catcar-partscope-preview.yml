@@ -6,7 +6,7 @@ on:
       source_run_id:
         description: "Successful CatCar real-artifact regression run ID"
         required: true
-        default: "41461861328"
+        default: "41463981799"
         type: string
 
 permissions:
