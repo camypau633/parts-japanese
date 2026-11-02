@@ -2,9 +2,9 @@
 
 Date: 2026-11-02  
 Repository: `camypau633/parts-japanese`  
-Latest end-to-end workflow: [41469187861](https://github.com/camypau633/parts-japanese/actions/runs/41469187861)  
+Latest end-to-end workflow: [41469740318](https://github.com/camypau633/parts-japanese/actions/runs/41469740318)  
 Normalizer-only workflow: [41466769287](https://github.com/camypau633/parts-japanese/actions/runs/41466769287)  
-Code commit used by latest end-to-end run: `f33d0e217c42c219f523cb452f3a0d27306fdb44`
+Code commit used by latest end-to-end run: `655db39e0bdfff6e3d5d6bac5a14976b57bd959e`
 
 ## Scope
 
@@ -14,11 +14,11 @@ A bounded sample of 8 groups from Toyota Camry catalog 284170, modification ACV3
 
 - 8 group HTML pages parsed.
 - 123 source part rows found in those group pages.
-- 34 of 123 part rows had their AJAX responses sampled; 89 rows remain explicitly marked `requires_ajax` and are not treated as known OEM records.
-- 148 OEM table records parsed from the 34 saved AJAX responses and cross-checked against their raw HTML.
-- 2 additional part rows (`12321A`, `12322`) returned CatCar's literal `No applicable data!` response. They are preserved as explicit no-applicable-data statuses, not fabricated OEM numbers.
-- The normalized document set therefore contains 150 OEM/status entries: 148 source table rows plus 2 explicit no-applicable-data markers.
-- 76 distinct OEM numbers were present in the 148 table rows.
+- All 123 of 123 part rows had their AJAX responses sampled; no rows in these eight groups remain unsampled.
+- 322 OEM table records parsed from the saved AJAX responses and cross-checked against their raw HTML.
+- 8 additional part rows returned CatCar's literal `No applicable data!` response. They are preserved as explicit no-applicable-data statuses, not fabricated OEM numbers.
+- The normalized document set therefore contains 330 OEM/status entries: 322 source table rows plus 8 explicit no-applicable-data markers.
+- 183 distinct OEM numbers were present in the 322 table rows.
 - 8 diagram images and 137 source hotspots were parsed.
 - All 137 source hotspots matched a part-row identifier; all 123 part rows had at least one matching hotspot in these 8 groups.
 - All 8 normalized group documents passed the shared JSON Schema.
@@ -29,15 +29,15 @@ A bounded sample of 8 groups from Toyota Camry catalog 284170, modification ACV3
 The same workflow passed the 8 normalized group documents into the existing PartScope exporter, writing only to a temporary GitHub Actions artifact. It did not publish to `camypau633/partscope` or modify its production data.
 
 - 8 normalized documents read.
-- 77 PartScope catalogue records exported for 76 unique SKU keys.
-- 148 factory catalogue rows validated.
+- 187 PartScope catalogue records exported for 183 unique SKU keys.
+- 322 factory catalogue rows validated.
 - All 77 catalogue records retained Toyota, Camry, 2AZFE and the explicitly encoded profile period 09/2001–01/2006.
 - All 76 records had a CatCar diagram URL.
 - 9 two-character JSON shards were generated in the isolated preview artifact.
 - OEM provenance in factory rows includes the AJAX source URL, group ID and record order.
-- 79 verified interactive hotspots were exported across all 77 catalogue records.
+- 202 verified interactive hotspots were exported across all 187 catalogue records.
 - The hotspot coordinates use the centres of CatCar's source rectangles in natural image pixels. The bounded geometry probe verified PNG dimensions, image bounds, and the CatCar responsive-coordinate script before enabling export.
-- The SKU `11310-28071` appears in two catalog groups; the exporter preserves it as two PartScope candidates with separate diagrams and positions instead of merging away one diagram.
+- Four SKU keys appear in more than one catalog group; the exporter preserves them as separate PartScope candidates with their own diagrams and positions instead of merging away catalog context.
 - Analogues exported: 0.
 - Physical dimensions exported: 0.
 
