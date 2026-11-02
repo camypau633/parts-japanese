@@ -42,7 +42,7 @@ class ToyotaAdapter(BaseAdapter):
                 ajax_rows.append({
                     "source_row_id": part_number,
                     "diagram_position_code": part_number,
-                    "part_number_raw": part_number,
+                    "part_number_raw": None,
                     "ajax_token": token,
                     "source_status": "requires_ajax",
                 })
@@ -60,13 +60,16 @@ class ToyotaAdapter(BaseAdapter):
         }
 
     @staticmethod
-    def parse_ajax_records(html):
+    def parse_ajax_records(html, source_row_id=None):
         parsed = parse_html(html)
         records = []
         for row in parsed.rows:
             values = [x for x in cell_texts(row) if x]
-            if len(values) >= 3:
+            if len(values) >= 3 and values[0].strip().lower() not in (
+                "oem", "oem number", "номер детали", "номер запчасти"
+            ):
                 records.append({
+                    "source_row_id": source_row_id,
                     "oem_number_raw": values[0],
                     "production_period_raw": values[1],
                     "applicability_raw": values[2],
