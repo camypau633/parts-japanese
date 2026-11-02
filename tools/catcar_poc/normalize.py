@@ -1,4 +1,4 @@
-def normalize_page(adapter_result, context, source_url):
+def normalize_page(adapter_result, context, source_url, oem_records=None):
     """Convert an adapter result into the shared draft JSON structure.
 
     Context is caller-supplied metadata; this function never guesses vehicle data.
@@ -73,7 +73,16 @@ def normalize_page(adapter_result, context, source_url):
         },
         "catalog_context": context,
         "parts": parts,
-        "oem_records": [],
+        "oem_records": [
+            {
+                "oem_number_raw": item.get("oem_number_raw"),
+                "production_period_raw": item.get("production_period_raw"),
+                "applicability_raw": item.get("applicability_raw"),
+                "source_record_id": item.get("source_record_id"),
+                "source_row_id": item.get("source_row_id"),
+            }
+            for item in (oem_records or [])
+        ],
         "diagrams": diagrams,
         "hotspots": hotspots,
         "validation": {
