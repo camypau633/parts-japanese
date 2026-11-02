@@ -51,6 +51,8 @@ class AdapterTests(unittest.TestCase):
         """
         result = NissanAdapter().parse(html)
         self.assertEqual(result["parts"][0]["part_number_raw"], "12000-4A00A")
+        self.assertEqual(result["parts"][0]["additional_source_fields"]["raw_cells"][4], "")
+        self.assertEqual(result["parts"][0]["additional_source_fields"]["raw_cells"][5], "03")
         self.assertEqual(result["hotspot_matching"]["matched"], ["12010S"])
 
     def test_ford_static_table_code_mapping(self):
@@ -80,6 +82,7 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(result["parts"][0]["diagram_position_code"], "3")
         self.assertEqual(result["parts"][0]["quantity_raw"], "")
         self.assertEqual(result["parts"][0]["additional_source_fields"]["st_raw"], "1")
+        self.assertEqual(result["parts"][0]["additional_source_fields"]["raw_cells"][4], "centre left")
         self.assertEqual(result["parts"][1]["row_kind"], "continuation")
         self.assertIsNone(result["parts"][1]["parent_position_code"])
         self.assertEqual(result["hotspot_matching"]["matched"], ["3"])
