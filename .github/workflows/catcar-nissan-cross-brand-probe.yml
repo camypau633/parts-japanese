@@ -81,11 +81,70 @@ jobs:
           print("SAMPLE_IMAGES",json.dumps(p.images[:25],ensure_ascii=False))
           print("SCRIPT_REFS",json.dumps(p.scripts[:30],ensure_ascii=False))
           print("HOTSPOT_MARKERS", {k:html.count(k) for k in ["srcTop","srcLeft","srcWidth","srcHeight","getArticles","groups-parts__item","detail"]})
+          row_ids = set()
+          for row in p.rows[1:]:
+              if row:
+                  row_ids.add(row[0].strip())
+
+          coord_pattern = re.compile(
+              r'<div\\b(?=[^>]*class=["\\'][^"\\']*\\bcoord\\b[^"\\']*["\\'])([^>]*)>',
+              re.I | re.S
+          )
+          coords = []
+          for match in coord_pattern.finditer(html):
+              attrs = dict(re.findall(r'([\\w-]+)=["\\']([^"\\']*)["\\']', match.group(1)))
+              item = {
+                  "part_row": attrs.get("name", ""),
+                  "src_num": attrs.get("srcNum", ""),
+                  "top": attrs.get("srcTop", ""),
+                  "left": attrs.get("srcLeft", ""),
+                  "width": attrs.get("srcWidth", ""),
+                  "height": attrs.get("srcHeight", "")
+              }
+              coords.append(item)
+
+          coord_ids = set(x["src_num"] for x in coords if x["src_num"])
+          matched = sorted(coord_ids & row_ids)
+          unmatched = sorted(coord_ids - row_ids)
+          image_urls = [urljoin(final, x["src"]) for x in p.images if x.get("src") and "page_" in x["src"]]
+          diagram_result = []
+          for image_url in image_urls[:3]:
+              try:
+                  st, image_final, image_body = get(image_url)
+                  name = "out/diagram-%02d.png" % len(diagram_result)
+                  open(name, "wb").write(image_body)
+                  diagram_result.append({"url":image_final,"http":st,"bytes":len(image_body),"file":name})
+              except Exception as e:
+                  diagram_result.append({"url":image_url,"error":repr(e)})
+
+          script_checks = []
+          for script in p.scripts:
+              if script.startswith("inline") or not script:
+                  continue
+              script_url = urljoin(final, script)
+              try:
+                  st, sf, sb = get(script_url)
+                  js = sb.decode("utf-8","replace")
+                  interesting = [line.strip() for line in js.splitlines() if "coord" in line.lower() or "srcNum" in line or "srcTop" in line]
+                  script_checks.append({"url":sf,"http":st,"bytes":len(sb),"matches":interesting[:12]})
+              except Exception as e:
+                  script_checks.append({"url":script_url,"error":repr(e)})
+
+          print("TABLE_PART_IDS",len(row_ids),"COORD_HOTSPOTS",len(coords),
+                "UNIQUE_COORD_IDS",len(coord_ids),"MATCHED_IDS",len(matched),"UNMATCHED_IDS",len(unmatched))
+          print("HOTSPOT_MATCH_SAMPLE",json.dumps(matched[:30],ensure_ascii=False))
+          print("HOTSPOT_UNMATCHED",json.dumps(unmatched[:30],ensure_ascii=False))
+          print("DIAGRAM_DOWNLOADS",json.dumps(diagram_result,ensure_ascii=False))
+          print("SCRIPT_CHECKS",json.dumps(script_checks,ensure_ascii=False)[:7000])
+
           summary={
             "url":final,"http":status,"bytes":len(body),
             "table_rows":len(p.rows),"links":p.links,"images":p.images,
             "rows":p.rows,"scripts":p.scripts,
-            "hotspot_markers":{k:html.count(k) for k in ["srcTop","srcLeft","srcWidth","srcHeight","getArticles","groups-parts__item"]}
+            "hotspot_markers":{k:html.count(k) for k in ["srcTop","srcLeft","srcWidth","srcHeight","getArticles","groups-parts__item"]},
+            "table_part_ids":sorted(row_ids),"coords":coords,
+            "coord_ids_matched_to_table":matched,"coord_ids_missing_from_table":unmatched,
+            "diagram_downloads":diagram_result,"script_checks":script_checks
           }
           with open("out/nissan-pixo-inspection.json","w",encoding="utf-8") as f:
               json.dump(summary,f,ensure_ascii=False,indent=2)
