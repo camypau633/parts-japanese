@@ -1,0 +1,77 @@
+name: CatCar access probe
+
+on:
+  push:
+    paths:
+      - ".github/workflows/catcar-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe CatCar pages
+        shell: bash
+        run: |
+          set +e
+          mkdir -p probe
+          probe_url() {
+            name="$1"
+            url="$2"
+            echo "=== $name ==="
+            curl -L --max-time 35 --connect-timeout 15 \
+              -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/128.0.0.0 Safari/537.36" \
+              -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
+              -H "Accept-Language: ja,en-US;q=0.9,en;q=0.8" \
+              -D "probe/$name.headers" \
+              -o "probe/$name.html" \
+              -w "http_code=%{http_code}\nfinal_url=%{url_effective}\ncontent_type=%{content_type}\nsize_download=%{size_download}\ntime_total=%{time_total}\n" \
+              "$url" > "probe/$name.result" 2> "probe/$name.error"
+            cat "probe/$name.result"
+            echo "body_bytes=$(wc -c < "probe/$name.html" 2>/dev/null || echo 0)"
+            if [ -s "probe/$name.html" ]; then
+              python - "$name" <<'PY'
+          import sys
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Title(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.in_title = False
+                  self.parts = []
+              def handle_starttag(self, tag, attrs):
+                  if tag.lower() == "title":
+                      self.in_title = True
+              def handle_endtag(self, tag):
+                  if tag.lower() == "title":
+                      self.in_title = False
+              def handle_data(self, data):
+                  if self.in_title:
+                      self.parts.append(data.strip())
+          p = Path("probe") / (sys.argv[1] + ".html")
+          parser = Title()
+          try:
+              parser.feed(p.read_text(encoding="utf-8", errors="replace"))
+              print("page_title=" + " ".join(x for x in parser.parts if x))
+          except Exception as e:
+              print("title_parse_error=" + str(e))
+          PY
+            fi
+            echo
+          }
+          probe_url homepage "https://www.catcar.info/"
+          probe_url toyota_index "https://www.catcar.info/toyota/"
+          probe_url toyota_catalog "https://www.catcar.info/toyota/?l=bWFya2V0PT1qYXBhbnx8c3Q9PTcwfHxzdHM9PXsiMTAiOiJcdTA0MjBcdTA0NGJcdTA0M2RcdTA0M2VcdTA0M2EiLCIyMCI6Ilx1MDQyZlx1MDQxZlx1MDQxZVx1MDQxZFx1MDQxOFx1MDQyZiIsIjMwIjoiODYgMjY0MTEwIiwiNjAiOiJaTjYtQTI4OCIsIjcwIjoiMTUtMDIgXHUwNDI0XHUwNDE4XHUwNDFiXHUwNDJjXHUwNDIyXHUwNDIwIFx1MDQxY1x1MDQxMFx1MDQyMVx1MDQxYlx1MDQyZlx1MDQxZFx1MDQyYlx1MDQxOSJ9fHxjYXRhbG9nPT0yNjQxMTB8fHJlYz09QTF8fG1vZGlmbmFtZT09Wk42LUEyODh8fGVuZ2luZT09RkEyMHx8bW9kZWxubz09MDA2fHxQcm9kUGVyaW9kPT0yMDEzMDEyMDEzMDl8fG1vZF9pbmZvMD09UkNHfHxtb2RfaW5mbzE9PU1UTXx8bW9kX2luZm8yPT02Rnx8bW9kX2luZm8zPT0yRHx8bW9kX2luZm80PT1BfHxncm91cF9pZD09MTUwMnx8cGFnZTcwPT0w"
+          echo "Probe finished. This test checks access only; it does not bulk-download catalog data."
+      - name: Upload probe results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: catcar-access-probe
+          path: probe/
+          if-no-files-found: warn
+          retention-days: 7
