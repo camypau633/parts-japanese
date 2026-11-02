@@ -286,6 +286,17 @@ jobs:
             args+=(--input "$file")
           done
           python -m tools.catcar_poc.check_diagram_urls "${args[@]}" --output out/diagram-url-check.json --max-urls 20
+      - name: Inspect diagram image dimensions and CatCar coordinate script
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          for file in out/normalized/toyota-camry-group-*.json; do
+            [ -f "$file" ] || continue
+            args+=(--input "$file")
+          done
+          python -m tools.catcar_poc.inspect_diagram_geometry "${args[@]}" --output out/diagram-geometry.json --max-urls 20
+          cat out/diagram-geometry.json
       - name: Export bounded sample to isolated PartScope preview shards
         shell: bash
         run: |
