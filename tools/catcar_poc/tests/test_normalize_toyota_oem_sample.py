@@ -24,6 +24,13 @@ class ToyotaOemSampleTests(unittest.TestCase):
                 """,
                 encoding="utf-8",
             )
+            (root / "part-04111.html").write_text(
+                """<table>
+                <tr><td>04111-28130</td><td>09/2001-11/2002</td><td>2AZFE..ACV3#</td></tr>
+                <tr><td>04111-28131</td><td>09/2001-11/2002</td><td>2AZFE..ACV3#</td></tr>
+                </table>""",
+                encoding="utf-8",
+            )
             encoded = base64.b64encode(
                 b'catalog==284170||group_id==1103||ProfPeriod==200109200601||sts=={"70":"ENGINE"}'
             ).decode("ascii")
