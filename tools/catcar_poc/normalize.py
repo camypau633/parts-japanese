@@ -27,8 +27,9 @@ def normalize_page(adapter_result, context, source_url, oem_records=None):
             position_to_rows.setdefault(position, []).append(part.get("source_row_id"))
 
     images = adapter_result.get("images", [])
+    diagram_images = [image for image in images if image.get("image_kind") == "diagram"]
     diagrams = []
-    for index, image in enumerate(images):
+    for index, image in enumerate(diagram_images):
         diagrams.append({
             "diagram_id": "diagram-%d" % (index + 1),
             "source_image_url": image.get("src", ""),
