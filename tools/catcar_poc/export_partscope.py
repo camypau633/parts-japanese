@@ -249,7 +249,7 @@ def document_to_records(document, geometry_index=None):
                 "factory_parts": [],
                 "analogs": [],
                 "compatibility": list(compatibility),
-                "diagram": dict(diagram),
+                "diagram": {"diagramUrl": diagram["diagramUrl"], "hotspots": []},
                 "specifications": [],
                 "technical_drawings": [],
                 "source": {"name": "CatCar", "url": source_url},
