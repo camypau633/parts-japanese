@@ -44,6 +44,8 @@ class PartScopeExportTests(unittest.TestCase):
     def test_toyota_ajax_oem_variants_link_to_catalogue_row(self):
         doc = sample("Toyota")
         doc["catalog_context"]["model"] = "Camry"
+        doc["catalog_context"]["group_label_raw"] = "ФИЛЬТР МАСЛЯНЫЙ"
+        doc["diagrams"] = [{"diagram_id": "diagram-1", "source_image_url": "http://ci.catcar.info/toyota_2017_04/japan/./150397 .png"}]
         doc["parts"] = [{
             "source_row_id": "15600A", "diagram_position_code": "15600A",
             "part_number_raw": None, "description_raw": "OIL FILTER",
@@ -62,6 +64,10 @@ class PartScopeExportTests(unittest.TestCase):
         ]
         records = document_to_records(doc)
         self.assertEqual(set(records), {"90915YZZE1", "90915YZZE2"})
+        self.assertEqual(records["90915YZZE1"]["name"], "ФИЛЬТР МАСЛЯНЫЙ")
+        self.assertEqual(records["90915YZZE1"]["factory_parts"][0]["name"], "ФИЛЬТР МАСЛЯНЫЙ")
+        self.assertEqual(records["90915YZZE1"]["diagram"]["diagramUrl"],
+                         "https://ci.catcar.info/toyota_2017_04/japan/150397%20.png")
         self.assertEqual(records["90915YZZE1"]["factory_parts"][0]["position"], "15600A")
         self.assertEqual(records["90915YZZE1"]["factory_parts"][0]["applicability"], "1AZ-FE")
         self.assertEqual(records["90915YZZE2"]["factory_parts"][0]["production_period"], "2006-")
