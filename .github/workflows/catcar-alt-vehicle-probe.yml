@@ -4,13 +4,12 @@ on:
     paths:
       - '.github/workflows/catcar-alt-vehicle-probe.yml'
   workflow_dispatch:
-
 jobs:
   inspect:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Follow Camry modification and inspect groups
+      - name: Follow Camry modification
         shell: bash
         run: |
           set -euo pipefail
@@ -18,12 +17,31 @@ jobs:
           python - <<'PY'
           import re, urllib.request
           from html.parser import HTMLParser
-
           catalog = "https://www.catcar.info/toyota/?l=bWFya2V0PT1qYXBhbnx8c3Q9PTMwfHxzdHM9PXsiMTAiOiJcdTA0MjBcdTA0NGJcdTA0M2RcdTA0M2VcdTA0M2EiLCIyMCI6Ilx1MDQyZlx1MDQxZlx1MDQxZVx1MDQxZFx1MDQxOFx1MDQyZiIsIjMwIjoiQ0FNUlkgMjg0MTcwIn18fGNhdGFsb2c9PTI4NDE3MHx8cmVjPT1BMQ%3D%3D"
           def get(url):
               req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0"})
               with urllib.request.urlopen(req,timeout=30) as r:
                   return r.status,r.geturl(),r.read().decode("utf-8","replace")
+          class LinkParser(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.links=[]
+              def handle_starttag(self,tag,attrs):
+                  if tag=="a":
+                      a=dict(attrs)
+                      if a.get("href"): self.links.append((a.get("href"),a))
+          status,final,html=get(catalog)
+          print("CATALOG",status,len(html))
+          pattern = r"""<tr\b[^>]*>\s*<td[^>]*>\s*ACV30-AEPNK.*?</tr>"""
+          match=re.search(pattern,html,re.I|re.S)
+          if not match: raise SystemExit("MODIFICATION_ROW_NOT_FOUND")
+          lp=LinkParser(); lp.feed(match.group(0))
+          if not lp.links: raise SystemExit("MODIFICATION_HREF_NOT_FOUND")
+          mod_url=lp.links[0][0].replace("&amp;","&")
+          if mod_url.startswith("http://"): mod_url="https://"+mod_url[len("http://"):]
+          print("MODIFICATION_URL",mod_url)
+          status,final,mod_html=get(mod_url)
+          print("MODIFICATION_HTTP",status,"BYTES",len(mod_html),"URL",final)
+          open("out/camry-acv30-aepnk.html","w",encoding="utf-8").write(mod_html)
           class Rows(HTMLParser):
               def __init__(self):
                   super().__init__(); self.rows=[]; self.row=None; self.cell=None
@@ -38,21 +56,9 @@ jobs:
                   elif tag=="tr" and self.row is not None:
                       if self.row: self.rows.append(self.row)
                       self.row=None
-          status,final,html=get(catalog)
-          print("CATALOG",status,len(html))
-          match=re.search(r'<tr\\b[^>]*>\\s*<td[^>]*>\\s*ACV30-AEPNK.*?</tr>',html,re.I|re.S)
-          if not match: raise SystemExit("MODIFICATION_ROW_NOT_FOUND")
-          href=re.search(r'href=["\\']([^"\\']+)["\\']',match.group(0),re.I)
-          if not href: raise SystemExit("MODIFICATION_HREF_NOT_FOUND")
-          mod_url=href.group(1).replace("&amp;","&")
-          if mod_url.startswith("http://"): mod_url="https://"+mod_url[len("http://"):]
-          print("MODIFICATION_URL",mod_url)
-          status,final,mod_html=get(mod_url)
-          print("MODIFICATION_HTTP",status,"BYTES",len(mod_html),"URL",final)
-          parser=Rows(); parser.feed(mod_html)
-          print("MODIFICATION_ROWS",len(parser.rows))
-          for row in parser.rows[:100]: print("MOD_ROW",row)
-          open("out/camry-acv30-aepnk.html","w",encoding="utf-8").write(mod_html)
+          rp=Rows(); rp.feed(mod_html)
+          print("MODIFICATION_ROWS",len(rp.rows))
+          for row in rp.rows[:100]: print("MOD_ROW",row)
           PY
       - uses: actions/upload-artifact@v4
         with:
