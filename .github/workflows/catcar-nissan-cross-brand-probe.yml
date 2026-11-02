@@ -1,0 +1,97 @@
+name: CatCar Nissan cross-brand probe
+on:
+  push:
+    paths:
+      - '.github/workflows/catcar-nissan-cross-brand-probe.yml'
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Inspect Nissan catalog page and diagram data
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python - <<'PY'
+          import json
+          import re
+          import urllib.error
+          import urllib.request
+          from html.parser import HTMLParser
+          from urllib.parse import urljoin
+
+          URL = "https://www.catcar.info/nissan/?l=cmVnaW9uPT1lbHx8c3Q9PTcwfHxzdHM9PXsiMTAiOiJcdTA0MjBcdTA0NGJcdTA0M2RcdTA0M2VcdTA0M2EiLCIyMCI6Ilx1MDQxNVx1MDQxMlx1MDQyMFx1MDQxZVx1MDQxZlx1MDQxMCBcdTA0M2JcdTA0MzVcdTA0MzJcdTA0M2VcdTA0NDBcdTA0NDNcdTA0M2JcdTA0NGNcdTA0M2RcdTA0NGJcdTA0MzUiLCIzMCI6IlBJWE8gKFVBMCkiLCI0MCI6IkVOR0lORSBNRUNIQU5JQ0FMIiwiNzAiOiJQSVNUT04sQ1JBTktTSEFGVCAmIEZMWVdIRUVMIn18fG1vZF9pZD09NDN8fHN0YXJ0PT0yMDA5LTAzLTAxfHxlbmQ9PTIwMTMtMDgtMDF8fHNnX2lkPT1BfHxzZWNfaWQ9PTEyMHx8c3VmZj09QXx8cGFnZT09MDAyfHxzdGFydGdycD09MjAxMi0wMS0wMXx8ZW5kZ3JwPT0yMDEzLTA4LTAx"
+
+          def get(url):
+              req = urllib.request.Request(url, headers={
+                  "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/128 Safari/537.36",
+                  "Accept": "text/html,application/xhtml+xml,*/*",
+                  "Accept-Language": "en-US,en;q=0.9"
+              })
+              last = None
+              for attempt in range(3):
+                  try:
+                      with urllib.request.urlopen(req, timeout=35) as r:
+                          return r.status, r.geturl(), r.read()
+                  except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as e:
+                      last = e
+                      if isinstance(e, urllib.error.HTTPError) and e.code not in (429,500,502,503,504):
+                          raise
+              raise last
+
+          class Inspect(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.rows=[]; self.row=None; self.cell=None
+                  self.links=[]; self.images=[]; self.scripts=[]
+              def handle_starttag(self, tag, attrs):
+                  a=dict(attrs)
+                  if tag=="tr":
+                      self.row=[]
+                  elif tag in ("td","th") and self.row is not None:
+                      self.cell=[]
+                  elif tag=="a" and a.get("href"):
+                      self.links.append({"text":"","href":a["href"],"class":a.get("class","")})
+                  elif tag=="img" and (a.get("src") or a.get("data-src")):
+                      self.images.append({"src":a.get("src") or a.get("data-src"),"alt":a.get("alt",""),"class":a.get("class","")})
+                  elif tag=="script":
+                      self.scripts.append(a.get("src","inline"))
+              def handle_data(self,data):
+                  if self.cell is not None: self.cell.append(data.strip())
+                  if self.links: self.links[-1]["text"] += data.strip()
+              def handle_endtag(self,tag):
+                  if tag in ("td","th") and self.row is not None and self.cell is not None:
+                      self.row.append(" ".join(" ".join(self.cell).split()))
+                      self.cell=None
+                  elif tag=="tr" and self.row is not None:
+                      if any(self.row): self.rows.append(self.row)
+                      self.row=None; self.cell=None
+
+          status, final, body = get(URL)
+          html=body.decode("utf-8","replace")
+          open("out/nissan-pixo-catalog.html","w",encoding="utf-8").write(html)
+          p=Inspect(); p.feed(html)
+          print("HTTP",status,"FINAL_URL",final,"BYTES",len(body))
+          print("TABLE_ROWS",len(p.rows),"LINKS",len(p.links),"IMAGES",len(p.images),"SCRIPTS",len(p.scripts))
+          print("PAGE_TITLE",re.search(r"<title[^>]*>(.*?)</title>",html,re.I|re.S).group(1).strip() if re.search(r"<title[^>]*>(.*?)</title>",html,re.I|re.S) else "")
+          print("SAMPLE_TABLE_ROWS",json.dumps(p.rows[:12],ensure_ascii=False))
+          print("SAMPLE_LINKS",json.dumps(p.links[:25],ensure_ascii=False))
+          print("SAMPLE_IMAGES",json.dumps(p.images[:25],ensure_ascii=False))
+          print("SCRIPT_REFS",json.dumps(p.scripts[:30],ensure_ascii=False))
+          print("HOTSPOT_MARKERS", {k:html.count(k) for k in ["srcTop","srcLeft","srcWidth","srcHeight","getArticles","groups-parts__item","detail"]})
+          summary={
+            "url":final,"http":status,"bytes":len(body),
+            "table_rows":len(p.rows),"links":p.links,"images":p.images,
+            "rows":p.rows,"scripts":p.scripts,
+            "hotspot_markers":{k:html.count(k) for k in ["srcTop","srcLeft","srcWidth","srcHeight","getArticles","groups-parts__item"]}
+          }
+          with open("out/nissan-pixo-inspection.json","w",encoding="utf-8") as f:
+              json.dump(summary,f,ensure_ascii=False,indent=2)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catcar-nissan-cross-brand-inspection
+          path: out/
+          retention-days: 7
