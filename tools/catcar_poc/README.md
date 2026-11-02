@@ -46,3 +46,17 @@ GitHub Actions runs parser, adapter, regression, and JSON Schema tests on Python
 Toyota AJAX responses with the source message `No applicable data!` are retained as OEM records with `source_status: no_applicable_data`, rather than silently disappearing. Blank OEM period/applicability cells remain null.
 
 Before a production importer is considered, the adapters still need fixture-based validation against additional real page variants and an explicit permission review.
+
+## Bounded Toyota Camry group/AJAX sample
+
+The `normalize_toyota_oem_sample.py` command consumes a saved bounded probe artifact. The artifact must contain the JSON summary, each raw group HTML page, and each sampled AJAX HTML response:
+
+```bash
+python -m tools.catcar_poc.normalize_toyota_oem_sample --sample out/oem_variation_sample.json --schema schemas/catcar-extraction-v0.1.schema.json --output out/normalized
+```
+
+It performs no network requests. It verifies that every sampled part row exists in the saved group HTML, checks that parsed OEM rows exactly match the saved AJAX HTML, and validates each group document against the shared schema. It retains all part rows from each saved group, including rows whose AJAX response was not sampled; those rows remain marked `requires_ajax` and are not exported as OEM numbers.
+
+Each OEM record retains its source row, group ID, AJAX URL, and record order. Empty responses are accepted only when the saved AJAX HTML explicitly contains CatCar's `No applicable data!` message. The source record ID remains null when CatCar does not provide one; a local row order is not misrepresented as a CatCar ID.
+
+The normalizer is intentionally limited to the groups and AJAX responses present in the artifact. It does not claim complete Camry catalog coverage, and it does not infer OEM replacements or analogues.
