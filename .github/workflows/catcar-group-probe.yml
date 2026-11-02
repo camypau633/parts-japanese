@@ -1,0 +1,38 @@
+name: CatCar group probe
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request one subgroup page
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          URL='https://www.catcar.info/toyota/?l=bWFya2V0PT1qYXBhbnx8c3Q9PTcwfHxzdHM9PXsiMTAiOiJcdTA0MjBcdTA0NGJcdTA0M2RcdTA0M2VcdTA0M2EiLCIyMCI6Ilx1MDQyZlx1MDQxZlx1MDQxZVx1MDQxZFx1MDQxOFx1MDQyZiIsIjMwIjoiODYgMjY0MTEwIiwiNjAiOiJaTjYtQTI4OCIsIjcwIjoiMTUtMDIgXHUwNDI0XHUwNDE4XHUwNDFiXHUwNDJjXHUwNDIyXHUwNDIwIFx1MDQxY1x1MDQxMFx1MDQyMVx1MDQxYlx1MDQyZlx1MDQxZFx1MDQyYlx1MDQxOSIsIjcwIjoiMTEwNiBcdTA0MWFcdTA0MjBcdTA0MmJcdTA0MjhcdTA0MWFcdTA0MTAgXHUwNDIwXHUwNDE1XHUwNDFjXHUwNDFkXHUwNDJmIFx1MDQxM1x1MDQyMFx1MDQxYyJ9fHxjYXRhbG9nPT0yNjQxMTB8fHJlYz09QTF8fG1vZGlmbmFtZT09Wk42LUEyODh8fGVuZ2luZT09RkEyMHx8bW9kZWxubz09MDA2fHxQcm9kUGVyaW9kPT0yMDEzMDEyMDEzMDl8fG1vZF9pbmZvMD09UkNHfHxtb2RfaW5mbzE9PU1UTXx8bW9kX2luZm8yPT02Rnx8bW9kX2luZm8zPT0yRHx8bW9kX2luZm80PT1BfHxncm91cF9pZD09MTEwNnx8cGFnZTcwPT0wfHxncm91cF9uYW1lPT3QmtCg0KvQqNCa0JAg0KDQldCc0J3QryDQk9Cg0Jw%3D'
+          curl -L --max-time 30 -A 'Mozilla/5.0' -D out/headers.txt -o out/group.html -w 'HTTP=%{http_code}\nSIZE=%{size_download}\nFINAL=%{url_effective}\n' "$URL" | tee out/result.txt
+          echo '--- PAGE TITLE / STRUCTURE ---'
+          python - <<'PY'
+          from html.parser import HTMLParser
+          class P(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.title=False; self.in_title=False; self.rows=0; self.links=0; self.imgs=0
+              def handle_starttag(self, tag, attrs):
+                  a=dict(attrs)
+                  if tag=='title': self.in_title=True
+                  if tag=='tr': self.rows+=1
+                  if tag=='a': self.links+=1
+                  if tag=='img': self.imgs+=1
+              def handle_endtag(self, tag):
+                  if tag=='title': self.in_title=False
+              def handle_data(self, data):
+                  if self.in_title: self.title=True; print('TITLE:',data.strip())
+          p=P(); p.feed(open('out/group.html',encoding='utf-8',errors='replace').read())
+          print('ROWS:',p.rows,'LINKS:',p.links,'IMAGES:',p.imgs)
+          PY
+          grep -Eo 'Страница [0-9]+|name="[^"]+"|getArticles\([^)]+' out/group.html | head -80 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catcar-subgroup-response
+          path: out/
