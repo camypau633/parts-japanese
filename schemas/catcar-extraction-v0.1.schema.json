@@ -85,7 +85,10 @@
           "applicability_raw": { "type": ["string", "null"] },
           "source_record_id": { "type": ["string", "null"] },
           "source_row_id": { "type": ["string", "null"] },
-          "source_status": { "enum": ["available", "no_applicable_data"] }
+          "source_status": { "enum": ["available", "no_applicable_data"] },
+          "source_record_order": { "type": ["integer", "null"], "minimum": 0 },
+          "source_group_id": { "type": ["string", "null"] },
+          "source_url": { "type": ["string", "null"] }
         },
         "additionalProperties": false
       }
