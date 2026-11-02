@@ -20,6 +20,7 @@ A bounded sample of 8 groups from Toyota Camry catalog 284170, modification ACV3
 - The normalized document set therefore contains 330 OEM/status entries: 322 source table rows plus 8 explicit no-applicable-data markers.
 - 183 distinct OEM numbers were present in the 322 table rows.
 - 8 diagram images and 137 source hotspots were parsed.
+- All 8 diagram URLs returned HTTP 200 with `image/png`; bounded range reads returned PNG dimensions without downloading full image files.
 - All 137 source hotspots matched a part-row identifier; all 123 part rows had at least one matching hotspot in these 8 groups.
 - All 8 normalized group documents passed the shared JSON Schema.
 - Toyota group rows now retain their actual second-cell part descriptions (for example, `GASKET KIT, ENGINE OVERHAUL`) and the original row cells.
