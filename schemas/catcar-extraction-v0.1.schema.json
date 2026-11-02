@@ -41,6 +41,7 @@
           "description_raw",
           "production_period_raw",
           "quantity_raw",
+          "alternative_number_raw",
           "row_kind",
           "parent_position_code",
           "source_status",
@@ -54,6 +55,7 @@
           "description_raw": { "type": "string" },
           "production_period_raw": { "type": "string" },
           "quantity_raw": { "type": "string" },
+          "alternative_number_raw": { "type": "string" },
           "row_kind": {
             "enum": ["positioned", "continuation", "group_header", "unknown"]
           },
