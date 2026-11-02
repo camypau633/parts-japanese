@@ -81,7 +81,8 @@
           "production_period_raw": { "type": ["string", "null"] },
           "applicability_raw": { "type": ["string", "null"] },
           "source_record_id": { "type": ["string", "null"] },
-          "source_row_id": { "type": ["string", "null"] }
+          "source_row_id": { "type": ["string", "null"] },
+          "source_status": { "enum": ["available", "no_applicable_data"] }
         },
         "additionalProperties": false
       }
