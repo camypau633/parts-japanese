@@ -1,0 +1,74 @@
+name: CatCar multi-part response probe
+on:
+  push:
+    paths:
+      - '.github/workflows/catcar-multi-part-probe.yml'
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch one group and test several part rows
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python - <<'PY'
+          import re
+          import json
+          import urllib.parse
+          import urllib.request
+          from html.parser import HTMLParser
+
+          GROUP_URL = "https://www.catcar.info/toyota/?l=bWFya2V0PT1qYXBhbnx8c3Q9PTcwfHxzdHM9PXsiMTAiOiJcdTA0MjBcdTA0NGJcdTA0M2RcdTA0M2VcdTA0M2EiLCIyMCI6Ilx1MDQyZlx1MDQxZlx1MDQxZVx1MDQxZFx1MDQxOFx1MDQyZiIsIjMwIjoiODYgMjY0MTEwIiwiNjAiOiJaTjYtQTI4OCIsIjcwIjoiMTUtMDIgXHUwNDI0XHUwNDE4XHUwNDFiXHUwNDJjXHUwNDIyXHUwNDIwIFx1MDQxY1x1MDQxMFx1MDQyMVx1MDQxYlx1MDQyZlx1MDQxZFx1MDQyYlx1MDQxOSIsIjcwIjoiMTEwNiBcdTA0MWFcdTA0MjBcdTA0MmJcdTA0MjhcdTA0MWFcdTA0MTAgXHUwNDIwXHUwNDE1XHUwNDFjXHUwNDFkXHUwNDJmIFx1MDQxM1x1MDQyMFx1MDQxYyJ9fHxjYXRhbG9nPT0yNjQxMTB8fHJlYz09QTF8fG1vZGlmbmFtZT09Wk42LUEyODh8fGVuZ2luZT09RkEyMHx8bW9kZWxubz09MDA2fHxQcm9kUGVyaW9kPT0yMDEzMDEyMDEzMDl8fG1vZF9pbmZvMD09UkNHfHxtb2RfaW5mbzE9PU1UTXx8bW9kX2luZm8yPT02Rnx8bW9kX2luZm8zPT0yRHx8bW9kX2luZm80PT1BfHxncm91cF9pZD09MTEwNnx8cGFnZTcwPT0wfHxncm91cF9uYW1lPT3QmtCg0KvQqNCa0JAg0KDQldCc0J3QryDQk9Cg0Jw%3D"
+          headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/128.0.0.0 Safari/537.36"}
+          def get(url):
+              req = urllib.request.Request(url, headers=headers)
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  return response.status, response.read().decode("utf-8", "replace")
+
+          status, page = get(GROUP_URL)
+          open("out/group.html", "w", encoding="utf-8").write(page)
+          print("GROUP_HTTP", status, "BYTES", len(page))
+
+          calls = re.findall(r"getArticles\\(this,\\s*'([^']+)'\\s*,\\s*(\\d+)", page)
+          rows = []
+          seen = set()
+          for token, state in calls:
+              if state != "80" or token in seen:
+                  continue
+              seen.add(token)
+              decoded = urllib.parse.unquote(token)
+              rows.append((token, decoded))
+          print("PART_ROW_TOKENS", len(rows))
+
+          targets = ("11302", "11301G", "15330", "SU00304311")
+          chosen = []
+          for token, decoded in rows:
+              if any(target in decoded for target in targets):
+                  chosen.append((token, decoded))
+          print("MATCHED_TARGETS", len(chosen))
+
+          results = []
+          for token, decoded in chosen:
+              url = "https://www.catcar.info/toyota/?" + urllib.parse.urlencode({"l": token, "st": "81"})
+              try:
+                  code, html = get(url)
+                  filename = "out/part-" + str(len(results)+1) + ".html"
+                  open(filename, "w", encoding="utf-8").write(html)
+                  numbers = sorted(set(re.findall(r"[A-Z]{0,3}[0-9]{5,}[A-Z0-9-]*", html)))
+                  item = {"row_token_decoded": decoded[:500], "http": code, "bytes": len(html), "filename": filename, "numbers": numbers, "html_title": re.findall(r"<title[^>]*>(.*?)</title>", html, re.I|re.S)[:1]}
+                  results.append(item)
+                  print("PART_RESULT", json.dumps(item, ensure_ascii=False))
+              except Exception as exc:
+                  results.append({"row_token_decoded": decoded[:500], "error": str(exc)})
+                  print("PART_ERROR", str(exc))
+          open("out/summary.json", "w", encoding="utf-8").write(json.dumps(results, ensure_ascii=False, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catcar-multi-part-responses
+          path: out/
+          retention-days: 7
