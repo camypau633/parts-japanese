@@ -76,7 +76,7 @@ def main(argv=None):
     toyota_meta = load_json(toyota_dir / "catalog_records.json")
     oem_records = []
     no_applicable_pages = []
-    for page in sorted((root / "toyota-oem").glob("part-*.html")):
+    for page in sorted(toyota_dir.glob("part-*.html")):
         source_row_id = page.stem[len("part-"):]
         body = page.read_text(encoding="utf-8", errors="replace")
         records = ToyotaAdapter.parse_ajax_records(body, source_row_id=source_row_id)
