@@ -79,12 +79,12 @@ Hotspot:
 - `hotspot_id`
 - `diagram_id`
 - `source_position_code`
-- `source_row_id` (nullable)
+- `source_row_id` (nullable; set only when one source row is uniquely identified)\n- `source_row_ids` (array; preserves one-to-many mappings when a single diagram position represents multiple part rows)
 - `top_raw`, `left_raw`, `width_raw`, `height_raw`
 - `coordinate_system` and image dimensions, when verified
 - `resolution_status`: `matched`, `unmatched`, or `ambiguous`
 
-Keep original coordinate values. Do not scale or rewrite coordinates until the original image dimensions and CatCar's coordinate behavior are verified. Multiple hotspots may refer to one part row.
+Keep original coordinate values. Do not scale or rewrite coordinates until the original image dimensions and CatCar's coordinate behavior are verified. Multiple hotspots may refer to one part row. A single hotspot/position may also correspond to multiple source rows (for example, a Nissan position with separate part numbers across production periods); preserve all linked row IDs rather than selecting one arbitrarily.
 
 ## 6. Adapter behavior established so far
 
