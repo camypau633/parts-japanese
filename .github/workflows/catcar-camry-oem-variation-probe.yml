@@ -1,5 +1,8 @@
 name: CatCar Camry OEM variation probe
 on:
+  push:
+    paths:
+      - '.github/workflows/catcar-camry-oem-variation-probe.yml'
   workflow_dispatch:
 jobs:
   inspect:
