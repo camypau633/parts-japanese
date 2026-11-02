@@ -57,7 +57,8 @@ class PartScopeExportTests(unittest.TestCase):
         doc["oem_records"] = [
             {"source_row_id": "15600A", "oem_number_raw": "90915-YZZE1",
              "production_period_raw": "2001-2006", "applicability_raw": "1AZ-FE",
-             "source_status": "available"},
+             "source_status": "available", "source_group_id": "1502",
+             "source_record_order": 0, "source_url": "https://www.catcar.info/toyota/?l=ajax-token"},
             {"source_row_id": "15600A", "oem_number_raw": "90915-YZZE2",
              "production_period_raw": "2006-", "applicability_raw": "2AZ-FE",
              "source_status": "available"},
@@ -72,6 +73,9 @@ class PartScopeExportTests(unittest.TestCase):
                          "https://ci.catcar.info/toyota_2017_04/japan/150397%20.png")
         self.assertEqual(records["90915YZZE1"]["factory_parts"][0]["position"], "15600A")
         self.assertEqual(records["90915YZZE1"]["factory_parts"][0]["applicability"], "1AZ-FE")
+        self.assertEqual(records["90915YZZE1"]["factory_parts"][0]["source_group_id"], "1502")
+        self.assertEqual(records["90915YZZE1"]["factory_parts"][0]["source_record_order"], 0)
+        self.assertEqual(records["90915YZZE1"]["factory_parts"][0]["source_url"], "https://www.catcar.info/toyota/?l=ajax-token")
         self.assertEqual(records["90915YZZE2"]["factory_parts"][0]["production_period"], "2006-")
 
     def test_export_validator_reports_provenance_and_context_coverage(self):
