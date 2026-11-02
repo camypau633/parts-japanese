@@ -117,18 +117,18 @@ def normalize_sample(sample, artifact_dir, schema):
                     "source_row_order": order,
                     "diagram_position_code": parsed_part.get("diagram_position_code"),
                     "part_number_raw": None,
-                    "description_raw": "",
+                    "description_raw": parsed_part.get("description_raw", ""),
                     "production_period_raw": "",
                     "quantity_raw": "",
                     "alternative_number_raw": "",
                     "row_kind": "positioned",
                     "parent_position_code": None,
                     "source_status": "requires_ajax",
-                    "additional_source_fields": {
+                    "additional_source_fields": dict(parsed_part.get("additional_source_fields", {}), **{
                         "ajax_token": parsed_part.get("ajax_token", ""),
                         "source_page_file": "",
                         "ajax_sample_status": "not_sampled",
-                    },
+                    }),
                 })
                 continue
 
@@ -176,18 +176,18 @@ def normalize_sample(sample, artifact_dir, schema):
                 "source_row_order": order,
                 "diagram_position_code": parsed_part.get("diagram_position_code"),
                 "part_number_raw": None,
-                "description_raw": "",
+                "description_raw": parsed_part.get("description_raw", ""),
                 "production_period_raw": "",
                 "quantity_raw": "",
                 "alternative_number_raw": "",
                 "row_kind": "positioned",
                 "parent_position_code": None,
                 "source_status": "requires_ajax" if source_status == "available" else "no_applicable_data",
-                "additional_source_fields": {
+                "additional_source_fields": dict(parsed_part.get("additional_source_fields", {}), **{
                     "ajax_token": parsed_part.get("ajax_token", ""),
                     "source_page_file": sample_part.get("source_page_file", ""),
                     "ajax_sample_status": source_status,
-                },
+                }),
             })
 
             total_sampled_parts += 1
