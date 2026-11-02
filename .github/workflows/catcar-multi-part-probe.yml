@@ -33,7 +33,7 @@ jobs:
           open("out/group.html", "w", encoding="utf-8").write(page)
           print("GROUP_HTTP", status, "BYTES", len(page))
 
-          calls = re.findall(r"getArticles\\(this,\\s*'([^']+)'\\s*,\\s*(\\d+)", page)
+          calls = re.findall(r"getArticles\(this,\s*'([^']+)'\s*,\s*(\d+)", page)
           rows = []
           seen = set()
           for token, state in calls:
