@@ -2,7 +2,7 @@
 
 Date: 2026-11-02  
 Repository: `camypau633/parts-japanese`  
-Latest end-to-end workflow: [41467023268](https://github.com/camypau633/parts-japanese/actions/runs/41467023268)  
+Latest end-to-end workflow: [41469187861](https://github.com/camypau633/parts-japanese/actions/runs/41469187861)  
 Normalizer-only workflow: [41466769287](https://github.com/camypau633/parts-japanese/actions/runs/41466769287)  
 Code commit used by latest end-to-end run: `6056c78091029efbc568efd7a0fd4139c8fe28bf`
 
@@ -20,23 +20,26 @@ A bounded sample of 8 groups from Toyota Camry catalog 284170, modification ACV3
 - The normalized document set therefore contains 150 OEM/status entries: 148 source table rows plus 2 explicit no-applicable-data markers.
 - 76 distinct OEM numbers were present in the 148 table rows.
 - 8 diagram images and 137 source hotspots were parsed.
-- All 137 hotspots matched a part-row identifier; all 123 part rows had at least one matching hotspot in these 8 groups.
+- All 137 source hotspots matched a part-row identifier; all 123 part rows had at least one matching hotspot in these 8 groups.
 - All 8 normalized group documents passed the shared JSON Schema.
+- Toyota group rows now retain their actual second-cell part descriptions (for example, `GASKET KIT, ENGINE OVERHAUL`) and the original row cells.
 
 ## PartScope preview export
 
 The same workflow passed the 8 normalized group documents into the existing PartScope exporter, writing only to a temporary GitHub Actions artifact. It did not publish to `camypau633/partscope` or modify its production data.
 
 - 8 normalized documents read.
-- 76 unique PartScope SKU records exported.
+- 77 PartScope catalogue records exported for 76 unique SKU keys.
 - 148 factory catalogue rows validated.
 - All 76 records retained Toyota, Camry, 2AZFE and the explicitly encoded profile period 09/2001–01/2006.
 - All 76 records had a CatCar diagram URL.
 - 9 two-character JSON shards were generated in the isolated preview artifact.
 - OEM provenance in factory rows includes the AJAX source URL, group ID and record order.
+- 79 verified interactive hotspots were exported across all 77 catalogue records.
+- The hotspot coordinates use the centres of CatCar's source rectangles in natural image pixels. The bounded geometry probe verified PNG dimensions, image bounds, and the CatCar responsive-coordinate script before enabling export.
+- The SKU `11310-28071` appears in two catalog groups; the exporter preserves it as two PartScope candidates with separate diagrams and positions instead of merging away one diagram.
 - Analogues exported: 0.
 - Physical dimensions exported: 0.
-- Hotspots exported: 0. Although the source coordinates and row matches were parsed, they are not yet calibrated against the actual image coordinate system, so the exporter correctly omits them.
 
 ## Verified multi-OEM examples
 
@@ -66,6 +69,7 @@ These cases remain distinct:
 - This is a bounded Camry sample, not full coverage of the 123 part rows: 89 AJAX rows remain unsampled.
 - The 76 preview SKU records are not ready for production publication.
 - No analogues or physical dimensions have been inferred.
-- Hotspot coordinates need image-dimension and coordinate-system calibration before export to PartScope.
+- The 89 unsampled AJAX rows still need bounded extraction before the 8-group sample can be considered complete.
+- Physical dimensions are not present in this sample; no diameter, height, thread or other measurements are fabricated.
 - No mass extraction was performed.
 - The workflow is still a research/preview pipeline; production publication remains disabled.
