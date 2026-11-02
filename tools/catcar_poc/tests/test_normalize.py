@@ -1,10 +1,27 @@
 import unittest
 
-from tools.catcar_poc.adapters import VagAdapter
+from tools.catcar_poc.adapters import NissanAdapter, VagAdapter
 from tools.catcar_poc.normalize import normalize_page
 
 
 class NormalizeTests(unittest.TestCase):
+
+    def test_one_hotspot_can_link_to_multiple_part_rows(self):
+        html = """
+        <table>
+          <tr><th>№</th><th>Номер детали</th><th>Название</th><th>Дата производства</th><th>Alt</th><th>Qty</th></tr>
+          <tr><td>12010S</td><td>12000-4A00A</td><td>PISTON SET</td><td>03/2009-01/2012</td><td></td><td>03</td></tr>
+          <tr><td>12010S</td><td>12000-4A00B</td><td>PISTON SET</td><td>01/2012-</td><td></td><td>03</td></tr>
+        </table>
+        <div class="coord" srcNum="12010S" srcTop="1" srcLeft="2" srcWidth="3" srcHeight="4"></div>
+        """
+        result = NissanAdapter().parse(html)
+        normalized = normalize_page(result, {"brand": "Nissan"}, "https://example.test/nissan")
+        hotspot = normalized["hotspots"][0]
+        self.assertEqual(hotspot["resolution_status"], "matched")
+        self.assertIsNone(hotspot["source_row_id"])
+        self.assertEqual(len(hotspot["source_row_ids"]), 2)
+
     def test_normalizes_vag_parts_diagram_and_unresolved_position(self):
         html = """
         <table>
