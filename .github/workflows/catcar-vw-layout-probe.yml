@@ -47,10 +47,15 @@ jobs:
           markers=["srcTop","srcLeft","srcWidth","srcHeight","srcNum","coord","groups-parts__item","getArticles","Bildtafel","Grafik"]
           title=re.search(r"<title[^>]*>(.*?)</title>",html,re.I|re.S)
           ids=sorted(set(x.get("name","").strip() for x in p.coords if x.get("name","").strip()))
+          table_codes=sorted(set(row[0].strip() for row in p.rows[1:] if row and row[0].strip()))
           result={"http":status,"url":final,"bytes":len(body),"title":title.group(1).strip() if title else "",
                   "table_rows":len(p.rows),"sample_rows":p.rows[:30],"images":p.images[:60],
                   "links":p.links[:40],"scripts":p.scripts[:40],"coord_elements":len(p.coords),
-                  "hotspot_ids":ids,"markers":{x:html.count(x) for x in markers}}
+                  "table_position_codes":table_codes,"hotspot_ids":ids,
+                  "matched_hotspot_ids":sorted(set(table_codes)&set(ids)),
+                  "unmatched_hotspot_ids":sorted(set(ids)-set(table_codes)),
+                  "table_codes_without_hotspot":sorted(set(table_codes)-set(ids)),
+                  "markers":{x:html.count(x) for x in markers}}
           print(json.dumps(result,ensure_ascii=False,indent=2))
           open("out/vw-inspection.json","w",encoding="utf-8").write(json.dumps(result,ensure_ascii=False,indent=2))
           downloads=[]
