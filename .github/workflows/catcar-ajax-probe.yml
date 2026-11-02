@@ -1,0 +1,42 @@
+name: CatCar single-part AJAX probe
+
+on:
+  push:
+    paths:
+      - ".github/workflows/catcar-ajax-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Request one Toyota 86 part expansion
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p probe
+          L='bWFya2V0PT1qYXBhbnx8c3Q9PTgwfHxzdHM9PXsiMTAiOiJcdTA0MjBcdTA0NGJcdTA0M2RcdTA0M2VcdTA0M2EiLCIyMCI6Ilx1MDQyZlx1MDQxZlx1MDQxZVx1MDQxZFx1MDQxOFx1MDQyZiIsIjMwIjoiODYgMjY0MTEwIiwiNjAiOiJaTjYtQTI4OCIsIjcwIjoiMTUtMDIgXHUwNDI0XHUwNDE4XHUwNDFiXHUwNDJjXHUwNDIyXHUwNDIwIFx1MDQxY1x1MDQxMFx1MDQyMVx1MDQxYlx1MDQyZlx1MDQxZFx1MDQyYlx1MDQxOSIsIjgwIjoiMTU2MDBBIFVOSU9OKEZPUiBPSUwgRklMVEVSKSJ9fHxjYXRhbG9nPT0yNjQxMTB8fHJlYz09QTF8fG1vZGlmbmFtZT09Wk42LUEyODh8fGVuZ2luZT09RkEyMHx8bW9kZWxubz09MDA2fHxQcm9kUGVyaW9kPT0yMDEzMDEyMDEzMDl8fG1vZF9pbmZvMD09UkNHfHxtb2RfaW5mbzE9PU1UTXx8bW9kX2luZm8yPT02Rnx8bW9kX2luZm8zPT0yRHx8bW9kX2luZm80PT1BfHxncm91cF9pZD09MTUwMnx8cGFnZTcwPT0wfHxwbmM9PTE1NjAwQXx8Z3JvdXBfbmFtZT09VU5JT04oRk9SIE9JTCBGSUxURVIp'
+          curl --get --location --fail-with-body \
+            --max-time 40 --connect-timeout 15 \
+            --user-agent "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/128.0.0.0 Safari/537.36" \
+            --dump-header probe/response.headers \
+            --output probe/response.html \
+            --write-out "http_code=%{http_code}\ncontent_type=%{content_type}\nsize_download=%{size_download}\ntime_total=%{time_total}\n" \
+            --data-urlencode "l=$L" \
+            --data-urlencode "st=81" \
+            "https://www.catcar.info/toyota/" | tee probe/result.txt
+          echo "response_bytes=$(wc -c < probe/response.html)"
+          echo "=== response preview (first 80 lines) ==="
+          sed -n '1,80p' probe/response.html | sed -E 's/(<script[^>]*>).*$/\1[script omitted]/I'
+          echo "=== likely article/part fields ==="
+          grep -Eoi '([0-9]{5}[A-Z]?[- ]?[0-9A-Z]{0,5}|part number|article|quantity|price|number|name|15600A|15601)' probe/response.html | sort | uniq -c | head -60 || true
+      - name: Save one-response evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: catcar-single-part-response
+          path: probe/
+          retention-days: 7
