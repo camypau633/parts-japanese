@@ -276,6 +276,16 @@ jobs:
           python -m tools.catcar_poc.normalize_toyota_oem_sample --sample out/oem_variation_sample.json --schema schemas/catcar-extraction-v0.1.schema.json --output out/normalized
       - name: Print normalized sample coverage report
         run: cat out/normalized/report.json
+      - name: Check bounded set of Toyota diagram image URLs
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          for file in out/normalized/toyota-camry-group-*.json; do
+            [ -f "$file" ] || continue
+            args+=(--input "$file")
+          done
+          python -m tools.catcar_poc.check_diagram_urls "${args[@]}" --output out/diagram-url-check.json --max-urls 20
       - name: Export bounded sample to isolated PartScope preview shards
         shell: bash
         run: |
