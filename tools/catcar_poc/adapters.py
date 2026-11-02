@@ -39,10 +39,13 @@ class ToyotaAdapter(BaseAdapter):
             part_number = attrs.get("name", "").strip()
             token = extract_getarticles_token(attrs.get("onclick", ""))
             if part_number and token:
+                cells = cell_texts(row)
                 ajax_rows.append({
                     "source_row_id": part_number,
                     "diagram_position_code": part_number,
                     "part_number_raw": None,
+                    "description_raw": cells[1].strip() if len(cells) > 1 else "",
+                    "additional_source_fields": {"raw_cells": list(cells)},
                     "ajax_token": token,
                     "source_status": "requires_ajax",
                 })
