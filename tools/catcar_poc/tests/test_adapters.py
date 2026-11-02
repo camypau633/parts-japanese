@@ -88,6 +88,21 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(result["hotspot_matching"]["matched"], ["3"])
         self.assertIn("(40)", result["hotspot_matching"]["rows_without_hotspot"])
 
+    def test_vag_group_transition_is_not_misclassified_as_part_number(self):
+        html = """
+        <table>
+          <tr><td>28</td><td></td><td>Переход к группе</td><td>support see illustration, item: 067-050,22</td><td></td><td></td><td></td></tr>
+        </table>
+        """
+        result = VagAdapter().parse(html)
+        self.assertEqual(len(result["parts"]), 1)
+        item = result["parts"][0]
+        self.assertEqual(item["row_kind"], "group_header")
+        self.assertEqual(item["source_status"], "unresolved")
+        self.assertIsNone(item["part_number_raw"])
+        self.assertEqual(item["additional_source_fields"]["entry_type_raw"], "Переход к группе")
+        self.assertEqual(item["description_raw"], "support see illustration, item: 067-050,22")
+
 
 if __name__ == "__main__":
     unittest.main()
