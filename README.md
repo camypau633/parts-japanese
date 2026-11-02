@@ -24,7 +24,7 @@
 - `docs/catcar-nissan-cross-brand-validation.md` — проверка Nissan Pixo.
 - `docs/catcar-ford-third-brand-validation.md` — проверка Ford Fiesta.
 - `docs/catcar-vw-fourth-brand-validation.md` — проверка Volkswagen / VAG.
-- `docs/catcar-normalized-extraction-contract-draft.md` — черновик общей структуры данных.\n- `docs/catcar-access-policy-discovery.md` — robots.txt и поиск опубликованных условий.
+- `docs/catcar-normalized-extraction-contract-draft.md` — черновик общей структуры данных.\n- `docs/catcar-access-policy-discovery.md` — robots.txt и поиск опубликованных условий.\n- `tools/catcar_poc/README.md` — описание начального каркаса адаптеров и ограничений.
 
 ## Основные правила извлечения
 
@@ -41,7 +41,7 @@
 1. Уточнить у оператора CatCar, разрешены ли автоматизированное извлечение и повторное использование данных. `robots.txt` задаёт Crawl-delay 10 секунд, но не является лицензией; на главной странице условия использования не найдены.
 2. Уточнить неразрешённые особенности строк-продолжений VAG и таблиц других семейств.
 3. Зафиксировать контракт нормализованного JSON.
-4. Реализовать адаптеры и тесты на ограниченных сохранённых примерах.
+4. Развивать начальные адаптеры и тесты на ограниченных сохранённых примерах. Каркас уже добавлен в `tools/catcar_poc/`; он пока не загружает страницы и не создаёт каталог PartScope.
 5. Только после этого отдельно решать вопрос о допустимости и масштабе импорта.
 
 ## Ограничения
