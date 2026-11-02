@@ -1,0 +1,25 @@
+name: CatCar part detail probe
+on:
+  push:
+    paths:
+      - '.github/workflows/catcar-part-probe.yml'
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Expand one OEM row
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          TOKEN='bWFya2V0PT1qYXBhbnx8c3Q9PTgwfHxzdHM9PXsiMTAiOiJcdTA0MjBcdTA0NGJcdTA0M2RcdTA0M2VcdTA0M2EiLCIyMCI6Ilx1MDQyZlx1MDQxZlx1MDQxZVx1MDQxZFx1MDQxOFx1MDQyZiIsIjMwIjoiODYgMjY0MTEwIiwiNjAiOiJaTjYtQTI4OCIsIjcwIjoiMTEwNiBcdTA0MWFcdTA0MjBcdTA0MmJcdTA0MjhcdTA0MWFcdTA0MTAgXHUwNDIwXHUwNDE1XHUwNDFjXHUwNDFkXHUwNDJmIFx1MDQxM1x1MDQyMFx1MDQxYyIsIjgwIjoiMTEzMDIgIENPVkVSIFNVQi1BU1NZLCBUSU1JTkcgQ0hBSU4gT1IgQkVMVCJ9fHxjYXRhbG9nPT0yNjQxMTB8fHJlYz09QTF8fG1vZGlmbmFtZT09Wk42LUEyODh8fGVuZ2luZT09RkEyMHx8bW9kZWxubz09MDA2fHxQcm9kUGVyaW9kPT0yMDEzMDEyMDEzMDl8fG1vZF9pbmZvMD09UkNHfHxtb2RfaW5mbzE9PU1UTXx8bW9kX2luZm8yPT02Rnx8bW9kX2luZm8zPT0yRHx8bW9kX2luZm80PT1BfHxncm91cF9pZD09MTEwNnx8cGFnZTcwPT0wfHxncm91cF9uYW1lPT1DT1ZFUiBTVUItQVNTWSwgVElNSU5HIENIQUlOIE9SIEJFTFR8fHBuYz09MTEzMDIg'
+          curl -sS -L --max-time 30 -A 'Mozilla/5.0' --get 'https://www.catcar.info/toyota/' --data-urlencode "l=$TOKEN" --data-urlencode 'st=81' -D out/headers.txt -o out/part-11302.html -w 'HTTP=%{http_code}\nSIZE=%{size_download}\nTYPE=%{content_type}\n' | tee out/result.txt
+          echo '--- RESPONSE CONTENT ---'
+          sed -n '1,220p' out/part-11302.html
+          echo '--- LINKS AND IMAGES ---'
+          grep -Eo 'href="[^"]+"|src="[^"]+"|[A-Z0-9-]{5,}' out/part-11302.html | sort -u | head -100 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catcar-part-11302-response
+          path: out/
