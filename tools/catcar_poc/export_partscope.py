@@ -3,7 +3,7 @@ import argparse
 import json
 import posixpath
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 from urllib.parse import quote, urljoin, urlsplit, urlunsplit
 
@@ -146,6 +146,69 @@ def document_to_records(document):
             record["name"] = description
     return result
 
+
+
+def validate_export_records(records):
+    """Fail closed on broken SKU, OEM provenance, or app-facing structure."""
+    brands = Counter()
+    records_with_years = 0
+    records_with_engine = 0
+    records_with_diagram = 0
+    factory_part_count = 0
+
+    for sku, record in records.items():
+        if not sku or clean_sku(sku) != sku:
+            raise ValueError("Invalid cleaned SKU key: %r" % sku)
+        if record.get("sku") != sku:
+            raise ValueError("Record SKU does not match shard key: %s" % sku)
+        brand = record.get("brand")
+        if brand not in SUPPORTED_BRANDS:
+            raise ValueError("Unsupported exported brand for %s: %r" % (sku, brand))
+        brands[brand] += 1
+
+        source = record.get("source") or {}
+        source_url = text(source.get("url"))
+        parsed_source = urlsplit(source_url)
+        if source.get("name") != "CatCar" or parsed_source.scheme not in ("http", "https") or not parsed_source.hostname or not parsed_source.hostname.endswith("catcar.info"):
+            raise ValueError("Missing or invalid CatCar provenance for %s" % sku)
+
+        factory_parts = record.get("factory_parts")
+        if not isinstance(factory_parts, list) or not factory_parts:
+            raise ValueError("No factory catalogue rows for %s" % sku)
+        for factory in factory_parts:
+            factory_part_count += 1
+            raw_oem = text(factory.get("sku"))
+            if not raw_oem or clean_sku(raw_oem) != sku:
+                raise ValueError("Factory OEM number does not match record SKU: %s" % sku)
+            if factory.get("source_name") != "CatCar" or not text(factory.get("source_url")):
+                raise ValueError("Factory row is missing source provenance: %s" % sku)
+
+        if not isinstance(record.get("analogs"), list):
+            raise ValueError("Analogs must be a list for %s" % sku)
+        if not isinstance(record.get("compatibility"), list):
+            raise ValueError("Compatibility must be a list for %s" % sku)
+        for vehicle in record["compatibility"]:
+            if text(vehicle.get("years")):
+                records_with_years += 1
+            if text(vehicle.get("engine")):
+                records_with_engine += 1
+
+        diagram_url = text((record.get("diagram") or {}).get("diagramUrl"))
+        if diagram_url:
+            parsed_diagram = urlsplit(diagram_url)
+            if parsed_diagram.scheme not in ("http", "https") or not parsed_diagram.hostname or not parsed_diagram.hostname.endswith("catcar.info"):
+                raise ValueError("Invalid CatCar diagram URL for %s" % sku)
+            records_with_diagram += 1
+
+    return {
+        "records_validated": len(records),
+        "factory_parts_validated": factory_part_count,
+        "records_by_brand": dict(sorted(brands.items())),
+        "records_with_compatibility_years": records_with_years,
+        "records_with_engine": records_with_engine,
+        "records_with_diagram_url": records_with_diagram,
+        "validation_passed": True,
+    }
 
 def export_documents(input_paths, output_dir, max_shard_bytes=DEFAULT_MAX_SHARD_BYTES):
     output_dir = Path(output_dir)
