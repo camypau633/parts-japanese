@@ -74,6 +74,7 @@ def normalize_sample(sample, artifact_dir, schema):
     output_documents = []
     seen_groups = set()
     total_parts = 0
+    total_sampled_parts = 0
     total_oem_records = 0
     unique_oems = set()
 
@@ -93,22 +94,44 @@ def normalize_sample(sample, artifact_dir, schema):
         sampled_ids = [str(item.get("part_number") or "").strip() for item in sampled_parts]
         parsed_ids = [str(item.get("source_row_id") or "").strip() for item in parsed.get("parts", [])]
 
+        if any(not value for value in parsed_ids):
+            raise ValueError("Group %s saved HTML contains a part row without an identifier" % group_id)
+        if len(parsed_ids) != len(set(parsed_ids)):
+            raise ValueError("Group %s saved HTML contains duplicate part identifiers" % group_id)
         if any(not value for value in sampled_ids):
-            raise ValueError("Group %s contains a part row without part_number" % group_id)
+            raise ValueError("Group %s contains a sampled part row without part_number" % group_id)
         if len(sampled_ids) != len(set(sampled_ids)):
             raise ValueError("Group %s contains duplicate sampled part numbers" % group_id)
-        if set(sampled_ids) != set(parsed_ids) or len(sampled_ids) != len(parsed_ids):
-            raise ValueError(
-                "Group %s sampled part rows do not match saved HTML (sampled=%d, html=%d)"
-                % (group_id, len(sampled_ids), len(parsed_ids))
-            )
+        if not set(sampled_ids).issubset(set(parsed_ids)):
+            raise ValueError("Group %s sample contains part numbers absent from saved HTML" % group_id)
 
-        part_by_id = {str(item["source_row_id"]): item for item in parsed["parts"]}
+        sample_by_id = {str(item["part_number"]).strip(): item for item in sampled_parts}
         normalized_parts = []
         oem_records = []
-        for order, sample_part in enumerate(sampled_parts):
-            part_number = str(sample_part["part_number"]).strip()
-            parsed_part = part_by_id[part_number]
+        for order, parsed_part in enumerate(parsed.get("parts", [])):
+            part_number = str(parsed_part["source_row_id"]).strip()
+            sample_part = sample_by_id.get(part_number)
+            if sample_part is None:
+                normalized_parts.append({
+                    "source_row_id": part_number,
+                    "source_row_order": order,
+                    "diagram_position_code": parsed_part.get("diagram_position_code"),
+                    "part_number_raw": None,
+                    "description_raw": "",
+                    "production_period_raw": "",
+                    "quantity_raw": "",
+                    "alternative_number_raw": "",
+                    "row_kind": "positioned",
+                    "parent_position_code": None,
+                    "source_status": "requires_ajax",
+                    "additional_source_fields": {
+                        "ajax_token": parsed_part.get("ajax_token", ""),
+                        "source_page_file": "",
+                        "ajax_sample_status": "not_sampled",
+                    },
+                })
+                continue
+
             source_status = sample_part.get("source_status", "available")
             records = sample_part.get("records") or []
             ajax_url = sample_part.get("ajax_url", "")
@@ -163,10 +186,11 @@ def normalize_sample(sample, artifact_dir, schema):
                 "additional_source_fields": {
                     "ajax_token": parsed_part.get("ajax_token", ""),
                     "source_page_file": sample_part.get("source_page_file", ""),
+                    "ajax_sample_status": source_status,
                 },
             })
 
-            total_parts += 1
+            total_sampled_parts += 1
             if source_status == "no_applicable_data":
                 oem_records.append({
                     "oem_number_raw": None,
@@ -200,6 +224,8 @@ def normalize_sample(sample, artifact_dir, schema):
                 if oem:
                     unique_oems.add(oem)
             total_oem_records += len(records)
+
+        total_parts += len(parsed_ids)
 
         profile_period = _profile_period(filter_params.get("ProfPeriod"))
         context = {
@@ -237,6 +263,8 @@ def normalize_sample(sample, artifact_dir, schema):
         "network_requests": 0,
         "group_count": len(output_documents),
         "part_row_count": total_parts,
+        "sampled_part_row_count": total_sampled_parts,
+        "unsampled_part_row_count": total_parts - total_sampled_parts,
         "oem_record_count": total_oem_records,
         "unique_oem_number_count": len(unique_oems),
         "diagram_count": sum(len(doc["diagrams"]) for _, doc in output_documents),
