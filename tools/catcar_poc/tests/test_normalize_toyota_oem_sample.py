@@ -54,23 +54,8 @@ class ToyotaOemSampleTests(unittest.TestCase):
                     }],
                 }],
             }
-            schema = {
-                "type": "object",
-                "properties": {
-                    "schema_version": {"const": "0.1-draft"},
-                    "source": {"type": "object"},
-                    "catalog_context": {"type": "object"},
-                    "parts": {"type": "array"},
-                    "oem_records": {"type": "array"},
-                    "diagrams": {"type": "array"},
-                    "hotspots": {"type": "array"},
-                    "validation": {"type": "object"},
-                },
-                "required": [
-                    "schema_version", "source", "catalog_context", "parts",
-                    "oem_records", "diagrams", "hotspots", "validation",
-                ],
-            }
+            schema_path = Path(__file__).resolve().parents[3] / "schemas" / "catcar-extraction-v0.1.schema.json"
+            schema = json.loads(schema_path.read_text(encoding="utf-8"))
 
             documents, report = normalize_sample(sample, root, schema)
             self.assertEqual(report["group_count"], 1)
