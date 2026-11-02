@@ -1,0 +1,50 @@
+name: CatCar usage-policy discovery
+on:
+  push:
+    paths:
+      - '.github/workflows/catcar-policy-discovery.yml'
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect robots and published policy links
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, re, urllib.request
+          from html.parser import HTMLParser
+          from urllib.parse import urljoin
+          BASE="https://www.catcar.info/"
+          def fetch(url):
+              req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0"})
+              try:
+                  with urllib.request.urlopen(req,timeout=25) as r:
+                      return {"url":r.geturl(),"status":r.status,"content_type":r.headers.get("Content-Type"),"body":r.read().decode("utf-8","replace")}
+              except Exception as e:
+                  return {"url":url,"error":repr(e)}
+          robots=fetch(urljoin(BASE,"robots.txt"))
+          home=fetch(BASE)
+          class A(HTMLParser):
+              def __init__(self): super().__init__(); self.links=[]
+              def handle_starttag(self,t,attrs):
+                  if t=="a":
+                      a=dict(attrs)
+                      if a.get("href"): self.links.append({"href":a["href"],"text":""})
+              def handle_data(self,d):
+                  if self.links and not self.links[-1]["text"]: self.links[-1]["text"]=d.strip()
+          p=A()
+          if "body" in home: p.feed(home["body"])
+          hits=[]
+          for x in p.links:
+              joined=urljoin(BASE,x["href"])
+              text=(x["text"]+" "+x["href"]).lower()
+              if any(k in text for k in ["term","услов","правил","полит","privacy","agreement","license","оферт","польз"]):
+                  hits.append({"text":x["text"],"url":joined})
+          out={"robots":{"url":robots.get("url"),"status":robots.get("status"),"error":robots.get("error"),"body":robots.get("body","")[:12000]},
+               "homepage":{"url":home.get("url"),"status":home.get("status"),"error":home.get("error")},
+               "policy_like_links":hits}
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          PY
