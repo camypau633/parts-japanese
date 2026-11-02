@@ -45,6 +45,7 @@ A part row is the source's displayed position in a catalog diagram/table:
 - `description_raw`
 - `production_period_raw`
 - `quantity_raw`
+- `alternative_number_raw` (nullable/empty when the tested table layout exposes an explicit alternate-number column; retain as source data, not as a confirmed analogue or replacement)
 - `row_kind`: `positioned`, `continuation`, `group_header`, or `unknown` when the source structure supports this distinction\n- `parent_position_code` (nullable; populate only when source markup or behavior confirms the continuation relationship)\n- `source_row_order`\n- `additional_source_fields`
 - `source_status`: `available`, `no_applicable_data`, or `unresolved`
 
