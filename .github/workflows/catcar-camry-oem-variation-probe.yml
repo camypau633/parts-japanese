@@ -144,6 +144,8 @@ jobs:
           for group in unique_groups[:8]:
               try:
                   gs, gu, gb = get(group["url"])
+                  group_raw_name = "out/group-" + re.sub(r"[^A-Za-z0-9_-]", "_", group["group_id"] or str(sampled + 1)) + ".html"
+                  open(group_raw_name, "wb").write(gb)
                   gp = PartParser()
                   gp.feed(gb.decode("utf-8", "replace"))
                   group_result = {
@@ -151,6 +153,7 @@ jobs:
                       "http": gs,
                       "group_id": group["group_id"],
                       "label_raw": group["label_raw"],
+                      "source_page_file": group_raw_name,
                       "parts": [],
                   }
                   for part in gp.rows[:6]:
