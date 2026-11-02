@@ -8,11 +8,13 @@ from tools.catcar_poc.adapters import (
 class AdapterTests(unittest.TestCase):
     def test_toyota_ajax_tokens_and_oem_variations(self):
         html = """
-        <table><tr name="15600A" onclick="getArticles(this, 'TOKEN-15600A')"><td>15600A</td></tr></table>
+        <table><tr name="15600A" onclick="getArticles(this, 'TOKEN-15600A')"><td>15600A</td><td>OIL FILTER</td></tr></table>
         <div class="coord" srcNum="15600A" srcTop="10" srcLeft="20" srcWidth="30" srcHeight="40"></div>
         """
         result = ToyotaAdapter().parse(html)
         self.assertEqual(result["ajax_rows"][0]["ajax_token"], "TOKEN-15600A")
+        self.assertEqual(result["parts"][0]["description_raw"], "OIL FILTER")
+        self.assertEqual(result["parts"][0]["additional_source_fields"]["raw_cells"], ["15600A", "OIL FILTER"])
         self.assertEqual(result["hotspot_matching"]["matched"], ["15600A"])
 
         ajax = """
