@@ -169,7 +169,7 @@ def validate_export_records(records):
         source = record.get("source") or {}
         source_url = text(source.get("url"))
         parsed_source = urlsplit(source_url)
-        if source.get("name") != "CatCar" or parsed_source.scheme not in ("http", "https") or not parsed_source.hostname or not parsed_source.hostname.endswith("catcar.info"):
+        if source.get("name") != "CatCar" or parsed_source.scheme not in ("http", "https") or not parsed_source.hostname or not (parsed_source.hostname == "catcar.info" or parsed_source.hostname.endswith(".catcar.info")):
             raise ValueError("Missing or invalid CatCar provenance for %s" % sku)
 
         factory_parts = record.get("factory_parts")
@@ -187,16 +187,17 @@ def validate_export_records(records):
             raise ValueError("Analogs must be a list for %s" % sku)
         if not isinstance(record.get("compatibility"), list):
             raise ValueError("Compatibility must be a list for %s" % sku)
-        for vehicle in record["compatibility"]:
-            if text(vehicle.get("years")):
-                records_with_years += 1
-            if text(vehicle.get("engine")):
-                records_with_engine += 1
+        if any(text(vehicle.get("make")) != brand for vehicle in record["compatibility"]):
+            raise ValueError("Compatibility make does not match record brand: %s" % sku)
+        if any(text(vehicle.get("years")) for vehicle in record["compatibility"]):
+            records_with_years += 1
+        if any(text(vehicle.get("engine")) for vehicle in record["compatibility"]):
+            records_with_engine += 1
 
         diagram_url = text((record.get("diagram") or {}).get("diagramUrl"))
         if diagram_url:
             parsed_diagram = urlsplit(diagram_url)
-            if parsed_diagram.scheme not in ("http", "https") or not parsed_diagram.hostname or not parsed_diagram.hostname.endswith("catcar.info"):
+            if parsed_diagram.scheme not in ("http", "https") or not parsed_diagram.hostname or not (parsed_diagram.hostname == "catcar.info" or parsed_diagram.hostname.endswith(".catcar.info")):
                 raise ValueError("Invalid CatCar diagram URL for %s" % sku)
             records_with_diagram += 1
 
