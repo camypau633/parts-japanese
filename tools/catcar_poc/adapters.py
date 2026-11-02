@@ -115,7 +115,7 @@ class StaticTableAdapter(BaseAdapter):
                 "quantity_raw": self._value(cells, self.quantity_index),
                 "row_kind": "positioned" if position else "continuation",
                 "parent_position_code": None,
-                "additional_source_fields": {},
+                "additional_source_fields": {"raw_cells": list(cells)},
             })
         positions = [x["diagram_position_code"] for x in parts if x["diagram_position_code"]]
         return {
@@ -166,6 +166,7 @@ class VagAdapter(StaticTableAdapter):
         for part in result["parts"]:
             cells = cell_texts(result["rows"][part["source_row_order"]])
             part["additional_source_fields"] = {
+                "raw_cells": list(cells),
                 "remark_raw": self._value(cells, 4),
                 "st_raw": self._value(cells, 5),
                 "model_data_raw": self._value(cells, 6),
