@@ -83,6 +83,9 @@ def normalize_page(adapter_result, context, source_url, oem_records=None):
                 "source_record_id": item.get("source_record_id"),
                 "source_row_id": item.get("source_row_id"),
                 "source_status": item.get("source_status", "available"),
+                "source_record_order": item.get("source_record_order"),
+                "source_group_id": item.get("source_group_id"),
+                "source_url": item.get("source_url"),
             }
             for item in (oem_records or [])
         ],
