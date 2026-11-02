@@ -1,0 +1,52 @@
+name: CatCar Camry diagram mapping probe
+on:
+  push:
+    paths:
+      - '.github/workflows/catcar-camry-diagram-probe.yml'
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Inspect Camry oil-filter diagram and hotspot mapping
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python - <<'PY'
+          import re, urllib.request
+          from html.parser import HTMLParser
+          from html import unescape
+          BASE="https://www.catcar.info"
+          URL="https://www.catcar.info/toyota/?l=bWFya2V0PT1qYXBhbnx8c3Q9PTcwfHxzdHM9PXsiMTAiOiJcdTA0MjBcdTA0NGJcdTA0M2RcdTA0M2VcdTA0M2EiLCIyMCI6Ilx1MDQyZlx1MDQxZlx1MDQxZVx1MDQxZFx1MDQxOFx1MDQyZiIsIjMwIjoiQ0FNUlkgMjg0MTcwIiwiNjAiOiJBQ1YzMC1BRVBOSyIsIjcwIjoiMTUtMDIgXHUwNDI0XHUwNDE4XHUwNDFiXHUwNDJjXHUwNDIyXHUwNDIwIFx1MDQxY1x1MDQxMFx1MDQyMVx1MDQxYlx1MDQyZlx1MDQxZFx1MDQyYlx1MDQxOSJ9fHxjYXRhbG9nPT0yODQxNzB8fHJlYz09QTF8fG1vZGlmbmFtZT09QUNWMzAtQUVQTkt8fGVuZ2luZT09MkFaRkV8fG1vZGVsbm89PTAwMXx8UHJvZlBlcmlvZD09MjAwMTA5MjAwNjAxfHxtb2RfaW5mbzA9PTI0R3x8Z3JvdXBfaWQ9PTE1MDJ8fHBhZ2U3MD09MA%3D%3D"
+          def get(url):
+              req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0"})
+              with urllib.request.urlopen(req,timeout=30) as r: return r.status,r.geturl(),r.read()
+          status,final,raw=get(URL)
+          html=raw.decode("utf-8","replace")
+          open("out/camry-oil-filter.html","w",encoding="utf-8").write(html)
+          print("GROUP_HTTP",status,"BYTES",len(raw),"URL",final)
+          print("HOTSPOT_MARKERS", {k:html.count(k) for k in ["srcTop","srcLeft","srcWidth","srcHeight","hotspot","area","map"]})
+          for m in re.finditer(r"<img\\b[^>]*(?:src|data-src)=[\"']([^\"']+)[\"'][^>]*>",html,re.I):
+              tag=m.group(0)
+              src=unescape(m.group(1))
+              if any(z in src.lower() for z in [".png",".jpg",".gif"]):
+                  full=src if src.startswith("http") else BASE+src
+                  try:
+                      st,u,data=get(full)
+                      name="out/diagram-%02d%s"%(len([x for x in __import__('os').listdir('out') if x.startswith('diagram-')]),".bin")
+                      open(name,"wb").write(data)
+                      print("IMAGE",st,len(data),u,"SAVED",name)
+                  except Exception as e: print("IMAGE_ERROR",full,repr(e))
+          for key in ["srcTop","srcLeft","srcWidth","srcHeight"]:
+              vals=re.findall(r".{0,100}"+key+r".{0,180}",html,re.I)
+              for v in vals[:8]: print("HOTSPOT_CONTEXT",re.sub(r"\\s+"," ",v)[:300])
+          for token in re.findall(r"getArticles\\(this,\\s*'([^']+)'\\s*,\\s*80",html):
+              print("PART_TOKEN",token)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catcar-camry-diagram-mapping
+          path: out/
+          retention-days: 7
