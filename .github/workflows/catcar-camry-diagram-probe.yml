@@ -44,7 +44,7 @@ jobs:
                           token = onclick.split(marker, 1)[1].split("'", 1)[0]
                           match = (token,)
                       if name and match:
-                          self.rows.append((name, match.group(1), onclick))
+                          self.rows.append((name, token, onclick))
 
           status, final_url, raw = get(URL)
           html = raw.decode("utf-8", "replace")
