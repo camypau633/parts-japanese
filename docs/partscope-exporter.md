@@ -39,3 +39,12 @@ Repeat `--input` for each normalized document. The output directory must be empt
 GitHub Actions runs the normalized real Toyota Camry and Nissan Pixo fixtures through this exporter after the parser/schema regression. The latest successful run exported **77 SKU records across 7 shards** (Toyota and Nissan only). The largest shard was about 113 KiB, below the 2 MiB project budget.
 
 This confirms the conversion path on the captured examples. It is not a full production catalogue import, does not establish full make/model coverage, and does not publish the generated shards into the PartScope app repository.
+
+
+## Verification update — 2026-11-02
+
+The latest real-artifact regression run `41463981799` and adapter unit-test run `41463981769` both completed successfully. All 23 adapter/exporter tests passed.
+
+The bounded diagram probe checked two distinct image URLs: Nissan and Toyota. Both returned HTTP 200 with `image/png` content type using HEAD requests; no full image files were downloaded.
+
+The exporter validated 77 records (75 Nissan, 2 Toyota) and 81 factory catalogue rows. All 77 records have explicit compatibility-year context and a CatCar diagram URL. Two records have engine context; the remaining engine fields are intentionally not inferred. The export still contains zero aftermarket analogues and zero physical dimensions.
