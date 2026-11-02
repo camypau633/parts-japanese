@@ -69,12 +69,18 @@ jobs:
           open("out/ford-fiesta-detail.html","w",encoding="utf-8").write(html)
           p=P(); p.feed(html)
           markers=["srcTop","srcLeft","srcWidth","srcHeight","srcNum","coord","groups-parts__item","getArticles"]
+          row_ids=sorted(set(row[0].strip() for row in p.rows[1:] if row and row[0].strip()))
+          coord_ids=sorted(set(x.get("name","").strip() for x in p.coords if x.get("name","").strip()))
           result={"start_http":st,"start_url":final,"group_links":len(group_links),"selected_group_url":target,
                   "subgroup_links":len(subgroup_links),"selected_leaf_url":detail_target,
                   "detail_http":st3,"detail_url":final3,"detail_bytes":len(body3),
                   "table_rows":len(p.rows),"sample_rows":p.rows[:25],"images":p.images[:50],
                   "links":p.links[:50],"scripts":p.scripts[:30],
-                  "markers":{x:html.count(x) for x in markers},"coord_divs":p.coords[:100]}
+                  "markers":{x:html.count(x) for x in markers},"coord_divs":p.coords[:100],
+                  "table_part_codes":row_ids,"hotspot_ids":coord_ids,
+                  "matched_hotspot_ids":sorted(set(row_ids)&set(coord_ids)),
+                  "unmatched_hotspot_ids":sorted(set(coord_ids)-set(row_ids)),
+                  "table_codes_without_hotspot":sorted(set(row_ids)-set(coord_ids))}
           print(json.dumps(result,ensure_ascii=False,indent=2))
           with open("out/ford-fiesta-detail.json","w",encoding="utf-8") as f: json.dump(result,f,ensure_ascii=False,indent=2)
 
