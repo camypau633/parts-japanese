@@ -17,9 +17,10 @@ jobs:
           python - <<'PY'
           import json, re, urllib.request
           from html.parser import HTMLParser
-          from urllib.parse import urljoin
+          from urllib.parse import urljoin, urlparse, parse_qs
+          import base64
 
-          START = "https://www.catcar.info/ford/?l=bWFya2V0PT1ldXJvfHxjYXRfaWQ9PTQyNHx8Y2FiYnI9PURYfHx0aGs9PTB8fHN0PT00MHx8c3RzPT17IjIwIjoiRXVyb3BlIiwiMzAiOiJGaWVzdGEgRFggMTk5NS0yMDAyIiwiNDAiOiJBIEJvZHkgQW5kIFJlbGF0ZWQgUGFydHMifXx8YWxwaGE9PUF8fGdyb3VwPT1BMDR8fHNlY3Q9PUFZQTA2MDE0fHxzZXQ9PUFZQTA2fHxtZz09WjAwMTA3ODYwMHx8ZjEyPT0yMTkzMzc2KzI4OHx8UD09UE5LQkUwfHxXPT1XU0VBVDB8fFRSPT1UUlJOMHx8VlM9PVZTQU4wfHxUPT0xVEYwMDB8fEU9PXx8RFI9PURSMDI0fHwwMDA9PTAwMEtXMA%3D%3D&lang=en"
+          START = "https://www.catcar.info/ford/?l=bWFya2V0PT1ldXJvfHxjYXRfaWQ9PTQyNHx8Y2FiYnI9PURYfHx0aGs9PTB8fHN0PT00MHx8c3RzPT17IjIwIjoiRXVyb3BlIiwiMzAiOiJGaWVzdGEgRFggMTk5NS0yMDAyIiwiNDAiOiJBIEJvZHkgQW5kIFJlbGF0ZWQgUGFydHMifXx8YWxwaGE9PUF8fGdyb3VwPT1BMDR8fHNlY3Q9PUFZQTA2MDE0fHxzZXQ9PUFZQTA2fHxpbWc9PVowMDEwNzg2MDB8fGYxMj09MjE5MzM3NisyODh8fFA9PVBOS0JFMHx8Vz09V1NFQVQwfHxUUj09VFJSTjB8fFZTPT1WU0FOMHx8VD09MVRGMDAwfHxFPT18fERSPT1EUjAyNHx8MDAwPT0wMDBLVzA%3D&lang=en"
 
           def get(url):
               req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0 Chrome/128 Safari/537.36","Accept-Language":"en-US,en;q=0.9"})
@@ -50,7 +51,12 @@ jobs:
           group_links=[x["href"] for x in p0.links if "groups-parts__item" in x["class"]]
           if not group_links: raise RuntimeError("No Ford groups-parts__item links found")
           # Pick A04 (dash/apron/heater/windscreen) as a representative body subgroup.
-          target=next((urljoin(final,x) for x in group_links if "group==A04" in x),urljoin(final,group_links[0]))
+          def decoded_link(link):
+              try:
+                  token=parse_qs(urlparse(link).query).get("l",[""])[0]
+                  return base64.b64decode(token + "="*((4-len(token)%4)%4)).decode("utf-8","replace")
+              except Exception: return ""
+          target=next((urljoin(final,x) for x in group_links if "group==A04" in decoded_link(x)),urljoin(final,group_links[0]))
           st2,final2,body2=get(target); html=body2.decode("utf-8","replace")
           open("out/ford-fiesta-detail.html","w",encoding="utf-8").write(html)
           p=P(); p.feed(html)
