@@ -232,6 +232,8 @@ def export_documents(input_paths, output_dir, max_shard_bytes=DEFAULT_MAX_SHARD_
                 if vehicle not in existing["compatibility"]:
                     existing["compatibility"].append(vehicle)
 
+    validation = validate_export_records(merged)
+
     shards = defaultdict(dict)
     for sku, record in merged.items():
         shards[sku[:2]][sku] = record
@@ -250,6 +252,7 @@ def export_documents(input_paths, output_dir, max_shard_bytes=DEFAULT_MAX_SHARD_
         "exporter": "partscope-catcar-japanese-v1",
         "documents_read": len(input_paths),
         "records_exported": len(merged),
+        "validation": validation,
         "shards": report_shards,
         "analogs_exported": 0,
         "physical_dimensions_exported": 0,
