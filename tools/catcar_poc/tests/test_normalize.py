@@ -1,6 +1,6 @@
 import unittest
 
-from tools.catcar_poc.adapters import NissanAdapter, VagAdapter
+from tools.catcar_poc.adapters import NissanAdapter, ToyotaAdapter, VagAdapter
 from tools.catcar_poc.normalize import normalize_page
 
 
@@ -21,6 +21,24 @@ class NormalizeTests(unittest.TestCase):
         self.assertEqual(hotspot["resolution_status"], "matched")
         self.assertIsNone(hotspot["source_row_id"])
         self.assertEqual(len(hotspot["source_row_ids"]), 2)
+
+    def test_toyota_oem_variations_are_kept_and_linked_to_source_row(self):
+        html = """
+        <table><tr name="15600A" onclick="getArticles(this, 'TOKEN')"><td>15600A</td></tr></table>
+        <div class="coord" srcNum="15600A" srcTop="1" srcLeft="2" srcWidth="3" srcHeight="4"></div>
+        """
+        parsed = ToyotaAdapter().parse(html)
+        records = ToyotaAdapter.parse_ajax_records(
+            "<table><tr><td>9151180830</td><td></td><td></td></tr></table>",
+            source_row_id="15600A",
+        )
+        normalized = normalize_page(
+            parsed, {"brand": "Toyota"}, "https://www.catcar.info/toyota/example",
+            oem_records=records,
+        )
+        self.assertEqual(len(normalized["oem_records"]), 1)
+        self.assertEqual(normalized["oem_records"][0]["source_row_id"], "15600A")
+        self.assertIsNone(normalized["oem_records"][0]["production_period_raw"])
 
     def test_normalizes_vag_parts_diagram_and_unresolved_position(self):
         html = """
