@@ -8,11 +8,13 @@ on:
   workflow_dispatch:
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-      - name: Run adapter unit tests
+          python-version: '3.8'
+      - name: Validate draft JSON Schema syntax
+        run: python -m json.tool schemas/catcar-extraction-v0.1.schema.json > /dev/null
+      - name: Run Python 3.8 adapter tests
         run: python -m unittest discover -s tools/catcar_poc/tests -v
