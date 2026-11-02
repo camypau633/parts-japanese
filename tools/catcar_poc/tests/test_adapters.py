@@ -40,6 +40,14 @@ class AdapterTests(unittest.TestCase):
         self.assertIsNone(records[0]["production_period_raw"])
         self.assertIsNone(records[0]["applicability_raw"])
         self.assertEqual(records[1]["production_period_raw"], "09/2012-06/2013")
+        self.assertEqual(records[0]["source_status"], "available")
+
+    def test_toyota_no_applicable_data_is_preserved_as_status(self):
+        records = ToyotaAdapter.parse_ajax_records("No applicable data!", source_row_id="12321A")
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]["source_row_id"], "12321A")
+        self.assertEqual(records[0]["source_status"], "no_applicable_data")
+        self.assertIsNone(records[0]["oem_number_raw"])
 
     def test_nissan_static_table_and_srcnum(self):
         html = """
