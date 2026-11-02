@@ -17,6 +17,7 @@ class NormalizeTests(unittest.TestCase):
         """
         result = NissanAdapter().parse(html)
         normalized = normalize_page(result, {"brand": "Nissan"}, "https://example.test/nissan")
+        self.assertEqual(normalized["parts"][0]["alternative_number_raw"], "")
         hotspot = normalized["hotspots"][0]
         self.assertEqual(hotspot["resolution_status"], "matched")
         self.assertIsNone(hotspot["source_row_id"])
