@@ -41,6 +41,7 @@ class ToyotaAdapter(BaseAdapter):
             if part_number and token:
                 ajax_rows.append({
                     "source_row_id": part_number,
+                    "diagram_position_code": part_number,
                     "part_number_raw": part_number,
                     "ajax_token": token,
                     "source_status": "requires_ajax",
