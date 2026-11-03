@@ -15,7 +15,7 @@ Workflow: [41593919774](https://github.com/camypau633/parts-japanese/actions/run
 - Visible year links cover 1982–2012.
 - Model links include Accord, Accord Tourer, Ballade, City, Civic, CR-V, CR-Z, Crosstour, Insight, Jazz, Odyssey and Pilot.
 
-## One model page
+## One model page — Civic initial dead end
 
 Workflow: [41594034763](https://github.com/camypau633/parts-japanese/actions/runs/41594034763)
 
@@ -28,9 +28,9 @@ Selected link: 2011 Honda Civic, 3-door entry.
 - No detail rows, OEM numbers, diagrams or hotspot coordinates were present in the returned HTML.
 - This is an intermediate configuration-selection page, not a usable parts-group page.
 
-## Decision
+## Initial decision after Civic probe
 
-Do not create a Honda adapter from this page. The page structure and next configuration-selection request must be understood first. Next bounded step: inspect the site's own Honda page JavaScript and the configuration-selection flow, then choose one real configuration and one parts group if the site exposes it.
+The Civic page alone was insufficient to create an adapter. This conclusion was superseded by the separate Accord 2011 probe below, which exposed a populated configuration list and a real parts hierarchy.
 
 The current work remains limited to Japanese vehicle makes. This Honda sample is from the Europe region in CatCar's catalog; that region label is recorded explicitly and is not silently treated as a Japanese domestic-market catalog.
 
@@ -42,9 +42,9 @@ Workflow: [41594235645](https://github.com/camypau633/parts-japanese/actions/run
 - The public `/js/script.js?v=2.0` file returned HTTP 200 (9,681 bytes).
 - The inspected script contains generic modal AJAX and the `getArticles()` handler. When its state is 70, it navigates to the supplied `script_href/?l=...`; otherwise it requests `&st=81` for a part-row expansion.
 - The script does not contain Honda-specific transmission/trim or region-selection logic. Those controls must be populated elsewhere or the selected catalog entry is incomplete.
-- No additional Honda catalog requests were made after this discovery.
+- At this stage no additional Honda catalog requests were made; the later bounded Accord probes are documented below.
 
-**Current Honda conclusion remains unchanged:** the sampled 2011 Civic page is not a parts-group page. We need another bounded model/configuration sample or an identified server-rendered selection endpoint before writing a Honda adapter.
+**Civic-specific conclusion:** that selected Civic page remains an intermediate page with no parts group. The Accord path below demonstrates a separate working Honda catalog route.
 
 ## Second model sample: 2011 Accord, 4-door
 
