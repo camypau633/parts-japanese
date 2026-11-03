@@ -98,7 +98,7 @@ def inspect_image(item, index, output):
     indicators = []
     for pattern, label in [
         (r"cat\s*car|catcar\.info", "catcar_text"),
-        (r"copyright|\bc\s*\d{4}|all rights reserved", "copyright_text"),
+        (r"copyright|all rights reserved", "copyright_text"),
         (r"www\.[a-z0-9.-]+", "website_text"),
         (r"watermark|sample|demo", "watermark_or_sample_text"),
     ]:
