@@ -1,34 +1,39 @@
 name: CatCar real artifact regression
+
 on:
   push:
     paths:
       - 'tools/catcar_poc/validate_real_artifacts.py'
       - 'tools/catcar_poc/export_partscope.py'
       - 'tools/catcar_poc/check_diagram_urls.py'
+      - 'tools/catcar_poc/inspect_diagram_geometry.py'
       - 'tools/catcar_poc/adapters.py'
       - 'tools/catcar_poc/normalize.py'
       - 'tools/catcar_poc/parser.py'
+      - 'tools/catcar_poc/tests/test_export_partscope.py'
       - 'schemas/catcar-extraction-v0.1.schema.json'
       - '.github/workflows/catcar-real-artifact-regression.yml'
   workflow_dispatch:
+
 permissions:
   actions: read
   contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Download previously captured probe artifacts
+      - name: Download bounded Japanese CatCar fixtures
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          mkdir -p .catcar-fixtures/{toyota-group,nissan,ford,vag}
+          mkdir -p .catcar-fixtures/{toyota-group,nissan,camry}
           download_artifact() {
             artifact_id="$1"
             destination="$2"
@@ -44,20 +49,75 @@ jobs:
           }
           download_artifact 13143620621 .catcar-fixtures/toyota-group
           download_artifact 13144167306 .catcar-fixtures/nissan
-          download_artifact 13144338363 .catcar-fixtures/ford
-          download_artifact 13144454095 .catcar-fixtures/vag
+          download_artifact 13155555091 .catcar-fixtures/camry
+          test -s .catcar-fixtures/camry/normalized/report.json
+          test -s .catcar-fixtures/camry/diagram-geometry.json
       - name: Install validation dependency
         run: python -m pip install -r requirements-dev.txt
-      - name: Parse real captured HTML and validate normalized JSON
+      - name: Parse captured Toyota and Nissan HTML fixtures
         run: |
           python -m tools.catcar_poc.validate_real_artifacts \
             --root .catcar-fixtures \
             --schema schemas/catcar-extraction-v0.1.schema.json \
             --output out/normalized
-      - name: Probe confirmed CatCar diagram URLs (bounded, no full downloads)
-        run: python -m tools.catcar_poc.check_diagram_urls --input out/normalized/toyota-camry-oil-filter.json --input out/normalized/nissan-pixo.json --output out/diagram-url-check.json --max-urls 20 --timeout 10
-      - name: Export Toyota and Nissan fixtures to PartScope shards
-        run: python -m tools.catcar_poc.export_partscope --input out/normalized/toyota-camry-oil-filter.json --input out/normalized/nissan-pixo.json --output out/partscope
+      - name: Build bounded list of Japanese diagrams
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(
+            --input out/normalized/toyota-camry-oil-filter.json
+            --input out/normalized/nissan-pixo.json
+          )
+          for file in .catcar-fixtures/camry/normalized/toyota-camry-group-*.json; do
+            args+=(--input "$file")
+          done
+          python -m tools.catcar_poc.check_diagram_urls "${args[@]}" \
+            --output out/diagram-url-check.json --max-urls 20 --timeout 10
+      - name: Verify Japanese diagram dimensions and hotspot coordinate system
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(
+            --input out/normalized/toyota-camry-oil-filter.json
+            --input out/normalized/nissan-pixo.json
+          )
+          for file in .catcar-fixtures/camry/normalized/toyota-camry-group-*.json; do
+            args+=(--input "$file")
+          done
+          python -m tools.catcar_poc.inspect_diagram_geometry "${args[@]}" \
+            --output out/diagram-geometry.json --max-urls 20 --timeout 12
+          cat out/diagram-geometry.json
+      - name: Export Japanese fixtures to isolated PartScope preview shards
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(
+            --input out/normalized/toyota-camry-oil-filter.json
+            --input out/normalized/nissan-pixo.json
+          )
+          for file in .catcar-fixtures/camry/normalized/toyota-camry-group-*.json; do
+            args+=(--input "$file")
+          done
+          python -m tools.catcar_poc.export_partscope "${args[@]}" \
+            --output out/partscope --geometry-report out/diagram-geometry.json
+          cat out/partscope/export-report.json
+      - name: Require Japanese-only records and verified hotspots
+        run: |
+          python - <<'PY'
+          import json
+          with open("out/partscope/export-report.json", encoding="utf-8") as stream:
+              report = json.load(stream)
+          validation = report["validation"]
+          assert set(validation["records_by_brand"]) == {"Toyota", "Nissan"}, validation["records_by_brand"]
+          assert validation["records_by_brand"]["Toyota"] > 0
+          assert validation["records_by_brand"]["Nissan"] > 0
+          assert validation["records_with_compatibility_years"] == report["records_exported"]
+          assert validation["hotspots_validated"] > 0
+          assert validation["records_with_hotspots"] > 0
+          print("Japanese records:", validation["records_by_brand"])
+          print("Verified hotspots:", validation["hotspots_validated"])
+          print("Records with hotspots:", validation["records_with_hotspots"])
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: catcar-real-artifact-regression
