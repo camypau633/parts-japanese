@@ -20,7 +20,7 @@ from PIL import Image, ImageDraw
 
 
 BASE = "https://raw.githubusercontent.com/camypau633/partscope/main/public/data-preview/catcar/"
-MAX_IMAGES = 4
+MAX_IMAGES = 10
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
 USER_AGENT = "PartScope-CatCar-Watermark-Audit/1.0"
 
