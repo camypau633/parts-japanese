@@ -160,6 +160,58 @@ class NissanAdapter(StaticTableAdapter):
     alternative_number_index = 4
 
 
+
+class HondaAdapter(StaticTableAdapter):
+    """Parse Honda's observed code/part/description table and preserve option metadata."""
+
+    name = "honda_static"
+
+    def parse(self, html):
+        parsed = parse_html(html)
+        header_index, _ = find_header_row(parsed.rows, ("код", "артикул", "описание"))
+        if header_index is None:
+            raise ValueError("Honda parts table header not found")
+
+        parts = []
+        for order, row in enumerate(parsed.rows[header_index + 1:], start=header_index + 1):
+            cells = cell_texts(row)
+            if len(cells) < 3:
+                continue
+            position = cells[0].strip()
+            part_number = cells[1].strip()
+            if not part_number:
+                continue
+            parts.append({
+                "source_row_id": str(order),
+                "source_row_order": order,
+                "diagram_position_code": position or None,
+                "part_number_raw": part_number,
+                "description_raw": cells[2].strip(),
+                "production_period_raw": "",
+                "quantity_raw": "",
+                "alternative_number_raw": "",
+                "row_kind": "positioned" if position else "continuation",
+                "parent_position_code": None,
+                "additional_source_fields": {
+                    "raw_cells": list(cells),
+                    "additional_information_raw": self._value(cells, 3),
+                    "option_codes_raw": self._value(cells, 4),
+                },
+            })
+
+        positions = [item["diagram_position_code"] for item in parts
+                     if item["diagram_position_code"]]
+        return {
+            "adapter": self.name,
+            "rows": parsed.rows,
+            "images": parsed.images,
+            "hotspots": parsed.hotspots,
+            "parts": parts,
+            "ajax_rows": [],
+            "hotspot_matching": self.match_hotspots(positions, parsed.hotspots),
+        }
+
+
 class FordAdapter(StaticTableAdapter):
     name = "ford_static"
     position_index = 0
