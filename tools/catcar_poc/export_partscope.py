@@ -8,7 +8,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from urllib.parse import quote, urljoin, urlsplit, urlunsplit
 
-SUPPORTED_BRANDS = {"Toyota", "Nissan"}
+SUPPORTED_BRANDS = {"Toyota", "Nissan", "Honda"}
 DEFAULT_MAX_SHARD_BYTES = 2 * 1024 * 1024
 DEFAULT_HOTSPOT_RADIUS = 28
 
@@ -26,7 +26,7 @@ def vehicle_context(context):
     model = text(context.get("model"))
     if not brand or not model:
         return []
-    years = text(context.get("production_period_raw") or context.get("production_period"))
+    years = text(context.get("production_period_raw") or context.get("production_period") or context.get("model_year"))
     engine = text(context.get("engine_code") or context.get("engine"))
     return [{
         "brand": brand,
@@ -78,7 +78,7 @@ def validate_geometry_report(report):
         height = dimensions.get("height")
         if not url:
             raise ValueError("Geometry report contains an image without URL")
-        if image.get("http_status") != 206 or not text(image.get("content_type")).lower().startswith("image/png"):
+        if image.get("http_status") not in (200, 206) or not text(image.get("content_type")).lower().startswith("image/png"):
             raise ValueError("Diagram image was not verified as a PNG range response: %s" % url)
         if not isinstance(width, int) or not isinstance(height, int) or width <= 0 or height <= 0:
             raise ValueError("Diagram image dimensions are missing: %s" % url)
@@ -217,6 +217,9 @@ def document_to_records(document, geometry_index=None):
             "source_name": "CatCar",
             "source_url": text(oem.get("source_url")) or source_url,
         }
+        source_fields = row.get("additional_source_fields") or {}
+        if source_fields:
+            factory["source_fields"] = dict(source_fields)
         if oem.get("source_group_id") is not None:
             factory["source_group_id"] = text(oem.get("source_group_id"))
         if oem.get("source_record_order") is not None:
@@ -437,9 +440,9 @@ def export_documents(input_paths, output_dir, max_shard_bytes=DEFAULT_MAX_SHARD_
         "notes": [
             "Factory catalogue rows are stored only in factory_parts.",
             "No analogues or physical dimensions are inferred.",
-            "Toyota and Nissan hotspots use source rectangle centres in natural image pixels after bounded image and resize-script verification." if geometry_index else "Hotspots are omitted without a verified geometry report.",
+            "Toyota, Nissan and Honda hotspots use source rectangle centres in natural image pixels after bounded image and resize-script verification." if geometry_index else "Hotspots are omitted without a verified geometry report.",
             "Multiple catalog-group records for one SKU remain separate PartScope candidates.",
-            "Production export is restricted to Toyota and Nissan.",
+            "Preview conversion supports Japanese makes Toyota, Nissan and Honda; production publication remains separately gated.",
         ],
     }
     (output_dir / "export-report.json").write_text(
