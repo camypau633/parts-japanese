@@ -75,10 +75,10 @@ jobs:
               host=(urlsplit(target).hostname or "").lower()
               if host=="catcar.info" or host.endswith(".catcar.info"):
                   links.append({"text":" ".join(item["text"].split()),"url":target})
-          coords=re.findall(r'<div\\b(?=[^>]*class=["\\'][^"\\']*\\bcoord\\b[^"\\']*["\\'])([^>]*)>',html,re.I|re.S)
+          coords=re.findall(r'<div\b(?=[^>]*class=["\'][^"\']*\bcoord\b[^"\']*["\'])([^>]*)>',html,re.I|re.S)
           hotspots=[]
           for raw in coords:
-              attrs=dict(re.findall(r'([\\w-]+)=["\\']([^"\\']*)["\\']',raw))
+              attrs=dict(re.findall(r'([\w-]+)=["\']([^"\']*)["\']',raw))
               hotspots.append({k:attrs.get(k,"") for k in ("name","srcNum","srcTop","srcLeft","srcWidth","srcHeight")})
           diagrams=[]
           for item in parser.images:
@@ -96,7 +96,7 @@ jobs:
               "hotspot_count":len(hotspots),"script_refs":parser.scripts[:60],
               "marker_counts":{k:html.count(k) for k in ("srcNum","srcTop","srcLeft","getArticles","groups-parts__item")}
           }
-          open("out/honda-civic-inspection.json","w",encoding="utf-8").write(json.dumps(result,ensure_ascii=False,indent=2)+"\\n")
+          open("out/honda-civic-inspection.json","w",encoding="utf-8").write(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
           print(json.dumps(result,ensure_ascii=False,indent=2))
           if status!=200: raise SystemExit("Honda model page did not return HTTP 200")
           PY
