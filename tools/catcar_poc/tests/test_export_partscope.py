@@ -153,6 +153,73 @@ class PartScopeExportTests(unittest.TestCase):
         self.assertEqual(records["90915YZZE1"]["factory_parts"][0]["source_url"], "https://www.catcar.info/toyota/?l=ajax-token")
         self.assertEqual(records["90915YZZE2"]["factory_parts"][0]["production_period"], "2006-")
 
+
+    def test_honda_static_export_preserves_option_variants_and_repeated_hotspots(self):
+        document = {
+            "source": {"name": "CatCar", "url": "https://www.catcar.info/honda/accord/e1"},
+            "catalog_context": {
+                "brand": "Honda", "model": "Accord", "model_year": "2011",
+                "region": "Austria (KW)", "transmission": "5AT", "grade": "2.0EX",
+                "source_group_id": "E-1",
+            },
+            "parts": [
+                {"source_row_id": "6", "diagram_position_code": "1", "part_number_raw": "16400-RL2-G01",
+                 "description_raw": "THROTTLE BODY, ELECTRONIC CONTROL(GMD2B)", "additional_source_fields": {"option_codes_raw": "AB3 ABS LH SR STL"}},
+                {"source_row_id": "7", "diagram_position_code": "1", "part_number_raw": "16400-RL2-G01",
+                 "description_raw": "THROTTLE BODY, ELECTRONIC CONTROL(GMD2B)", "additional_source_fields": {"option_codes_raw": "AB3 ABS LH STL"}},
+                {"source_row_id": "8", "diagram_position_code": "2", "part_number_raw": "36162-RNA-A01",
+                 "description_raw": "VALVE ASSY., PURGE CONTROL SOLENOID", "additional_source_fields": {}},
+                {"source_row_id": "9", "diagram_position_code": "3", "part_number_raw": "37835-PGK-A01",
+                 "description_raw": "O-RING", "additional_source_fields": {}},
+                {"source_row_id": "10", "diagram_position_code": "4", "part_number_raw": "90012-RNA-A00",
+                 "description_raw": "BOLT-WASHER, 8X55", "additional_source_fields": {}},
+                {"source_row_id": "11", "diagram_position_code": "5", "part_number_raw": "90020-RNA-A01",
+                 "description_raw": "BOLT-WASHER, 5X20", "additional_source_fields": {}},
+            ],
+            "oem_records": [],
+            "diagrams": [{"diagram_id": "diagram-1", "source_image_url": "http://ci.catcar.info/honda/euro/18TA0801/IMGE/E__0100.png"}],
+            "hotspots": [
+                {"hotspot_id": "hotspot-1", "diagram_id": "diagram-1", "source_position_code": "1", "source_row_ids": ["6", "7"], "top_raw": "792", "left_raw": "1147", "width_raw": "18", "height_raw": "29", "resolution_status": "matched"},
+                {"hotspot_id": "hotspot-2", "diagram_id": "diagram-1", "source_position_code": "2", "source_row_ids": ["8"], "top_raw": "265", "left_raw": "1009", "width_raw": "25", "height_raw": "29", "resolution_status": "matched"},
+                {"hotspot_id": "hotspot-3", "diagram_id": "diagram-1", "source_position_code": "3", "source_row_ids": ["9"], "top_raw": "361", "left_raw": "974", "width_raw": "26", "height_raw": "30", "resolution_status": "matched"},
+                {"hotspot_id": "hotspot-4", "diagram_id": "diagram-1", "source_position_code": "4", "source_row_ids": ["10"], "top_raw": "26", "left_raw": "1526", "width_raw": "26", "height_raw": "29", "resolution_status": "matched"},
+                {"hotspot_id": "hotspot-5", "diagram_id": "diagram-1", "source_position_code": "4", "source_row_ids": ["10"], "top_raw": "119", "left_raw": "1371", "width_raw": "26", "height_raw": "29", "resolution_status": "matched"},
+                {"hotspot_id": "hotspot-6", "diagram_id": "diagram-1", "source_position_code": "4", "source_row_ids": ["10"], "top_raw": "135", "left_raw": "1625", "width_raw": "26", "height_raw": "29", "resolution_status": "matched"},
+                {"hotspot_id": "hotspot-7", "diagram_id": "diagram-1", "source_position_code": "4", "source_row_ids": ["10"], "top_raw": "198", "left_raw": "1508", "width_raw": "26", "height_raw": "29", "resolution_status": "matched"},
+                {"hotspot_id": "hotspot-8", "diagram_id": "diagram-1", "source_position_code": "5", "source_row_ids": ["11"], "top_raw": "213", "left_raw": "1235", "width_raw": "25", "height_raw": "29", "resolution_status": "matched"},
+                {"hotspot_id": "hotspot-9", "diagram_id": "diagram-1", "source_position_code": "5", "source_row_ids": ["11"], "top_raw": "240", "left_raw": "1173", "width_raw": "25", "height_raw": "29", "resolution_status": "matched"},
+            ],
+        }
+        image_url = "https://ci.catcar.info/honda/euro/18TA0801/IMGE/E__0100.png"
+        geometry = verified_geometry([image_url])
+        geometry["images"][0].update({
+            "http_status": 200,
+            "content_type": "image/png",
+            "image_dimensions": {"width": 1920, "height": 959},
+            "hotspot_count": 9,
+            "all_hotspot_boxes_inside_image_bounds": True,
+        })
+        geometry_index = validate_geometry_report(geometry)
+        records = document_to_records(document, geometry_index=geometry_index)
+        self.assertEqual(set(records), {
+            "16400RL2G01", "36162RNAA01", "37835PGKA01", "90012RNAA00", "90020RNAA01"
+        })
+        throttle = records["16400RL2G01"]
+        self.assertEqual(len(throttle["factory_parts"]), 2)
+        self.assertNotEqual(
+            throttle["factory_parts"][0]["source_fields"]["option_codes_raw"],
+            throttle["factory_parts"][1]["source_fields"]["option_codes_raw"],
+        )
+        self.assertEqual(throttle["compatibility"][0]["years"], "2011")
+        self.assertEqual(throttle["compatibility"][0]["engine"], "")
+        self.assertEqual(len(throttle["diagram"]["hotspots"]), 1)
+        self.assertEqual(len(records["90012RNAA00"]["diagram"]["hotspots"]), 4)
+        self.assertEqual(len(records["90020RNAA01"]["diagram"]["hotspots"]), 2)
+        report = validate_export_records(records)
+        self.assertEqual(report["records_by_brand"], {"Honda": 5})
+        self.assertEqual(report["factory_parts_validated"], 6)
+        self.assertEqual(report["hotspots_validated"], 9)
+
     def test_export_validator_reports_provenance_and_context_coverage(self):
         records = document_to_records(sample())
         report = validate_export_records(records)
