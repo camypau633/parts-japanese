@@ -116,7 +116,7 @@ def hotspots_for_row(document, row, oem, description, diagram_url, geometry_inde
         return []
     image = geometry_index.get(diagram_url)
     if image is None:
-        raise ValueError("No verified geometry report for Toyota diagram %s" % diagram_url)
+        raise ValueError("No verified geometry report for CatCar diagram %s" % diagram_url)
     dimensions = image["image_dimensions"]
     image_width = dimensions["width"]
     image_height = dimensions["height"]
@@ -202,8 +202,8 @@ def document_to_records(document, geometry_index=None):
     diagram = diagram_data(document)
     catalog_name = text(context.get("group_label_raw"))
     group_id = text(context.get("source_group_id"))
-    if geometry_index and brand == "Toyota" and diagram["diagramUrl"] and diagram["diagramUrl"] not in geometry_index:
-        raise ValueError("Toyota diagram is missing from the verified geometry report")
+    if geometry_index and diagram["diagramUrl"] and diagram["diagramUrl"] not in geometry_index:
+        raise ValueError("CatCar diagram is missing from the verified geometry report")
 
     for row, oem in candidates:
         raw_number = text(oem.get("oem_number_raw"))
@@ -260,7 +260,7 @@ def document_to_records(document, geometry_index=None):
         if not record["name"] and description:
             record["name"] = description
 
-        if geometry_index and brand == "Toyota":
+        if geometry_index:
             for hotspot in hotspots_for_row(
                 document, row, oem, description, diagram["diagramUrl"], geometry_index
             ):
