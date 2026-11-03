@@ -66,6 +66,48 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(result["parts"][0]["additional_source_fields"]["raw_cells"][5], "03")
         self.assertEqual(result["hotspot_matching"]["matched"], ["12010S"])
 
+
+    def test_honda_accord_real_table_layout_preserves_duplicate_positions_and_options(self):
+        html = """
+        <table>
+          <tr><td>AB3:</td><td>SIDE SRS</td></tr>
+          <tr><td>ABS:</td><td>ABS</td></tr>
+          <tr><td>LH:</td><td>LEFT-HAND DRIVE</td></tr>
+          <tr><td>SR:</td><td>SUNROOF</td></tr>
+          <tr><td>STL:</td><td>LEATHER SEAT</td></tr>
+          <tr><th>Код</th><th>Артикул</th><th>Описание</th><th>Дополнительная информация</th><th>Опционные коды</th></tr>
+          <tr><td>1</td><td>16400-RL2-G01</td><td>THROTTLE BODY, ELECTRONIC CONTROL(GMD2B)</td><td>Производитель автомобиля: JAPAN</td><td>AB3: SIDE SRS ABS: ABS LH: LEFT-HAND DRIVE SR: SUNROOF STL: LEATHER SEAT</td></tr>
+          <tr><td>1</td><td>16400-RL2-G01</td><td>THROTTLE BODY, ELECTRONIC CONTROL(GMD2B)</td><td>Производитель автомобиля: JAPAN</td><td>AB3: SIDE SRS ABS: ABS LH: LEFT-HAND DRIVE STL: LEATHER SEAT</td></tr>
+          <tr><td>2</td><td>36162-RNA-A01</td><td>VALVE ASSY., PURGE CONTROL SOLENOID</td><td></td><td></td></tr>
+          <tr><td>3</td><td>37835-PGK-A01</td><td>O-RING</td><td></td><td></td></tr>
+          <tr><td>4</td><td>90012-RNA-A00</td><td>BOLT-WASHER, 8X55</td><td></td><td></td></tr>
+          <tr><td>5</td><td>90020-RNA-A01</td><td>BOLT-WASHER, 5X20</td><td></td><td></td></tr>
+        </table>
+        <img class="resize" src="http://ci.catcar.info/honda/euro/18TA0801/IMGE/E__0100.png">
+        <div class="coord" srcNum="1" srcTop="792" srcLeft="1147" srcWidth="18" srcHeight="29"></div>
+        <div class="coord" srcNum="2" srcTop="265" srcLeft="1009" srcWidth="25" srcHeight="29"></div>
+        <div class="coord" srcNum="3" srcTop="361" srcLeft="974" srcWidth="26" srcHeight="30"></div>
+        <div class="coord" srcNum="4" srcTop="26" srcLeft="1526" srcWidth="26" srcHeight="29"></div>
+        <div class="coord" srcNum="4" srcTop="119" srcLeft="1371" srcWidth="26" srcHeight="29"></div>
+        <div class="coord" srcNum="4" srcTop="135" srcLeft="1625" srcWidth="26" srcHeight="29"></div>
+        <div class="coord" srcNum="4" srcTop="198" srcLeft="1508" srcWidth="26" srcHeight="29"></div>
+        <div class="coord" srcNum="5" srcTop="213" srcLeft="1235" srcWidth="25" srcHeight="29"></div>
+        <div class="coord" srcNum="5" srcTop="240" srcLeft="1173" srcWidth="25" srcHeight="29"></div>
+        """
+        result = HondaAdapter().parse(html)
+        self.assertEqual(len(result["parts"]), 6)
+        self.assertEqual(result["parts"][0]["part_number_raw"], "16400-RL2-G01")
+        self.assertEqual(result["parts"][1]["part_number_raw"], "16400-RL2-G01")
+        self.assertEqual(result["parts"][0]["diagram_position_code"], "1")
+        self.assertEqual(result["parts"][0]["additional_source_fields"]["additional_information_raw"],
+                         "Производитель автомобиля: JAPAN")
+        self.assertIn("AB3: SIDE SRS", result["parts"][0]["additional_source_fields"]["option_codes_raw"])
+        self.assertEqual(result["hotspot_matching"]["matched"], ["1", "2", "3", "4", "5"])
+        self.assertEqual(len(result["hotspots"]), 9)
+        self.assertEqual(sum(x["position_code"] == "4" for x in result["hotspots"]), 4)
+        self.assertEqual(sum(x["position_code"] == "5" for x in result["hotspots"]), 2)
+        self.assertEqual(len([x for x in result["images"] if x["image_kind"] == "diagram"]), 1)
+
     def test_ford_static_table_code_mapping(self):
         html = """
         <table>
