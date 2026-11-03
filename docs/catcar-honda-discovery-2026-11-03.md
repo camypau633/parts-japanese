@@ -45,3 +45,16 @@ Workflow: [41594235645](https://github.com/camypau633/parts-japanese/actions/run
 - No additional Honda catalog requests were made after this discovery.
 
 **Current Honda conclusion remains unchanged:** the sampled 2011 Civic page is not a parts-group page. We need another bounded model/configuration sample or an identified server-rendered selection endpoint before writing a Honda adapter.
+
+## Second model sample: 2011 Accord, 4-door
+
+Workflow: [41594697255](https://github.com/camypau633/parts-japanese/actions/runs/41594697255)
+
+- HTTP 200; HTML size 62,113 bytes.
+- The page contains 99 table rows.
+- It exposes three regional sections: Austria (KW), Arab countries (KY), and United Kingdom (KE).
+- It lists several transmission/grade combinations, including 5AT/5MT and 2.0, 2.2, 2.4 and 3.5 grades.
+- Unlike the Civic sample, this page contains real configuration links with encoded region, transmission, grade and modification IDs.
+- A specific next-level configuration has been selected for inspection: Austria (KW), 5AT, 2.0 EX. Its URL encodes modification IDs 4094 and 4095.
+
+The Accord page demonstrates that Honda's configuration selection can be represented as explicit catalog links. It is still a Europe-region sample of the Japanese Honda make, not a Japanese domestic-market sample.
