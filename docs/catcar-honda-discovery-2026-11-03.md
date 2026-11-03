@@ -58,3 +58,23 @@ Workflow: [41594697255](https://github.com/camypau633/parts-japanese/actions/run
 - A specific next-level configuration has been selected for inspection: Austria (KW), 5AT, 2.0 EX. Its URL encodes modification IDs 4094 and 4095.
 
 The Accord page demonstrates that Honda's configuration selection can be represented as explicit catalog links. It is still a Europe-region sample of the Japanese Honda make, not a Japanese domestic-market sample.
+
+## Selected configuration page
+
+Workflow: [41594801969](https://github.com/camypau633/parts-japanese/actions/runs/41594801969)
+
+Selected configuration: 2011 Accord, 4-door, Austria (KW), 5AT, 2.0 EX.
+
+- HTTP 200; HTML size 19,664 bytes.
+- Page title and breadcrumbs confirm the selected configuration.
+- The page exposes five equipment-option rows (AB3, ABS, LH, SR, STL).
+- It provides five top-level parts groups:
+  1. Двигатель
+  2. Трансмиссия
+  3. Электрика, впускная/выпускная система, охлаждение и отопление
+  4. Рулевое управление, тормоза и подвеска
+  5. Внешняя/внутренняя отделка
+- The group links carry the selected vehicle, region, transmission, grade and modification IDs in the encoded query.
+- The configuration landing page itself has no part table, diagram or hotspot; those are expected at the next group level.
+
+This is the first Honda path that reaches an actual catalog structure. The next bounded probe follows only the Engine group.
