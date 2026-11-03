@@ -90,3 +90,13 @@ Workflow: [41594884552](https://github.com/camypau633/parts-japanese/actions/run
 - This group-list page itself has no part-level table or exploded diagram; the next level is an individual subgroup page.
 
 This confirms a deeper Honda hierarchy: model → region/transmission/grade → main group → subgroup → part table/diagram.
+
+## First Honda part-table adapter
+
+- Added `HondaAdapter` (`honda_static`) to the offline adapter library and CLI.
+- It locates the explicit `Код / Артикул / Описание` header rather than assuming the first table row is a part.
+- It preserves source row order, OEM text, description, additional-information text and option codes.
+- It retains duplicate rows at the same diagram position; the two position-1 OEM rows remain separate because their option-code sets differ.
+- Unit test covers the observed Accord E-1 layout, six parts, one diagram image, nine hotspot rectangles and repeated positions 4 and 5.
+- Unit tests passed: [41595193453](https://github.com/camypau633/parts-japanese/actions/runs/41595193453).
+- Honda is not yet enabled in PartScope export. The image dimensions and all hotspot bounds must pass an independent check first.
