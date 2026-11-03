@@ -100,3 +100,17 @@ This confirms a deeper Honda hierarchy: model → region/transmission/grade → 
 - Unit test covers the observed Accord E-1 layout, six parts, one diagram image, nine hotspot rectangles and repeated positions 4 and 5.
 - Unit tests passed: [41595193453](https://github.com/camypau633/parts-japanese/actions/runs/41595193453).
 - Honda is not yet enabled in PartScope export. The image dimensions and all hotspot bounds must pass an independent check first.
+
+## Honda E-1 diagram: watermark and geometry
+
+Workflow: [41595234384](https://github.com/camypau633/parts-japanese/actions/runs/41595234384)
+
+- Diagram: `E__0100.png`, HTTP 200, PNG, 23,213 bytes.
+- Native dimensions: 1920 × 959 pixels.
+- All 9 hotspot rectangles are within the image bounds.
+- Repeated positions are intentional: position 4 has four rectangles and position 5 has two.
+- The full-resolution image was visually inspected. No CatCar logo, watermark text, diagonal overlay or translucent repeating mark was observed.
+- OCR found only diagram labels and cross-references such as E-3 and E-15-10; these are native drawing annotations, not watermarks.
+- The visible drawing labels match the hotspot positions 1–5.
+
+**Honda E-1 sample: geometry pass, visible watermark not found.** This result applies to this one Honda diagram only.
