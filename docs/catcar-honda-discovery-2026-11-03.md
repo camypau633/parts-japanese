@@ -114,3 +114,14 @@ Workflow: [41595234384](https://github.com/camypau633/parts-japanese/actions/run
 - The visible drawing labels match the hotspot positions 1–5.
 
 **Honda E-1 sample: geometry pass, visible watermark not found.** This result applies to this one Honda diagram only.
+
+## Honda preview conversion test
+
+- Added Honda to the Japanese preview-conversion allowlist.
+- The exporter now preserves Honda's additional source fields, including option-code differences, so the two position-1 table rows are not collapsed.
+- Model year 2011 is carried into the compatibility year field; no engine code is guessed from the 2.0L grade.
+- Verified geometry status 200 is accepted when the complete PNG was downloaded and inspected; all nine boxes are confirmed within 1920×959.
+- Dedicated test passed: [41595507927](https://github.com/camypau633/parts-japanese/actions/runs/41595507927).
+- Existing Toyota/Nissan real-artifact regression passed after exporter changes: [41595507960](https://github.com/camypau633/parts-japanese/actions/runs/41595507960).
+
+The Honda sample can now be converted to PartScope preview records offline. It has not yet been published into the PartScope preview directory or production catalogue.
