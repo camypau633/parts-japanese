@@ -1,10 +1,6 @@
 name: CatCar diagram watermark audit
 
 on:
-  push:
-    paths:
-      - '.github/workflows/catcar-watermark-audit.yml'
-      - 'tools/catcar_poc/audit_diagram_watermarks.py'
   workflow_dispatch:
 
 permissions:
@@ -21,7 +17,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y tesseract-ocr
           python -m pip install Pillow
-      - name: Audit a small sample of actual diagram pixels
+      - name: Audit a bounded set of actual diagram pixels
         run: python tools/catcar_poc/audit_diagram_watermarks.py
       - uses: actions/upload-artifact@v4
         if: always()
