@@ -1,7 +1,7 @@
 import unittest
 
 from tools.catcar_poc.adapters import (
-    ToyotaAdapter, NissanAdapter, FordAdapter, VagAdapter
+    ToyotaAdapter, NissanAdapter, HondaAdapter, FordAdapter, VagAdapter
 )
 
 
