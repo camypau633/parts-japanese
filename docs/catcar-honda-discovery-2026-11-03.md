@@ -78,3 +78,15 @@ Selected configuration: 2011 Accord, 4-door, Austria (KW), 5AT, 2.0 EX.
 - The configuration landing page itself has no part table, diagram or hotspot; those are expected at the next group level.
 
 This is the first Honda path that reaches an actual catalog structure. The next bounded probe follows only the Engine group.
+
+## Engine group listing
+
+Workflow: [41594884552](https://github.com/camypau633/parts-japanese/actions/runs/41594884552)
+
+- The selected Honda Accord Engine group returned HTTP 200 (31,070 bytes).
+- It contains 32 table rows: five equipment-option rows, one header row, and 26 engine subgroups.
+- Subgroups include throttle body, intake manifold, fuel injector, converter, ignition coil, alternator, wiring harness, cylinder head, camshaft, oil pump, cylinder block/oil pan, water pump, crankshaft/piston and gasket kit.
+- Each subgroup has its own encoded `st=60` link and a `bcode` identifier.
+- This group-list page itself has no part-level table or exploded diagram; the next level is an individual subgroup page.
+
+This confirms a deeper Honda hierarchy: model → region/transmission/grade → main group → subgroup → part table/diagram.
