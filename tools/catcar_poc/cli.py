@@ -7,13 +7,14 @@ import argparse
 import json
 from pathlib import Path
 
-from .adapters import FordAdapter, NissanAdapter, ToyotaAdapter, VagAdapter
+from .adapters import FordAdapter, HondaAdapter, NissanAdapter, ToyotaAdapter, VagAdapter
 from .normalize import normalize_page
 
 
 ADAPTERS = {
     "toyota": ToyotaAdapter,
     "nissan": NissanAdapter,
+    "honda": HondaAdapter,
     "ford": FordAdapter,
     "vag": VagAdapter,
 }
