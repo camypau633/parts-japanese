@@ -1,12 +1,15 @@
 name: Publish CatCar preview to PartScope
 
 on:
+  push:
+    paths:
+      - '.github/workflows/publish-catcar-partscope-preview.yml'
   workflow_dispatch:
     inputs:
       source_run_id:
         description: "Successful CatCar real-artifact regression run ID"
         required: true
-        default: "41463981799"
+        default: "41592807044"
         type: string
 
 permissions:
@@ -33,7 +36,7 @@ jobs:
       - name: Download regression artifact
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          SOURCE_RUN_ID: ${{ github.event.inputs.source_run_id || '41592807044' }}
         run: |
           set -euo pipefail
           mkdir -p source-artifact
@@ -43,6 +46,18 @@ jobs:
             --dir source-artifact
           test -s source-artifact/partscope/export-report.json
           test -n "$(find source-artifact/partscope -maxdepth 1 -type f -name '*.json' ! -name 'export-report.json' -print -quit)"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("source-artifact/partscope/export-report.json").read_text(encoding="utf-8"))
+          validation = report.get("validation") or {}
+          assert set(validation.get("records_by_brand", {})) == {"Toyota", "Nissan"}, validation.get("records_by_brand")
+          assert validation.get("records_validated") == report.get("records_exported")
+          assert validation.get("hotspots_validated", 0) > 0
+          assert validation.get("validation_passed") is True
+          print("Validated Japanese preview:", validation["records_by_brand"])
+          print("Verified hotspots:", validation["hotspots_validated"])
+          PY
 
       - name: Check out PartScope main
         uses: actions/checkout@v4
@@ -53,6 +68,8 @@ jobs:
           path: partscope
 
       - name: Copy preview files and write manifest
+        env:
+          SOURCE_RUN_ID: ${{ github.event.inputs.source_run_id || '41592807044' }}
         run: |
           set -euo pipefail
           destination="partscope/public/data-preview/catcar"
