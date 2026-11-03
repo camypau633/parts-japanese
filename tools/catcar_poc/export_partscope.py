@@ -437,7 +437,7 @@ def export_documents(input_paths, output_dir, max_shard_bytes=DEFAULT_MAX_SHARD_
         "notes": [
             "Factory catalogue rows are stored only in factory_parts.",
             "No analogues or physical dimensions are inferred.",
-            "Toyota hotspots use source rectangle centres in natural image pixels after bounded image and resize-script verification." if geometry_index else "Hotspots are omitted without a verified geometry report.",
+            "Toyota and Nissan hotspots use source rectangle centres in natural image pixels after bounded image and resize-script verification." if geometry_index else "Hotspots are omitted without a verified geometry report.",
             "Multiple catalog-group records for one SKU remain separate PartScope candidates.",
             "Production export is restricted to Toyota and Nissan.",
         ],
