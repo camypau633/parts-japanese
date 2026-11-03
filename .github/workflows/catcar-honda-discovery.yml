@@ -1,0 +1,109 @@
+name: CatCar Honda catalog discovery
+
+on:
+  push:
+    paths:
+      - '.github/workflows/catcar-honda-discovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Inspect Honda catalog landing page only
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python - <<'PY'
+          import json
+          import re
+          import urllib.request
+          from html.parser import HTMLParser
+          from urllib.parse import urljoin, urlsplit
+
+          url = "https://www.catcar.info/honda/"
+          request = urllib.request.Request(url, headers={
+              "User-Agent": "PartScope-Japanese-Catalog-Discovery/1.0",
+              "Accept": "text/html,application/xhtml+xml"
+          })
+          with urllib.request.urlopen(request, timeout=30) as response:
+              status = response.status
+              final_url = response.geturl()
+              body = response.read(4 * 1024 * 1024 + 1)
+          if len(body) > 4 * 1024 * 1024:
+              raise SystemExit("Honda landing page exceeded 4 MiB inspection limit")
+          html = body.decode("utf-8", "replace")
+          open("out/honda-index.html", "w", encoding="utf-8").write(html)
+
+          class Inspect(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.links = []
+                  self.images = []
+                  self.scripts = []
+                  self.title = False
+                  self.title_text = []
+                  self.current_link = None
+              def handle_starttag(self, tag, attrs):
+                  a = dict(attrs)
+                  if tag == "title":
+                      self.title = True
+                  elif tag == "a" and a.get("href"):
+                      self.current_link = {"href": a["href"], "text": ""}
+                      self.links.append(self.current_link)
+                  elif tag == "img" and (a.get("src") or a.get("data-src")):
+                      self.images.append({"src": a.get("src") or a.get("data-src"), "alt": a.get("alt", "")})
+                  elif tag == "script":
+                      self.scripts.append(a.get("src", "inline"))
+              def handle_data(self, data):
+                  if self.title:
+                      self.title_text.append(data.strip())
+                  if self.current_link is not None:
+                      self.current_link["text"] += data.strip()
+              def handle_endtag(self, tag):
+                  if tag == "title":
+                      self.title = False
+                  elif tag == "a":
+                      self.current_link = None
+
+          parser = Inspect()
+          parser.feed(html)
+          links = []
+          for item in parser.links:
+              target = urljoin(final_url, item["href"])
+              host = (urlsplit(target).hostname or "").lower()
+              if host == "catcar.info" or host.endswith(".catcar.info"):
+                  links.append({
+                      "text": " ".join(item["text"].split()),
+                      "url": target
+                  })
+          result = {
+              "make": "Honda",
+              "scope": "Japanese manufacturer only; no non-Japanese makes",
+              "http_status": status,
+              "final_url": final_url,
+              "bytes": len(body),
+              "title": " ".join(x for x in parser.title_text if x),
+              "catalog_links": links[:160],
+              "image_candidates": parser.images[:80],
+              "script_refs": parser.scripts[:80],
+              "honda_catalog_links": len(links),
+              "inspection_limit": "one landing-page request; no vehicle traversal or bulk extraction"
+          }
+          open("out/honda-discovery.json", "w", encoding="utf-8").write(
+              json.dumps(result, ensure_ascii=False, indent=2) + "\n"
+          )
+          print(json.dumps(result, ensure_ascii=False, indent=2))
+          if status != 200:
+              raise SystemExit("Honda landing page did not return HTTP 200")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catcar-honda-discovery
+          path: out/
+          retention-days: 7
