@@ -98,6 +98,26 @@ class PartScopeExportTests(unittest.TestCase):
         self.assertEqual(record["diagram"]["diagramUrl"], "https://www.catcar.info/diagrams/pixo.png")
         self.assertEqual(record["diagram"]["hotspots"], [])
 
+    def test_verified_nissan_hotspot_uses_natural_image_pixel_centres(self):
+        doc = sample()
+        doc["hotspots"][0].update({
+            "diagram_id": "diagram-1",
+            "source_row_id": "12010S",
+            "source_row_ids": ["12010S"],
+            "resolution_status": "matched",
+        })
+        url = "https://www.catcar.info/diagrams/pixo.png"
+        geometry = validate_geometry_report(verified_geometry([url]))
+        records = document_to_records(doc, geometry_index=geometry)
+        hotspot = records["120004A00A"]["diagram"]["hotspots"][0]
+        self.assertEqual(hotspot["id"], "12010S")
+        self.assertEqual(hotspot["x"], 21.5)
+        self.assertEqual(hotspot["y"], 12.0)
+        self.assertEqual(hotspot["oem"], "12000-4A00A")
+        self.assertIn("03/2009-01/2012", hotspot["details"])
+        report = validate_export_records(records)
+        self.assertEqual(report["hotspots_validated"], 1)
+
     def test_toyota_ajax_oem_variants_link_to_catalogue_row(self):
         doc = sample("Toyota")
         doc["catalog_context"]["model"] = "Camry"
