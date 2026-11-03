@@ -19,7 +19,7 @@ Ford and VAG adapters remain legacy experimental code from earlier probes. They 
 
 - `ToyotaAdapter`: extracts Toyota source-row identifiers and `getArticles` AJAX tokens; parses OEM, production-period, and applicability cells from an AJAX response. Blank AJAX cells remain blank and do not shift adjacent values.
 - `NissanAdapter`: reads the tested static table column order and matches `srcNum` hotspots to the first table column.
-- Honda is not yet an adapter. The 2011 Civic page tested so far is an intermediate configuration-selection page with no parts table or diagram.
+- HondaAdapter is now implemented for the observed Honda code/part-number/description table. It starts parsing after the explicit header row, preserves duplicate position rows, and retains the additional-information and option-code columns. The 2011 Accord E-1 sample validates six part rows and nine coordinate regions. Honda export remains disabled until the diagram's dimensions and hotspot bounds are independently verified.
 
 ## Output behavior
 
@@ -41,11 +41,11 @@ The CLI converts one previously saved HTML page into normalized JSON and perform
 python -m tools.catcar_poc.cli --adapter toyota --input page.html --output catalog.json --source-url "https://www.catcar.info/example/page" --context context.json
 ```
 
-For the current Japanese project, use only `toyota` or `nissan`. Legacy `ford` and `vag` CLI choices remain only for historical fixture reproduction and are not part of the active project scope. For Toyota, already extracted AJAX records can be supplied with `--oem-records`.
+For the current Japanese project, use `toyota`, `nissan`, or `honda`. Legacy `ford` and `vag` CLI choices remain only for historical fixture reproduction and are not part of the active project scope. For Toyota, already extracted AJAX records can be supplied with `--oem-records`.
 
 ## Tests and real fixtures
 
-GitHub Actions runs parser, adapter, regression, and JSON Schema tests on Python 3.12. Synthetic tests cover edge cases. The active real-artifact regression replays the captured Toyota and Nissan fixtures only. Honda will be added after a valid detail-group page is found and captured.
+GitHub Actions runs parser, adapter, regression, and JSON Schema tests on Python 3.12. Synthetic tests cover edge cases. The active real-artifact regression replays the captured Toyota and Nissan fixtures only. Honda's first captured detail-group fixture is now covered by the offline adapter unit test. The real-artifact exporter regression still covers Toyota and Nissan only; Honda must pass image geometry and export validation before being enabled for preview publication.
 
 Toyota AJAX responses with the source message `No applicable data!` are retained as OEM records with `source_status: no_applicable_data`, rather than silently disappearing. Blank OEM period/applicability cells remain null.
 
