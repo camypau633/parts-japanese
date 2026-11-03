@@ -46,3 +46,7 @@ All 10 full-resolution PNGs and the generated contact sheet were visually inspec
 **No visible CatCar watermark was found in all 10 diagrams currently present in the PartScope preview dataset.**
 
 This conclusion is limited to those 10 images. It does not prove that all CatCar diagrams are watermark-free, nor does it establish permission to reuse or redistribute the images. Copyright, database rights, contractual terms and reuse permissions remain separate questions. Keep mass collection and redistribution disabled until permission is clarified.
+
+## Additional Honda image
+
+A separate Honda Accord E-1 throttle-body diagram was also checked: 1920×959 PNG, 23,213 bytes, 9/9 hotspot rectangles inside image bounds. Full-resolution visual inspection found no visible CatCar watermark or overlay. The drawing's E-3/E-15-10 labels are native cross-references. [Honda audit workflow](https://github.com/camypau633/parts-japanese/actions/runs/41595234384).
