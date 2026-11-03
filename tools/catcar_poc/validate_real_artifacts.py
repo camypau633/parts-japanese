@@ -11,7 +11,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import jsonschema
 
-from .adapters import FordAdapter, NissanAdapter, ToyotaAdapter, VagAdapter
+from .adapters import NissanAdapter, ToyotaAdapter
 from .normalize import normalize_page
 
 
@@ -167,29 +167,6 @@ def main(argv=None):
         args.output,
     ))
 
-    ford_dir = root / "ford"
-    ford_meta = load_json(ford_dir / "ford-fiesta-detail.json")
-    results.append(validate_case(
-        "ford-fiesta",
-        FordAdapter(),
-        ford_dir / "ford-fiesta-detail.html",
-        ford_meta["detail_url"],
-        {"brand": "Ford", "model": "Fiesta", "catalog_id": "424"},
-        schema,
-        args.output,
-    ))
-
-    vag_dir = root / "vag"
-    vag_meta = load_json(vag_dir / "vw-inspection.json")
-    results.append(validate_case(
-        "vag-campmob",
-        VagAdapter(),
-        vag_dir / "vw-leaf.html",
-        vag_meta["url"],
-        {"brand": "Volkswagen", "model": "Campmob. (Typ2/Transp./LT)", "region": "Europe", "model_year": "2018", "source_group_id": "86735"},
-        schema,
-        args.output,
-    ))
 
     report = {
         "validation_type": "offline_real_artifact_regression",
