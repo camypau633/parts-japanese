@@ -1,0 +1,31 @@
+name: CatCar diagram watermark audit
+
+on:
+  push:
+    paths:
+      - '.github/workflows/catcar-watermark-audit.yml'
+      - 'tools/catcar_poc/audit_diagram_watermarks.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install bounded image inspection tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr
+          python -m pip install Pillow
+      - name: Audit a small sample of actual diagram pixels
+        run: python tools/catcar_poc/audit_diagram_watermarks.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: catcar-watermark-audit
+          path: out/watermark/
+          retention-days: 7
