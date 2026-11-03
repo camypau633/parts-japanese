@@ -1,0 +1,103 @@
+name: CatCar Honda region and configuration discovery
+
+on:
+  push:
+    paths:
+      - '.github/workflows/catcar-honda-region-discovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Inspect Honda region selector and catalog JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python - <<'PY'
+          import json
+          import re
+          import time
+          import urllib.request
+          from html.parser import HTMLParser
+          from urllib.parse import urljoin, urlsplit
+
+          BASE = "https://www.catcar.info/honda/"
+          def get(url, limit):
+              req = urllib.request.Request(url, headers={
+                  "User-Agent": "PartScope-Japanese-Catalog-Discovery/1.0",
+                  "Accept": "text/html,application/xhtml+xml,*/*"
+              })
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  body = response.read(limit + 1)
+                  if len(body) > limit:
+                      raise SystemExit("Inspection response exceeded byte limit: " + url)
+                  return response.status, response.geturl(), body
+
+          status, final_url, body = get(BASE + "?l=", 4 * 1024 * 1024)
+          html = body.decode("utf-8", "replace")
+          open("out/honda-region-index.html", "w", encoding="utf-8").write(html)
+
+          class Links(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.items=[]
+                  self.current=None
+                  self.title=False
+                  self.title_text=[]
+              def handle_starttag(self, tag, attrs):
+                  a=dict(attrs)
+                  if tag=="title": self.title=True
+                  if tag=="a" and a.get("href"):
+                      self.current={"href":a["href"],"text":""}
+                      self.items.append(self.current)
+              def handle_data(self, data):
+                  if self.title: self.title_text.append(data.strip())
+                  if self.current is not None: self.current["text"] += data.strip()
+              def handle_endtag(self, tag):
+                  if tag=="title": self.title=False
+                  elif tag=="a": self.current=None
+
+          p=Links(); p.feed(html)
+          links=[]
+          for item in p.items:
+              target=urljoin(final_url,item["href"])
+              host=(urlsplit(target).hostname or "").lower()
+              if host=="catcar.info" or host.endswith(".catcar.info"):
+                  links.append({"text":" ".join(item["text"].split()),"url":target})
+          time.sleep(10)
+          js_status, js_url, js_body = get("https://www.catcar.info/js/script.js?v=2.0", 1024 * 1024)
+          js=js_body.decode("utf-8","replace")
+          open("out/catcar-script.js","w",encoding="utf-8").write(js)
+          patterns=[
+              r"\\$\\.ajax",r"\\.ajax\\(",r"\\.post\\(",r"\\.get\\(",
+              r"transmission",r"configuration",r"region",r"groups-parts",
+              r"st[0-9]?",r"modification",r"getArticles"
+          ]
+          snippets=[]
+          for pattern in patterns:
+              for match in list(re.finditer(pattern,js,re.I))[:5]:
+                  snippets.append({"pattern":pattern,"snippet":js[max(0,match.start()-260):match.end()+520]})
+          result={
+              "make":"Honda",
+              "scope":"one region index request and one public site-script request",
+              "region_index":{"http_status":status,"final_url":final_url,"bytes":len(body),
+                              "title":" ".join(x for x in p.title_text if x),
+                              "links":links[:180],"links_count":len(links)},
+              "site_script":{"http_status":js_status,"final_url":js_url,"bytes":len(js_body),
+                             "snippets":snippets[:50]},
+              "note":"No vehicle group traversal, no image download and no bulk collection."
+          }
+          open("out/honda-region-discovery.json","w",encoding="utf-8").write(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
+          print(json.dumps(result,ensure_ascii=False,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catcar-honda-region-discovery
+          path: out/
+          retention-days: 7
