@@ -99,7 +99,7 @@ This confirms a deeper Honda hierarchy: model → region/transmission/grade → 
 - It retains duplicate rows at the same diagram position; the two position-1 OEM rows remain separate because their option-code sets differ.
 - Unit test covers the observed Accord E-1 layout, six parts, one diagram image, nine hotspot rectangles and repeated positions 4 and 5.
 - Unit tests passed: [41595193453](https://github.com/camypau633/parts-japanese/actions/runs/41595193453).
-- Honda is not yet enabled in PartScope export. The image dimensions and all hotspot bounds must pass an independent check first.
+- Honda preview conversion is enabled for this single captured Accord E-1 group. A unit test verifies five cleaned SKU keys, six factory rows, preserved option-code variants, nine hotspot rectangles and the 2011 model-year context. This does not mean broad Honda coverage or production publication.
 
 ## Honda E-1 diagram: watermark and geometry
 
