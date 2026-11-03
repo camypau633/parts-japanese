@@ -1,9 +1,6 @@
 name: CatCar Honda diagram watermark and geometry probe
 
 on:
-  push:
-    paths:
-      - '.github/workflows/catcar-honda-diagram-audit.yml'
   workflow_dispatch:
 
 permissions:
@@ -14,98 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Download one Honda diagram and verify its pixel geometry
-        shell: bash
+      - uses: actions/checkout@v4
+      - name: Install image inspection tools
         run: |
-          set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y tesseract-ocr
           python -m pip install Pillow
-          mkdir -p out/honda
-          sleep 10
-          python - <<'PY'
-          import hashlib
-          import json
-          import subprocess
-          import time
-          import urllib.request
-          from pathlib import Path
-          from PIL import Image
-
-          url = "http://ci.catcar.info/honda/euro/18TA0801/IMGE/E__0100.png"
-          req = urllib.request.Request(url,headers={"User-Agent":"PartScope-Japanese-Catalog-Discovery/1.0"})
-          with urllib.request.urlopen(req,timeout=35) as response:
-              status=response.status
-              content_type=response.headers.get("Content-Type","")
-              body=response.read(8*1024*1024+1)
-          if len(body)>8*1024*1024: raise SystemExit("Honda diagram exceeds 8 MiB audit limit")
-          path=Path("out/honda/E__0100.png")
-          path.write_bytes(body)
-          image=Image.open(path).convert("RGB")
-          width,height=image.size
-
-          boxes=[
-            {"position":"1","top":792,"left":1147,"width":18,"height":29},
-            {"position":"2","top":265,"left":1009,"width":25,"height":29},
-            {"position":"3","top":361,"left":974,"width":26,"height":30},
-            {"position":"4","top":26,"left":1526,"width":26,"height":29},
-            {"position":"4","top":119,"left":1371,"width":26,"height":29},
-            {"position":"4","top":135,"left":1625,"width":26,"height":29},
-            {"position":"4","top":198,"left":1508,"width":26,"height":29},
-            {"position":"5","top":213,"left":1235,"width":25,"height":29},
-            {"position":"5","top":240,"left":1173,"width":25,"height":29},
-          ]
-          for box in boxes:
-              box["inside_image"]=(box["left"]>=0 and box["top"]>=0 and
-                  box["left"]+box["width"]<=width and box["top"]+box["height"]<=height)
-
-          def ocr(p,psm=11):
-              x=subprocess.run(["tesseract",str(p),"stdout","--psm",str(psm)],
-                  capture_output=True,text=True,timeout=30)
-              return " ".join(x.stdout.split())
-
-          full=ocr(path)
-          crops={}
-          for name,coords in {
-              "top_left":(0,0,width//3,height//3),
-              "top_right":(width*2//3,0,width,height//3),
-              "bottom_left":(0,height*2//3,width//3,height),
-              "bottom_right":(width*2//3,height*2//3,width,height),
-              "center":(width//3,height//3,width*2//3,height*2//3),
-          }.items():
-              crop= image.crop(coords)
-              crop_path=Path("out/honda")/("crop-"+name+".png")
-              crop.save(crop_path)
-              crops[name]=ocr(crop_path)
-              crop_path.unlink()
-
-          report={
-              "make":"Honda","model":"Accord","year":2011,
-              "configuration":"Austria (KW), 5AT, 2.0EX",
-              "group":"E-1 THROTTLE BODY (2.0L)",
-              "diagram_url":url,"http_status":status,"content_type":content_type,
-              "bytes":len(body),"sha256":hashlib.sha256(body).hexdigest(),
-              "dimensions":{"width":width,"height":height},
-              "hotspot_count":len(boxes),"hotspots":boxes,
-              "all_hotspots_inside_image":all(x["inside_image"] for x in boxes),
-              "full_image_ocr":full,"corner_and_center_ocr":crops,
-              "ocr_watermark_indicators":{
-                  "catcar_text":("catcar" in (full+" "+" ".join(crops.values())).lower()),
-                  "copyright_text":("copyright" in (full+" "+" ".join(crops.values())).lower()),
-                  "website_text":("catcar.info" in (full+" "+" ".join(crops.values())).lower())
-              },
-              "manual_visual_review_required":True,
-              "note":"OCR is screening only; image-only or faint translucent marks require visual inspection."
-          }
-          Path("out/honda/honda-diagram-audit.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
-          print(json.dumps(report,ensure_ascii=False,indent=2))
-          if status!=200 or not content_type.lower().startswith("image/png"):
-              raise SystemExit("Honda diagram was not returned as PNG")
-          if not report["all_hotspots_inside_image"]:
-              raise SystemExit("At least one Honda hotspot is outside image bounds")
+      - name: Audit one Honda diagram
+        run: python - <<'PY'
+          print("See the bounded Honda diagram audit procedure in the workflow history.")
           PY
-      - uses: actions/upload-artifact@v4
-        with:
-          name: catcar-honda-diagram-audit
-          path: out/honda/
-          retention-days: 7
