@@ -75,7 +75,7 @@ jobs:
           js=js_body.decode("utf-8","replace")
           open("out/catcar-script.js","w",encoding="utf-8").write(js)
           patterns=[
-              r"\\$\\.ajax",r"\\.ajax\\(",r"\\.post\\(",r"\\.get\\(",
+              r"\$\.ajax",r"\.ajax\(",r"\.post\(",r"\.get\(",
               r"transmission",r"configuration",r"region",r"groups-parts",
               r"st[0-9]?",r"modification",r"getArticles"
           ]
