@@ -210,12 +210,18 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
         if canonical_url(state.get("start_url", "")) != canonical_url(start_url):
             raise ValueError("resume state belongs to a different start URL")
         queue = deque(state.get("queue") or [])
-        visited = set(state.get("visited") or [])
+        failed_urls = list(state.get("failed_urls") or [])
+        queued_urls = {item["url"] for item in queue}
+        for failed_url in failed_urls:
+            if failed_url not in queued_urls:
+                queue.append({"url": failed_url, "label": "retry_after_previous_error"})
+        visited = set(state.get("visited") or []) - set(failed_urls)
         details = int(state.get("detail_pages", 0))
         previous_errors = int(state.get("errors", 0))
     else:
         queue = deque([{"url": canonical_url(start_url), "label": "start"}])
         visited = set()
+        failed_urls = []
         details = 0
         previous_errors = 0
     queued = {item["url"] for item in queue} | visited
@@ -256,6 +262,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
         try:
             status, final_url, html = fetch_page(url, timeout)
             final_url = canonical_url(final_url)
+            failed_urls = [failed_url for failed_url in failed_urls if failed_url != url]
             if not allowed_catalog_url(final_url, make):
                 raise ValueError("redirect_left_selected_make_path")
             title, links = discover_links(html, final_url, make)
@@ -299,6 +306,8 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                     )
                 elif not parsed.get("parts"):
                     record["status"] = "unrecognized_table"
+                    digest = hashlib.sha256(url.encode("utf-8")).hexdigest()[:16]
+                    (review_dir / (digest + ".html")).write_text(html, encoding="utf-8")
                 else:
                     record["status"] = "detail_page"
                     details += 1
@@ -312,6 +321,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                         for part in document["parts"]
                     )
         except jsonschema.ValidationError as exc:
+            failed_urls.append(url)
             record["status"] = "schema_validation_error"
             record["error"] = str(exc.message)[:500]
             digest = hashlib.sha256(url.encode("utf-8")).hexdigest()[:16]
@@ -319,6 +329,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                 (review_dir / (digest + ".html")).write_text(html, encoding="utf-8")
             errors.append({"url": url, "error": record["error"]})
         except (urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
+            failed_urls.append(url)
             record["status"] = "fetch_error"
             record["error"] = str(exc)[:500]
             errors.append({"url": url, "error": str(exc)[:500]})
@@ -335,6 +346,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
             "errors": previous_errors + len(errors),
             "queue": list(queue),
             "visited": sorted(visited),
+            "failed_urls": sorted(set(failed_urls)),
         })
         with (output_dir / "pages.jsonl").open("a", encoding="utf-8") as stream:
             stream.write(json.dumps(record, ensure_ascii=False) + "\n")
