@@ -27,7 +27,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: catcar-honda-catalog-crawl
+  group: catcar-japanese-catalog-crawl
   cancel-in-progress: false
 
 jobs:
@@ -49,7 +49,6 @@ jobs:
           MAKE: ${{ inputs.make }}
         run: |
           set -euo pipefail
-          mkdir -p out/catcar-honda
           mkdir -p "out/catcar-$MAKE"
           gh run download "$RESUME_RUN_ID" \
             --repo "$GITHUB_REPOSITORY" \
