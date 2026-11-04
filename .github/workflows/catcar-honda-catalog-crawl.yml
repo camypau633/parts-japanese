@@ -1,0 +1,44 @@
+name: CatCar Honda bounded catalog crawl
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_pages:
+        description: "Maximum pages per run (1-2000); continue from saved crawl-state in a later iteration"
+        required: true
+        default: "100"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catcar-honda-catalog-crawl
+  cancel-in-progress: false
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run bounded crawler
+        env:
+          MAX_PAGES: ${{ inputs.max_pages }}
+        run: |
+          set -euo pipefail
+          python -m tools.catcar_poc.crawl_catalog \
+            --start-url "https://www.catcar.info/honda/" \
+            --max-pages "$MAX_PAGES" \
+            --delay 10 \
+            --output out/catcar-honda
+      - name: Upload crawl results for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: catcar-honda-crawl-${{ github.run_id }}
+          path: out/catcar-honda/
+          if-no-files-found: error
+          retention-days: 14
