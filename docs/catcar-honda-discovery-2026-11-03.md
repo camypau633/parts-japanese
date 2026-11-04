@@ -334,3 +334,28 @@ Commit: `5b68be8` — added two exporter integration regressions.
 The full CatCar adapter/parser/schema unit-test workflow passed: [41828424650](https://github.com/camypau633/parts-japanese/actions/runs/41828424650).
 
 These are offline exporter regression tests; they do not publish Honda records to PartScope preview or production.
+
+
+## Real six-group Honda PartScope export regression — passed
+
+Workflow: [41829393308](https://github.com/camypau633/parts-japanese/actions/runs/41829393308)  
+Unit-test workflow: [41829393287](https://github.com/camypau633/parts-japanese/actions/runs/41829393287)  
+Artifact: `honda-real-multigroup-partscope-export` (isolated shards and full JSON report).
+
+This test downloaded the previously captured HTML/inspection artifacts for six real Honda Accord catalog groups, ran the current `HondaAdapter` again, normalized each page, then passed all six documents together through the actual `export_documents` PartScope exporter with the six previously audited diagram geometry reports.
+
+Verified result:
+- Six source groups; all samples are 2011 Accord, Austria (KW), 5AT, 2.0EX. This is European-market data, not JDM.
+- 165 original part rows were parsed and all 165 survived as PartScope `factory_parts`.
+- 130 unique cleaned SKU keys produced 134 separate PartScope candidates.
+- Six verified diagrams; 148 hotspot associations exported.
+- All 134 candidates passed export validation, retained 2011 compatibility, retained their diagram URL, and have no invented engine code.
+- Four real OEMs were found in two different catalog groups each. The exporter retained two separate candidates for each shared OEM, with their own group IDs and diagram URLs:
+  - `43352-SM4-951` and `43353-SD5-003`: B-22 and B-19-10.
+  - `93600-060-140H`: B-22 and B-19-10.
+  - `90306-SB2-013`: B-29 and B-27-10.
+- No analogues or physical dimensions were invented; those remain zero because these source pages do not provide verified values for them.
+
+**Conclusion:** the offline Honda adapter → normalization → multi-document PartScope export path passed this six-group real-data test, including row preservation, option variants, cross-group SKU collisions, compatibility, diagram URLs and hotspot geometry. The generated shards were uploaded only as a CI artifact. Honda has still not been published to PartScope preview or production.
+
+The CI regression downloads historical GitHub Actions artifacts by run ID; those source artifacts are subject to GitHub Actions artifact retention and this one-off run should be repeated with refreshed captures if the historical artifacts expire.
