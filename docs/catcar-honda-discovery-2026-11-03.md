@@ -226,3 +226,20 @@ Probe: [41821783325](https://github.com/camypau633/parts-japanese/actions/runs/4
 - No hotspot coordinates were returned.
 - The only diagram candidate contains the literal template path `/honda/euro/{npl}/IMGE/B__2700.png`, not a resolved image URL.
 - This response is classified as an incomplete/intermediate catalog page and is not eligible for normalization or export. HTTP 200 alone is not sufficient evidence that a subgroup contains usable parts.
+
+
+## Fourth part-table subgroup: B-19-10 rear brake
+
+Workflow: [41822139081](https://github.com/camypau633/parts-japanese/actions/runs/41822139081)
+
+Selected subgroup: 2011 Accord, 4-door, Austria (KW), 5AT, 2.0 EX — B-19-10 `REAR BRAKE`.
+
+- HTTP 200; HTML size 65,034 bytes.
+- The page contains 42 table rows: five equipment-option rows, one header and 36 part rows.
+- The 36 part rows contain 26 unique OEM numbers.
+- Ten OEMs appear twice with different option-code sets (including the right/left rear caliper assemblies and several internal brake components).
+- Position 19 contains three different wheel-bolt OEMs; position 21 contains two different O-ring OEMs.
+- There are 26 hotspot rectangles for 23 distinct position labels. Position 17 has three separate rectangles and position 10 has two.
+- The captured HTML passed the actual `HondaAdapter` regression step in the workflow: all 36 part rows, 26 unique OEMs, ten option-variant pairs, the three position-19 OEMs, the two position-21 OEMs, 26 hotspots and one diagram image were verified.
+
+**B-19-10 diagram watermark and geometry audit is pending.** The diagram URL is `http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__1910.png`; the image audit is being added to the bounded audit workflow. This sample is also Austria (KW), not JDM.
