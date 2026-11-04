@@ -241,14 +241,27 @@ def fetch_toyota_ajax_page(url, timeout):
         "Accept": "text/html, */*; q=0.01",
         "X-Requested-With": "XMLHttpRequest",
     })
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        body = response.read(MAX_PAGE_BYTES + 1)
-        if len(body) > MAX_PAGE_BYTES:
-            raise ValueError("toyota_ajax_response_exceeds_4_mib_limit")
-        content_type = response.headers.get("Content-Type", "")
-        if "html" not in content_type.lower():
-            raise ValueError("unexpected_toyota_ajax_content_type:" + content_type)
-        return response.status, response.geturl(), body.decode("utf-8", "replace")
+    last_error = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                body = response.read(MAX_PAGE_BYTES + 1)
+                if len(body) > MAX_PAGE_BYTES:
+                    raise ValueError("toyota_ajax_response_exceeds_4_mib_limit")
+                content_type = response.headers.get("Content-Type", "")
+                if "html" not in content_type.lower():
+                    raise ValueError("unexpected_toyota_ajax_content_type:" + content_type)
+                return response.status, response.geturl(), body.decode("utf-8", "replace")
+        except urllib.error.HTTPError as exc:
+            last_error = exc
+            if exc.code not in (429, 500, 502, 503, 504) or attempt == 2:
+                raise
+        except (urllib.error.URLError, TimeoutError) as exc:
+            last_error = exc
+            if attempt == 2:
+                raise
+        time.sleep(2 * (attempt + 1))
+    raise last_error
 
 
 def resolve_toyota_ajax_rows(parsed, group_url, output_dir, timeout,
@@ -454,10 +467,28 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                 if parsed.get("page_status") == "incomplete":
                     record["status"] = "incomplete_detail"
                     record["warnings"] = parsed.get("page_warnings", [])
+                    record["part_rows"] = len(document["parts"])
+                    record["diagram_count"] = len(document["diagrams"])
+                    record["hotspot_count"] = len(document["hotspots"])
+                    record["ajax_rows_requiring_lookup"] = sum(
+                        part.get("additional_source_fields", {}).get("ajax_resolution_status") in (None, "error")
+                        for part in document["parts"]
+                    )
+                    record["ajax_rows_resolved"] = sum(
+                        part.get("additional_source_fields", {}).get("ajax_resolution_status") == "available"
+                        for part in document["parts"]
+                    )
+                    record["ajax_rows_no_applicable_data"] = sum(
+                        part.get("source_status") == "no_applicable_data"
+                        for part in document["parts"]
+                    )
+                    if ajax_errors:
+                        record["ajax_errors"] = ajax_errors
                     digest = hashlib.sha256(url.encode("utf-8")).hexdigest()[:16]
                     (review_dir / (digest + ".html")).write_text(
                         html, encoding="utf-8"
                     )
+                    write_json(review_dir / (digest + ".json"), document)
                 elif not parsed.get("parts"):
                     record["status"] = "unrecognized_table"
                     digest = hashlib.sha256(url.encode("utf-8")).hexdigest()[:16]
