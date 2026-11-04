@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tools.catcar_poc.crawl_catalog import (
-    allowed_catalog_url, decoded_filter, discover_links, crawl
+    allowed_catalog_url, decoded_filter, discover_links, market_context, crawl
 )
 
 
@@ -32,6 +32,22 @@ class CrawlCatalogTests(unittest.TestCase):
         url = "https://www.catcar.info/honda/?l=bW9kbmFtZT09QUNDT1JE"
         self.assertEqual(decoded_filter(url), {"modname": "ACCORD"})
 
+    def test_market_region_is_separate_from_japanese_manufacturer_origin(self):
+        european = {
+            "images": [{"src": "https://ci.catcar.info/honda/euro/18TA0801/IMGE/E__0100.png"}]
+        }
+        japan = {
+            "images": [{"src": "https://ci.catcar.info/honda/japan/18TA0801/IMGE/E__0100.png"}]
+        }
+        self.assertEqual(
+            market_context(european, "https://www.catcar.info/honda/")["market_region"],
+            "Europe",
+        )
+        self.assertEqual(
+            market_context(japan, "https://www.catcar.info/honda/")["market_region"],
+            "Japan",
+        )
+
     def test_crawl_normalizes_a_realistic_honda_detail_page_without_network(self):
         html = """
         <table>
@@ -56,6 +72,8 @@ class CrawlCatalogTests(unittest.TestCase):
             document = json.loads(files[0].read_text(encoding="utf-8"))
             self.assertEqual(document["parts"][0]["part_number_raw"], "16400-RL2-G01")
             self.assertEqual(document["catalog_context"]["brand"], "Honda")
+            self.assertEqual(document["catalog_context"]["manufacturer_country"], "Japan")
+            self.assertEqual(document["catalog_context"]["market_region"], "Europe")
 
     def test_resume_restores_queue_and_does_not_refetch_visited_page(self):
         html = """
