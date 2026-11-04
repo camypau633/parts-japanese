@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 7
     steps:
+      - uses: actions/checkout@v4
       - name: Inspect one Honda B-29 subgroup
         shell: bash
         run: |
@@ -100,6 +101,39 @@ jobs:
           open("out/honda-accord-b29-inspection.json", "w", encoding="utf-8").write(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
           print(json.dumps(result, ensure_ascii=False, indent=2))
           if status != 200: raise SystemExit("Honda B-29 did not return HTTP 200")
+          PY
+      - name: Validate captured B-29 HTML with the real Honda adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from tools.catcar_poc.adapters import HondaAdapter
+
+          html = Path("out/honda-accord-b29.html").read_text(encoding="utf-8")
+          parsed = HondaAdapter().parse(html)
+          parts = parsed["parts"]
+          assert len(parts) == 44, "expected 44 B-29 part rows, got %s" % len(parts)
+          assert len(set(x["part_number_raw"] for x in parts)) == 38
+          for position in ("7", "8", "15", "19", "23", "31"):
+              variants = [x for x in parts if x["diagram_position_code"] == position]
+              assert len(variants) == 2, "expected two option variants at position %s" % position
+              assert variants[0]["additional_source_fields"]["option_codes_raw"] != variants[1]["additional_source_fields"]["option_codes_raw"]
+          assert len(parsed["hotspots"]) == 41
+          assert len([x for x in parsed["images"] if x["image_kind"] == "diagram"]) == 1
+          report = {
+              "adapter": parsed["adapter"],
+              "part_rows": len(parts),
+              "unique_oem_numbers": len(set(x["part_number_raw"] for x in parts)),
+              "option_variant_positions": ["7", "8", "15", "19", "23", "31"],
+              "hotspot_rectangles": len(parsed["hotspots"]),
+              "diagram_images": 1,
+              "validation_passed": True,
+          }
+          Path("out/honda-b29-adapter-validation.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+          print(json.dumps(report, ensure_ascii=False, indent=2))
           PY
       - uses: actions/upload-artifact@v4
         with:
