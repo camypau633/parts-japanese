@@ -84,7 +84,8 @@ class CrawlCatalogTests(unittest.TestCase):
                 report = crawl(
                     url, output, max_pages=1, delay=10, make="isuzu"
                 )
-            self.assertTrue(report["complete"])
+            self.assertFalse(report["complete"])
+            self.assertEqual(report["queue_remaining"], 1)
             self.assertEqual(report["detail_pages_normalized"], 0)
             records = [
                 json.loads(line)
@@ -264,8 +265,8 @@ class CrawlCatalogTests(unittest.TestCase):
             self.assertTrue(second["complete"])
             self.assertEqual(second["detail_pages_normalized"], 1)
             self.assertEqual(second["pages_visited"], 1)
-            self.assertEqual(second["market_coverage_pages"].get("Unspecified"), 1)
-            self.assertEqual(second["fetch_errors"], 1)
+            self.assertEqual(second["market_coverage_pages"], {"Europe": 1})
+            self.assertEqual(second["fetch_errors"], 0)
 
 
 if __name__ == "__main__":
