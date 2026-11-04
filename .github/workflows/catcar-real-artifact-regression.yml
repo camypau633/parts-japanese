@@ -52,6 +52,54 @@ jobs:
           download_artifact 13155555091 .catcar-fixtures/camry
           test -s .catcar-fixtures/camry/normalized/report.json
           test -s .catcar-fixtures/camry/diagram-geometry.json
+      - name: Inspect CatCar Toyota getArticles transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --max-time 20 \
+            'https://www.catcar.info/js/script.js?v=2.0' -o /tmp/catcar-script.js
+          python - <<'PY'
+          from pathlib import Path
+          source = Path("/tmp/catcar-script.js").read_text(encoding="utf-8", errors="replace")
+          marker = "function getArticles"
+          start = source.find(marker)
+          if start < 0:
+              marker = "getArticles = function"
+              start = source.find(marker)
+          if start < 0:
+              raise SystemExit("CatCar getArticles function was not found in script.js")
+          brace = source.find("{", start)
+          if brace < 0:
+              raise SystemExit("CatCar getArticles function has no body")
+          depth = 0
+          quote = None
+          escaped = False
+          end = None
+          for index in range(brace, len(source)):
+              char = source[index]
+              if quote:
+                  if escaped:
+                      escaped = False
+                  elif char == "\\\\":
+                      escaped = True
+                  elif char == quote:
+                      quote = None
+                  continue
+              if char in ("'", '"', "`"):
+                  quote = char
+              elif char == "{":
+                  depth += 1
+              elif char == "}":
+                  depth -= 1
+                  if depth == 0:
+                      end = index + 1
+                      break
+          if end is None:
+              raise SystemExit("Could not isolate getArticles function")
+          print("CATCAR_GETARTICLES_SOURCE_BEGIN")
+          print(source[start:end])
+          print("CATCAR_GETARTICLES_SOURCE_END")
+          PY
       - name: Install validation dependency
         run: python -m pip install -r requirements-dev.txt
       - name: Parse captured Toyota and Nissan HTML fixtures
