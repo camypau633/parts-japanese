@@ -108,6 +108,47 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(sum(x["position_code"] == "5" for x in result["hotspots"]), 2)
         self.assertEqual(len([x for x in result["images"] if x["image_kind"] == "diagram"]), 1)
 
+    def test_honda_b28_shock_absorber_rows_keep_option_and_supplier_variants(self):
+        html = """
+        <table>
+          <tr><td>AB3:</td><td>SIDE SRS</td></tr>
+          <tr><td>ABS:</td><td>ABS</td></tr>
+          <tr><td>LH:</td><td>LEFT-HAND DRIVE</td></tr>
+          <tr><td>SR:</td><td>SUNROOF</td></tr>
+          <tr><td>STL:</td><td>LEATHER SEAT</td></tr>
+          <tr><th>Код</th><th>Артикул</th><th>Описание</th><th>Дополнительная информация</th><th>Опционные коды</th></tr>
+          <tr><td>1</td><td>51401-TA0-A13</td><td>SPRING, FR.</td><td>Производитель автомобиля: JAPAN</td><td>AB3: SIDE SRS ABS: ABS LH: LEFT-HAND DRIVE SR: SUNROOF STL: LEATHER SEAT</td></tr>
+          <tr><td>1</td><td>51401-TA0-A13</td><td>SPRING, FR.</td><td>Производитель автомобиля: JAPAN</td><td>AB3: SIDE SRS ABS: ABS LH: LEFT-HAND DRIVE STL: LEATHER SEAT</td></tr>
+          <tr><td>2</td><td>51610-TA0-P15</td><td>ABSORBER ASSY., R. FR. SHOCK</td><td>Производитель автомобиля: JAPAN</td><td>AB3: SIDE SRS ABS: ABS LH: LEFT-HAND DRIVE SR: SUNROOF STL: LEATHER SEAT</td></tr>
+          <tr><td>11</td><td>51685-SH3-014</td><td>PLATE, DUST COVER (SHOWA)</td><td></td><td></td></tr>
+          <tr><td>11</td><td>51685-SR0-004</td><td>PLATE, DUST COVER (A.S.I. SHOWA)</td><td></td><td></td></tr>
+          <tr><td>16</td><td>51722-SS0-004</td><td>RUBBER, FR. BUMP STOPPER (POLYURETHAN KASEI)</td><td></td><td></td></tr>
+          <tr><td>16</td><td>51722-TA5-A01</td><td>RUBBER, FR. BUMP STOPPER (SHOWA)</td><td>Производитель автомобиля: JAPAN</td><td>AB3: SIDE SRS ABS: ABS LH: LEFT-HAND DRIVE SR: SUNROOF STL: LEATHER SEAT</td></tr>
+        </table>
+        <img class="resize" src="http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2800.png">
+        <div class="coord" srcNum="1" srcTop="701" srcLeft="806" srcWidth="18" srcHeight="29"></div>
+        <div class="coord" srcNum="2" srcTop="486" srcLeft="358" srcWidth="25" srcHeight="29"></div>
+        <div class="coord" srcNum="7" srcTop="105" srcLeft="715" srcWidth="25" srcHeight="29"></div>
+        <div class="coord" srcNum="7" srcTop="415" srcLeft="729" srcWidth="25" srcHeight="29"></div>
+        <div class="coord" srcNum="11" srcTop="104" srcLeft="1220" srcWidth="36" srcHeight="29"></div>
+        <div class="coord" srcNum="16" srcTop="668" srcLeft="1220" srcWidth="40" srcHeight="30"></div>
+        """
+        result = HondaAdapter().parse(html)
+        self.assertEqual(len(result["parts"]), 7)
+        self.assertEqual(result["parts"][0]["part_number_raw"], "51401-TA0-A13")
+        self.assertEqual(result["parts"][1]["part_number_raw"], "51401-TA0-A13")
+        self.assertNotEqual(
+            result["parts"][0]["additional_source_fields"]["option_codes_raw"],
+            result["parts"][1]["additional_source_fields"]["option_codes_raw"],
+        )
+        self.assertEqual(result["parts"][3]["part_number_raw"], "51685-SH3-014")
+        self.assertEqual(result["parts"][4]["part_number_raw"], "51685-SR0-004")
+        self.assertEqual(result["parts"][5]["part_number_raw"], "51722-SS0-004")
+        self.assertEqual(result["parts"][6]["part_number_raw"], "51722-TA5-A01")
+        self.assertEqual(len(result["hotspots"]), 6)
+        self.assertEqual(sum(x["position_code"] == "7" for x in result["hotspots"]), 2)
+        self.assertEqual(len([x for x in result["images"] if x["image_kind"] == "diagram"]), 1)
+
     def test_ford_static_table_code_mapping(self):
         html = """
         <table>
