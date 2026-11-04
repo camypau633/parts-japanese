@@ -1,8 +1,8 @@
-"""Bounded CatCar Honda catalog crawler.
+"""Bounded CatCar crawler for the supported Japanese vehicle makes.
 
-The crawler discovers navigation links itself, respects a minimum delay between
-requests, and normalizes only pages accepted by HondaAdapter. It never publishes
-records to PartScope. Unrecognized pages are recorded for adapter work.
+The crawler discovers navigation links, respects a minimum request delay, and
+normalizes pages through the selected make adapter. It never publishes records
+to PartScope. Unrecognized pages are retained for adapter review.
 """
 import argparse
 import hashlib
