@@ -4,7 +4,7 @@ This package contains shared parsers, brand/layout adapters, draft JSON normaliz
 
 ## Current project scope
 
-The active project is limited to Japanese vehicle makes only. Toyota and Nissan have bounded real-page fixtures. Honda has a working static-table adapter and a bounded/resumable catalog crawler. The crawler currently targets only the Honda path and uses a minimum 10-second delay. It discovers catalog links, normalizes recognized detail pages, checkpoints its queue, and records unrecognized pages for review. The current crawl is not yet a complete Japanese-market dataset.
+The active project is limited to Japanese vehicle makes, but includes all regional versions available in CatCar: Japan/JDM, Europe, USA, and other export markets. Vehicle manufacturer origin and catalog market are separate fields. Honda has a working static-table adapter and a bounded/resumable catalog crawler. The crawler currently targets only the Honda path and uses a minimum 10-second delay. It discovers catalog links, normalizes recognized detail pages, checkpoints its queue, and records unrecognized pages for review. It preserves an explicit market label when CatCar exposes a recognized market code (for example, `euro` in the diagram path); unknown raw codes are retained and missing market information is not guessed. The current crawl is not yet a complete Honda dataset.
 
 Ford and VAG adapters remain legacy experimental code from earlier probes. They are excluded from the current Japanese-only regression, importer, and preview publication. Do not run or extend them in this repository; other vehicle markets belong in separate repositories.
 
@@ -25,10 +25,10 @@ Ford and VAG adapters remain legacy experimental code from earlier probes. They 
 
 `normalize_page()` converts adapter results into the draft shared JSON structure defined by `schemas/catcar-extraction-v0.1.schema.json`. It preserves one-to-many hotspot-to-row mappings and accepts Toyota OEM variation records linked to their source row.
 
-Raw strings, all original static-table cells, table order, and original hotspot geometry are retained. Image parsing distinguishes confirmed diagram images (`img.resize`) from logos, loaders, and other images; only confirmed diagram images enter the normalized `diagrams` collection.
+Raw strings, all original static-table cells, table order, and original hotspot geometry are retained. The normalized catalog context records the Japanese manufacturer country separately from `market_region` and `market_code_raw`. Image parsing distinguishes confirmed diagram images (`img.resize`) from logos, loaders, and other images; only confirmed diagram images enter the normalized `diagrams` collection.
 
-The current Japanese workflows do not:
-- perform mass crawling or download complete catalogs;
+The current importer does not yet:
+- complete a full mass crawl or download the complete catalogs;
 - infer OEM replacement/supersession;
 - normalize ambiguous date formats;
 - write to the production PartScope database.
@@ -45,11 +45,11 @@ For the current Japanese project, use `toyota`, `nissan`, or `honda`. Legacy `fo
 
 ## Tests and real fixtures
 
-GitHub Actions runs parser, adapter, regression, and JSON Schema tests on Python 3.12. Synthetic tests cover edge cases. The active real-artifact regression replays the captured Toyota and Nissan fixtures only. Honda's first captured detail-group fixture is now covered by the offline adapter unit test. The real-artifact exporter regression still replays Toyota and Nissan fixtures. Honda is covered by a captured-layout parser test and a dedicated exporter test using the measured Accord E-1 diagram geometry.
+GitHub Actions runs parser, adapter, regression, crawler unit, and JSON Schema tests on Python 3.12. Crawler tests mock network access and cover normalization, market metadata, and checkpoint resume. Synthetic tests cover parser edge cases. The active real-artifact regression replays the captured Toyota and Nissan fixtures only. Honda's first captured detail-group fixture is now covered by the offline adapter unit test. The real-artifact exporter regression still replays Toyota and Nissan fixtures. Honda is covered by a captured-layout parser test and a dedicated exporter test using the measured Accord E-1 diagram geometry.
 
 Toyota AJAX responses with the source message `No applicable data!` are retained as OEM records with `source_status: no_applicable_data`, rather than silently disappearing. Blank OEM period/applicability cells remain null.
 
-Before production use, the crawler must be exercised over the full Honda index, Toyota and Nissan traversal/AJAX collection must be implemented, incomplete-page handling and resume behavior must be verified on real runs, and source permissions/terms must be reviewed.
+Before production use, the crawler must be exercised over the full Honda index, Toyota and Nissan traversal/AJAX collection must be implemented, market labels must be checked against real CatCar regional catalog paths, incomplete-page handling and resume behavior must be verified on real runs, and source permissions/terms must be reviewed.
 
 ## Bounded Toyota Camry group/AJAX sample
 
