@@ -615,6 +615,134 @@ jobs:
           if not report["all_hotspots_inside_image"]:
               raise SystemExit("At least one B-27-10 hotspot is outside image bounds")
           PY
+      - name: Download and audit Honda B-21 front driveshaft diagram
+        shell: bash
+        run: |
+          set -euo pipefail
+          sleep 10
+          python - <<'PY'
+          import hashlib
+          import json
+          import subprocess
+          import urllib.request
+          from pathlib import Path
+          from PIL import Image
+
+          url = "http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2100.png"
+          req = urllib.request.Request(url, headers={"User-Agent": "PartScope-Japanese-Catalog-Discovery/1.0"})
+          with urllib.request.urlopen(req, timeout=35) as response:
+              status = response.status
+              content_type = response.headers.get("Content-Type", "")
+              body = response.read(8 * 1024 * 1024 + 1)
+          if len(body) > 8 * 1024 * 1024:
+              raise SystemExit("Honda B-21 diagram exceeds 8 MiB audit limit")
+          path = Path("out/honda/B__2100.png")
+          path.write_bytes(body)
+          img = Image.open(path).convert("RGB")
+          width, height = img.size
+          boxes = [
+              {"position":"1","top":85,"left":93,"width":18,"height":29},
+              {"position":"1","top":103,"left":1091,"width":18,"height":28},
+              {"position":"1","top":335,"left":280,"width":19,"height":29},
+              {"position":"1","top":478,"left":55,"width":18,"height":29},
+              {"position":"1","top":614,"left":1147,"width":19,"height":29},
+              {"position":"1","top":759,"left":1441,"width":19,"height":29},
+              {"position":"1","top":761,"left":31,"width":19,"height":29},
+              {"position":"2","top":115,"left":90,"width":25,"height":29},
+              {"position":"2","top":139,"left":1088,"width":25,"height":29},
+              {"position":"2","top":410,"left":1383,"width":25,"height":29},
+              {"position":"2","top":484,"left":247,"width":26,"height":29},
+              {"position":"2","top":789,"left":1438,"width":26,"height":29},
+              {"position":"2","top":797,"left":28,"width":26,"height":29},
+              {"position":"3","top":145,"left":90,"width":25,"height":29},
+              {"position":"3","top":176,"left":1089,"width":25,"height":29},
+              {"position":"3","top":315,"left":419,"width":25,"height":29},
+              {"position":"3","top":514,"left":52,"width":25,"height":30},
+              {"position":"3","top":619,"left":1027,"width":25,"height":29},
+              {"position":"3","top":819,"left":1439,"width":25,"height":29},
+              {"position":"3","top":834,"left":29,"width":25,"height":29},
+              {"position":"4","top":128,"left":944,"width":25,"height":29},
+              {"position":"5","top":865,"left":228,"width":25,"height":29},
+              {"position":"6","top":769,"left":207,"width":25,"height":29},
+              {"position":"7","top":725,"left":1553,"width":25,"height":29},
+              {"position":"8","top":212,"left":1089,"width":25,"height":30},
+              {"position":"9","top":551,"left":52,"width":25,"height":29},
+              {"position":"10","top":503,"left":1405,"width":40,"height":29},
+              {"position":"10","top":648,"left":363,"width":40,"height":29},
+              {"position":"11","top":232,"left":386,"width":36,"height":29},
+              {"position":"11","top":713,"left":1115,"width":35,"height":29},
+              {"position":"12","top":356,"left":1049,"width":39,"height":29},
+              {"position":"12","top":431,"left":1206,"width":40,"height":29},
+              {"position":"12","top":569,"left":466,"width":39,"height":29},
+              {"position":"12","top":747,"left":570,"width":39,"height":29},
+              {"position":"13","top":317,"left":596,"width":40,"height":29},
+              {"position":"13","top":631,"left":904,"width":39,"height":29},
+              {"position":"14","top":181,"left":267,"width":40,"height":29},
+              {"position":"14","top":769,"left":1221,"width":40,"height":29},
+              {"position":"15","top":572,"left":1555,"width":40,"height":29},
+              {"position":"15","top":610,"left":241,"width":40,"height":29},
+              {"position":"16","top":543,"left":409,"width":40,"height":29},
+              {"position":"17","top":383,"left":1139,"width":39,"height":29},
+              {"position":"18","top":29,"left":1407,"width":39,"height":29},
+              {"position":"19","top":29,"left":1663,"width":40,"height":29},
+              {"position":"20","top":93,"left":1756,"width":42,"height":29},
+              {"position":"21","top":175,"left":83,"width":38,"height":29},
+              {"position":"21","top":849,"left":1431,"width":39,"height":29},
+              {"position":"22","top":182,"left":1199,"width":42,"height":29},
+              {"position":"23","top":246,"left":1322,"width":42,"height":29},
+              {"position":"24","top":157,"left":1137,"width":43,"height":29},
+              {"position":"25","top":215,"left":1255,"width":43,"height":29}
+          ]
+          for box in boxes:
+              box["inside_image"] = (box["left"] >= 0 and box["top"] >= 0 and
+                  box["left"] + box["width"] <= width and box["top"] + box["height"] <= height)
+
+          def ocr(p):
+              result = subprocess.run(["tesseract", str(p), "stdout", "--psm", "11"],
+                  capture_output=True, text=True, timeout=30)
+              return " ".join(result.stdout.split())
+
+          full = ocr(path)
+          crops = {}
+          for name, coords in {
+              "top_left":(0,0,width//3,height//3),
+              "top_right":(width*2//3,0,width,height//3),
+              "bottom_left":(0,height*2//3,width//3,height),
+              "bottom_right":(width*2//3,height*2//3,width,height),
+              "center":(width//3,height//3,width*2//3,height*2//3)
+          }.items():
+              crop_path = Path("out/honda") / ("b21-crop-" + name + ".png")
+              img.crop(coords).save(crop_path)
+              crops[name] = ocr(crop_path)
+              crop_path.unlink()
+
+          combined = (full + " " + " ".join(crops.values())).lower()
+          report = {
+              "make":"Honda","model":"Accord","year":2011,
+              "configuration":"Austria (KW), 5AT, 2.0EX",
+              "group":"B-21 FRONT DRIVESHAFT/HALF SHAFT (2.0L)",
+              "diagram_url":url,"http_status":status,"content_type":content_type,
+              "bytes":len(body),"sha256":hashlib.sha256(body).hexdigest(),
+              "dimensions":{"width":width,"height":height},
+              "hotspot_count":len(boxes),"distinct_positions":25,"hotspots":boxes,
+              "all_hotspots_inside_image":all(x["inside_image"] for x in boxes),
+              "full_image_ocr":full,"corner_and_center_ocr":crops,
+              "ocr_watermark_indicators":{
+                  "catcar_text":("catcar" in combined),
+                  "copyright_text":("copyright" in combined),
+                  "website_text":("catcar.info" in combined)
+              },
+              "manual_visual_review_required":True,
+              "note":"OCR is screening only; faint or image-only marks require visual inspection."
+          }
+          Path("out/honda/honda-b21-diagram-audit.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          if status != 200 or not content_type.lower().startswith("image/png"):
+              raise SystemExit("Honda B-21 diagram was not returned as PNG")
+          if not report["all_hotspots_inside_image"]:
+              raise SystemExit("At least one B-21 hotspot is outside image bounds")
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: catcar-honda-diagram-audit
