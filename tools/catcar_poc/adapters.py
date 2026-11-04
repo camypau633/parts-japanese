@@ -261,3 +261,14 @@ class VagAdapter(StaticTableAdapter):
             elif part["diagram_position_code"] == "(40)":
                 part["source_status"] = "unresolved"
         return result
+
+
+class DiscoveryOnlyAdapter(BaseAdapter):
+    """Preserve source pages while a make-specific detail parser is pending."""
+
+    name = "discovery_only"
+
+    def parse(self, html):
+        raise ValueError(
+            "detail_adapter_not_implemented: page retained for structural review"
+        )
