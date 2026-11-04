@@ -6,11 +6,30 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tools.catcar_poc.crawl_catalog import (
-    allowed_catalog_url, decoded_filter, discover_links, market_context, crawl
+    ADAPTERS, BRAND_NAMES, allowed_catalog_url, decoded_filter,
+    discover_links, market_context, crawl
 )
+from tools.catcar_poc.catalog_registry import CATCAR_JAPANESE_CATALOGS, catalog_config
+from tools.catcar_poc.adapters import DiscoveryOnlyAdapter
 
 
 class CrawlCatalogTests(unittest.TestCase):
+    def test_registry_covers_all_eight_catcar_japanese_catalog_roots(self):
+        expected = {
+            "toyota", "nissan", "honda", "suzuki",
+            "mazda", "mitsubishi", "isuzu", "subaru",
+        }
+        self.assertEqual(set(CATCAR_JAPANESE_CATALOGS), expected)
+        self.assertEqual(set(ADAPTERS), expected)
+        self.assertEqual(catalog_config("toyota")["brands"], ["Toyota", "Lexus"])
+        self.assertEqual(catalog_config("nissan")["brands"], ["Nissan", "Infiniti"])
+        self.assertIsNone(BRAND_NAMES["toyota"])
+        self.assertIsNone(BRAND_NAMES["nissan"])
+
+    def test_discovery_only_adapter_does_not_fabricate_part_records(self):
+        with self.assertRaisesRegex(ValueError, "detail_adapter_not_implemented"):
+            DiscoveryOnlyAdapter().parse("<html><body>unknown layout</body></html>")
+
     def test_scope_rejects_other_makes_and_hosts(self):
         self.assertTrue(allowed_catalog_url("https://www.catcar.info/honda/?l=x", "honda"))
         self.assertFalse(allowed_catalog_url("https://www.catcar.info/toyota/", "honda"))
