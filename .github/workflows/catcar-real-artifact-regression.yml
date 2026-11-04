@@ -54,6 +54,42 @@ jobs:
           test -s .catcar-fixtures/camry/diagram-geometry.json
       - name: Install validation dependency
         run: python -m pip install -r requirements-dev.txt
+      - name: Verify three captured Toyota AJAX URLs against live CatCar
+        env:
+          PYTHONPATH: .
+        run: |
+          python - <<'PY'
+          import json
+          import time
+          from pathlib import Path
+          from tools.catcar_poc.crawl_catalog import fetch_toyota_ajax_page
+          from tools.catcar_poc.adapters import ToyotaAdapter
+
+          sample = json.loads(Path(".catcar-fixtures/camry/oem_variation_sample.json").read_text(encoding="utf-8"))
+          checked = 0
+          for group in sample.get("sampled_groups", []):
+              for part in group.get("parts", []):
+                  if part.get("source_status") != "available":
+                      continue
+                  url = part.get("ajax_url", "")
+                  status, final_url, html = fetch_toyota_ajax_page(url, 30)
+                  if status != 200:
+                      raise SystemExit("Toyota AJAX HTTP status: %s" % status)
+                  records = ToyotaAdapter.parse_ajax_records(html, part.get("part_number"))
+                  expected = [str(row.get("oem") or "").strip() for row in part.get("records", [])]
+                  actual = [row.get("oem_number_raw") or "" for row in records]
+                  if not records or actual != expected:
+                      raise SystemExit("Live Toyota AJAX mismatch for %s: %r != %r" % (part.get("part_number"), actual, expected))
+                  checked += 1
+                  print("Live Toyota AJAX verified:", part.get("part_number"), "OEM rows:", len(records))
+                  if checked >= 3:
+                      break
+                  time.sleep(2)
+              if checked >= 3:
+                  break
+          if checked != 3:
+              raise SystemExit("Expected 3 live Toyota AJAX checks; completed %s" % checked)
+          PY
       - name: Live smoke-test the implemented Toyota AJAX fetcher
         run: |
           python - <<'PY'
