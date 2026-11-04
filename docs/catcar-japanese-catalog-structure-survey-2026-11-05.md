@@ -79,9 +79,18 @@ must be preserved as source configuration, not flattened into one model.
 
 ### Subaru
 
-The public root timed out during this inspection, so its navigation structure
-has not yet been verified. The bounded crawler should retain the raw page or
-retry state before any Subaru-specific parser is designed.
+The public root presents separate market branches for Europe (LHD), Europe
+(RHD), Japan and the United States. Selecting Japan opens a model index with
+model name, production date range and series code. The inspected Japan index
+includes, among others, Legacy B10-B15, Impreza G10-G14, Forester S10-S13,
+WRX/LEVORG V10 and BRZ Z10. Several entries have open-ended production ranges
+(for example, Legacy B15 from 07/2014 and Impreza G14 from 08/2016), so the
+catalog must not be treated as ending at those dates. The next level is a
+model/series page; its actual detail-group layout still needs a retained HTML
+fixture before a Subaru detail adapter is implemented.
+
+The initial web inspection timeout was transient: the root and Japan branch
+were subsequently opened successfully.
 
 ## Implementation consequences
 
@@ -91,6 +100,6 @@ retry state before any Subaru-specific parser is designed.
 - Suzuki numeric region IDs are mapped only to the labels observed above.
 - Mazda and Mitsubishi use explicit textual market labels.
 - Isuzu requires family/model/modification hierarchy preservation.
-- Subaru remains discovery-only until a real page sample is available.
+- Subaru market navigation is now verified; its detail adapter remains discovery-only until a real model/series and parts-group HTML sample is retained.
 - None of these observations authorizes a detail-table parser. Detail parsers
   must be based on retained real HTML samples and regression fixtures.
