@@ -73,8 +73,8 @@ class CrawlCatalogTests(unittest.TestCase):
         )
 
     def test_discovery_only_catalog_retains_page_without_fabricating_records(self):
-        html = "<html><head><title>Suzuki catalog</title></head><body><a href='/suzuki/?l=next'>Next</a></body></html>"
-        url = "https://www.catcar.info/suzuki/"
+        html = "<html><head><title>Isuzu catalog</title></head><body><a href='/isuzu/?l=next'>Next</a></body></html>"
+        url = "https://www.catcar.info/isuzu/"
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp) / "out"
             with patch(
@@ -82,7 +82,7 @@ class CrawlCatalogTests(unittest.TestCase):
                 return_value=(200, url, html),
             ):
                 report = crawl(
-                    url, output, max_pages=1, delay=10, make="suzuki"
+                    url, output, max_pages=1, delay=10, make="isuzu"
                 )
             self.assertTrue(report["complete"])
             self.assertEqual(report["detail_pages_normalized"], 0)
