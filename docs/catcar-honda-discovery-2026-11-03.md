@@ -199,4 +199,18 @@ Selected subgroup: 2011 Accord, 4-door, Austria (KW), 5AT, 2.0 EX — B-22 `FRON
 - There are 23 hotspot rectangles for 21 distinct position labels. Positions 12 and 13 each have two rectangles.
 - The adapter and exporter regression tests now cover this pattern: repeated OEM with option differences, four different OEMs at one position, and repeated hotspot rectangles.
 
-**B-22 image audit is pending.** The part table and hotspot metadata are confirmed, but the PNG has not yet been downloaded and visually inspected for watermarking or pixel geometry. This is another Austria (KW) catalog sample, not JDM data.
+## B-22 diagram: watermark and geometry audit
+
+Workflow: [41821329190](https://github.com/camypau633/parts-japanese/actions/runs/41821329190)
+
+- Diagram: `B__2200.png`, HTTP 200, PNG, 43,490 bytes.
+- Native dimensions: 1920 × 959 pixels.
+- All 23 hotspot rectangles are inside image bounds; 21 distinct position labels are present.
+- Positions 12 and 13 each have two separate rectangles, both preserved.
+- The full-resolution image was visually inspected. No CatCar logo, watermark text, diagonal overlay or translucent repeating mark was observed.
+- OCR screening found native labels and cross-references to B-21, B-21-1 and B-21-2, plus drawing identifier `TA08B2200`; no CatCar, copyright or website indicators were found.
+
+**B-22 sample: geometry pass, visible watermark not found.** This applies only to this one image. This is an Austria (KW) catalog sample, not JDM data.
+
+- The B-22 adapter and PartScope export regressions passed in [CatCar adapter unit tests run 116](https://github.com/camypau633/parts-japanese/actions/runs/41821425683).
+- Existing Toyota/Nissan real-artifact regression passed again after the Honda changes: [run 42](https://github.com/camypau633/parts-japanese/actions/runs/41821425837).
