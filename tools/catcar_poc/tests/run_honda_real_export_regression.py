@@ -10,6 +10,9 @@ import tempfile
 from collections import Counter, defaultdict
 from pathlib import Path
 
+# Running this file directly puts its tests directory, not the repository root, on sys.path.
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+
 from tools.catcar_poc.adapters import HondaAdapter
 from tools.catcar_poc.normalize import normalize_page
 from tools.catcar_poc.export_partscope import export_documents
