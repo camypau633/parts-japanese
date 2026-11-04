@@ -185,6 +185,22 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(sum(x["position_code"] == "7" for x in result["hotspots"]), 2)
         self.assertEqual(len([x for x in result["images"] if x["image_kind"] == "diagram"]), 1)
 
+    def test_honda_b21_part_description_dimension_tokens_are_preserved(self):
+        html = """
+        <table>
+          <tr><th>Код</th><th>Артикул</th><th>Описание</th><th>Дополнительная информация</th><th>Опционные коды</th></tr>
+          <tr><td>8</td><td>44319-SE0-000</td><td>SET RING, 28X2.0</td><td></td><td></td></tr>
+          <tr><td>15</td><td>44338-SA2-300</td><td>CIRCLIP, 24MM</td><td></td><td></td></tr>
+          <tr><td>19</td><td>90102-SF1-000</td><td>BOLT, HEX., 10X1.25</td><td></td><td></td></tr>
+        </table>
+        <img class="resize" src="https://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2100.png">
+        """
+        result = HondaAdapter().parse(html)
+        descriptions = {x["part_number_raw"]: x["description_raw"] for x in result["parts"]}
+        self.assertEqual(descriptions["44319-SE0-000"], "SET RING, 28X2.0")
+        self.assertEqual(descriptions["44338-SA2-300"], "CIRCLIP, 24MM")
+        self.assertEqual(descriptions["90102-SF1-000"], "BOLT, HEX., 10X1.25")
+
     def test_honda_header_only_or_unresolved_diagram_page_is_marked_incomplete(self):
         html = """
         <table>
