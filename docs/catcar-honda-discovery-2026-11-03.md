@@ -213,4 +213,5 @@ Workflow: [41821329190](https://github.com/camypau633/parts-japanese/actions/run
 **B-22 sample: geometry pass, visible watermark not found.** This applies only to this one image. This is an Austria (KW) catalog sample, not JDM data.
 
 - The B-22 adapter and PartScope export regressions passed in [CatCar adapter unit tests run 116](https://github.com/camypau633/parts-japanese/actions/runs/41821425683).
+- The captured 51,218-byte B-22 HTML was also passed through the actual `HondaAdapter` in [B-22 probe run](https://github.com/camypau633/parts-japanese/actions/runs/41821659669): 25 part rows, 24 unique OEMs, both option variants at position 5, all four distinct position-18 wheel-bolt OEMs, 23 hotspots and one diagram image were verified.
 - Existing Toyota/Nissan real-artifact regression passed again after the Honda changes: [run 42](https://github.com/camypau633/parts-japanese/actions/runs/41821425837).
