@@ -347,6 +347,130 @@ class PartScopeExportTests(unittest.TestCase):
         self.assertEqual(report["factory_parts_validated"], 4)
         self.assertEqual(report["hotspots_validated"], 3)
 
+    def test_honda_b2710_export_preserves_three_option_variant_pairs(self):
+        document = {
+            "source": {"name": "CatCar", "url": "https://www.catcar.info/honda/accord/b27-10"},
+            "catalog_context": {
+                "brand": "Honda", "model": "Accord", "model_year": "2011",
+                "region": "Austria (KW)", "transmission": "5AT", "grade": "2.0EX",
+                "source_group_id": "B-27-10",
+            },
+            "parts": [
+                {"source_row_id": "6", "diagram_position_code": "3", "part_number_raw": "51300-TA0-A01",
+                 "description_raw": "SPRING, FR. STABILIZER", "additional_source_fields": {"option_codes_raw": "AB3 ABS LH SR STL"}},
+                {"source_row_id": "7", "diagram_position_code": "3", "part_number_raw": "51300-TA0-A01",
+                 "description_raw": "SPRING, FR. STABILIZER", "additional_source_fields": {"option_codes_raw": "AB3 ABS LH STL"}},
+                {"source_row_id": "8", "diagram_position_code": "4", "part_number_raw": "51306-TA0-A01",
+                 "description_raw": "BUSH, FR. STABILIZER HOLDER", "additional_source_fields": {"option_codes_raw": "AB3 ABS LH SR STL"}},
+                {"source_row_id": "9", "diagram_position_code": "4", "part_number_raw": "51306-TA0-A01",
+                 "description_raw": "BUSH, FR. STABILIZER HOLDER", "additional_source_fields": {"option_codes_raw": "AB3 ABS LH STL"}},
+                {"source_row_id": "10", "diagram_position_code": "9", "part_number_raw": "51360-TA0-000",
+                 "description_raw": "ARM COMP., L. FR. LOWER", "additional_source_fields": {"option_codes_raw": "AB3 ABS LH SR STL"}},
+                {"source_row_id": "11", "diagram_position_code": "9", "part_number_raw": "51360-TA0-000",
+                 "description_raw": "ARM COMP., L. FR. LOWER", "additional_source_fields": {"option_codes_raw": "AB3 ABS LH STL"}},
+            ],
+            "oem_records": [],
+            "diagrams": [{"diagram_id": "diagram-1", "source_image_url": "http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2710.png"}],
+            "hotspots": [
+                {"hotspot_id": "h3", "diagram_id": "diagram-1", "source_position_code": "3", "source_row_ids": ["6", "7"],
+                 "top_raw": "211", "left_raw": "362", "width_raw": "25", "height_raw": "29", "resolution_status": "matched"},
+                {"hotspot_id": "h4", "diagram_id": "diagram-1", "source_position_code": "4", "source_row_ids": ["8", "9"],
+                 "top_raw": "379", "left_raw": "867", "width_raw": "26", "height_raw": "29", "resolution_status": "matched"},
+                {"hotspot_id": "h9", "diagram_id": "diagram-1", "source_position_code": "9", "source_row_ids": ["10", "11"],
+                 "top_raw": "689", "left_raw": "508", "width_raw": "26", "height_raw": "29", "resolution_status": "matched"},
+            ],
+        }
+        image_url = "https://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2710.png"
+        geometry = verified_geometry([image_url])
+        geometry["images"][0].update({
+            "http_status": 200,
+            "content_type": "image/png",
+            "image_dimensions": {"width": 1920, "height": 959},
+            "hotspot_count": 20,
+            "all_hotspot_boxes_inside_image_bounds": True,
+        })
+        records = document_to_records(document, geometry_index=validate_geometry_report(geometry))
+        self.assertEqual(set(records), {"51300TA0A01", "51306TA0A01", "51360TA0000"})
+        for sku in ("51300TA0A01", "51306TA0A01", "51360TA0000"):
+            record = records[sku]
+            self.assertEqual(len(record["factory_parts"]), 2)
+            self.assertNotEqual(
+                record["factory_parts"][0]["source_fields"]["option_codes_raw"],
+                record["factory_parts"][1]["source_fields"]["option_codes_raw"],
+            )
+            self.assertEqual(record["compatibility"][0]["years"], "2011")
+            self.assertEqual(len(record["diagram"]["hotspots"]), 1)
+        report = validate_export_records(records)
+        self.assertEqual(report["records_by_brand"], {"Honda": 3})
+        self.assertEqual(report["factory_parts_validated"], 6)
+        self.assertEqual(report["hotspots_validated"], 3)
+
+    def test_honda_same_oem_across_groups_remains_two_partscope_candidates(self):
+        image_a = "https://ci.catcar.info/honda/euro/18TA0801/IMGE/E__0100.png"
+        image_b = "https://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2710.png"
+
+        def group_document(group_id, image_url, position, row_id, description):
+            return {
+                "source": {"name": "CatCar", "url": "https://www.catcar.info/honda/accord/" + group_id.lower()},
+                "catalog_context": {
+                    "brand": "Honda", "model": "Accord", "model_year": "2011",
+                    "region": "Austria (KW)", "transmission": "5AT", "grade": "2.0EX",
+                    "source_group_id": group_id,
+                },
+                "parts": [{
+                    "source_row_id": row_id, "diagram_position_code": position,
+                    "part_number_raw": "51300-TA0-A01", "description_raw": description,
+                    "additional_source_fields": {"option_codes_raw": "AB3 ABS LH STL"},
+                }],
+                "oem_records": [],
+                "diagrams": [{"diagram_id": "diagram-1", "source_image_url": image_url}],
+                "hotspots": [{
+                    "hotspot_id": "hotspot-" + group_id, "diagram_id": "diagram-1",
+                    "source_position_code": position, "source_row_ids": [row_id],
+                    "top_raw": "100", "left_raw": "200", "width_raw": "25", "height_raw": "29",
+                    "resolution_status": "matched",
+                }],
+            }
+
+        geometry = validate_geometry_report(verified_geometry([image_a, image_b]))
+        documents = [
+            group_document("B-27-10", "http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2710.png",
+                           "3", "6", "SPRING, FR. STABILIZER"),
+            group_document("E-1", "http://ci.catcar.info/honda/euro/18TA0801/IMGE/E__0100.png",
+                           "1", "6", "THROTTLE BODY"),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            inputs = []
+            for index, document in enumerate(documents):
+                path = root / ("group-%s.json" % index)
+                path.write_text(json.dumps(document), encoding="utf-8")
+                inputs.append(path)
+            output = root / "out"
+            report = export_documents(inputs, output, geometry_report={
+                "coordinate_script": {"relevant_snippets": ["srcTop srcLeft srcWidth srcHeight h/nh w/nw"]},
+                "main_css": {"relevant_snippets": [".resize { width:100%; height:100%; }"]},
+                "images": [
+                    {"image_url": image_a, "http_status": 200, "content_type": "image/png",
+                     "image_dimensions": {"width": 1920, "height": 959}, "hotspot_count": 20,
+                     "all_hotspot_boxes_inside_image_bounds": True},
+                    {"image_url": image_b, "http_status": 200, "content_type": "image/png",
+                     "image_dimensions": {"width": 1920, "height": 959}, "hotspot_count": 20,
+                     "all_hotspot_boxes_inside_image_bounds": True},
+                ],
+            })
+            shard = json.loads((output / "51.json").read_text(encoding="utf-8"))
+        candidates = shard["51300TA0A01"]
+        self.assertEqual(len(candidates), 2)
+        self.assertEqual({x["part_id"].split(":")[-1] for x in candidates}, {"B-27-10", "E-1"})
+        self.assertEqual({x["diagram"]["diagramUrl"] for x in candidates}, {image_a, image_b})
+        self.assertTrue(all(len(x["factory_parts"]) == 1 for x in candidates))
+        self.assertTrue(all(len(x["diagram"]["hotspots"]) == 1 for x in candidates))
+        self.assertEqual(report["documents_read"], 2)
+        self.assertEqual(report["unique_skus_exported"], 1)
+        self.assertEqual(report["records_exported"], 2)
+        self.assertEqual(report["hotspots_exported"], 2)
+
     def test_export_validator_reports_provenance_and_context_coverage(self):
         records = document_to_records(sample())
         report = validate_export_records(records)
