@@ -108,6 +108,43 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(sum(x["position_code"] == "5" for x in result["hotspots"]), 2)
         self.assertEqual(len([x for x in result["images"] if x["image_kind"] == "diagram"]), 1)
 
+    def test_honda_b22_front_brake_preserves_shared_position_supplier_variants(self):
+        html = """
+        <table>
+          <tr><td>AB3:</td><td>SIDE SRS</td></tr>
+          <tr><td>ABS:</td><td>ABS</td></tr>
+          <tr><td>LH:</td><td>LEFT-HAND DRIVE</td></tr>
+          <tr><td>SR:</td><td>SUNROOF</td></tr>
+          <tr><td>STL:</td><td>LEATHER SEAT</td></tr>
+          <tr><th>Код</th><th>Артикул</th><th>Описание</th><th>Дополнительная информация</th><th>Опционные коды</th></tr>
+          <tr><td>5</td><td>44300-TA0-A61</td><td>BEARING ASSY., FR. HUB</td><td>Производитель автомобиля: JAPAN</td><td>AB3: SIDE SRS ABS: ABS LH: LEFT-HAND DRIVE SR: SUNROOF STL: LEATHER SEAT</td></tr>
+          <tr><td>5</td><td>44300-TA0-A61</td><td>BEARING ASSY., FR. HUB</td><td>Производитель автомобиля: JAPAN</td><td>AB3: SIDE SRS ABS: ABS LH: LEFT-HAND DRIVE STL: LEATHER SEAT</td></tr>
+          <tr><td>18</td><td>90113-S84-901</td><td>BOLT, WHEEL (ROCKNEL FASTENER)</td><td></td><td></td></tr>
+          <tr><td>18</td><td>90113-SD4-901</td><td>BOLT, WHEEL (MEIRA)</td><td></td><td></td></tr>
+          <tr><td>18</td><td>90113-SD4-902</td><td>BOLT, WHEEL (SAGA)</td><td></td><td></td></tr>
+          <tr><td>18</td><td>90113-SJK-901</td><td>BOLT, WHEEL (THAI MEIRA)</td><td></td><td></td></tr>
+        </table>
+        <img class="resize" src="http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2200.png">
+        <div class="coord" srcNum="5" srcTop="151" srcLeft="1197" srcWidth="26" srcHeight="28"></div>
+        <div class="coord" srcNum="18" srcTop="246" srcLeft="1353" srcWidth="40" srcHeight="29"></div>
+        """
+        result = HondaAdapter().parse(html)
+        self.assertEqual(len(result["parts"]), 6)
+        self.assertEqual([x["part_number_raw"] for x in result["parts"][:2]],
+                         ["44300-TA0-A61", "44300-TA0-A61"])
+        self.assertNotEqual(
+            result["parts"][0]["additional_source_fields"]["option_codes_raw"],
+            result["parts"][1]["additional_source_fields"]["option_codes_raw"],
+        )
+        wheel_bolts = result["parts"][2:]
+        self.assertEqual(len(wheel_bolts), 4)
+        self.assertEqual({x["diagram_position_code"] for x in wheel_bolts}, {"18"})
+        self.assertEqual(len({x["part_number_raw"] for x in wheel_bolts}), 4)
+        self.assertEqual(len(result["hotspots"]), 2)
+        self.assertEqual(result["hotspot_matching"]["matched"], ["5", "18"])
+        self.assertEqual(result["images"][0]["source_image_url"],
+                         "http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2200.png")
+
     def test_honda_b28_shock_absorber_rows_keep_option_and_supplier_variants(self):
         html = """
         <table>
