@@ -68,6 +68,13 @@ market is explicit in the decoded filter (for example, `market==japan`). The
 Japanese index contains model entries and a separate model/generation table
 with production start, body/model code and catalog code. A selected generation
 then opens a list of major groups (engine, transmission, body, chassis, etc.).
+Following Axela sedan & sport BL5FP (catalog AJBA12) into the engine group
+showed a subgroup index and then a parts table with columns `Code`,
+`Part number`, `Name` and `Note`. The observed table contains multiple
+part numbers for the same diagram code (for example, code 20130 has separate
+records with illustration notes 1 and 2); these rows must remain separate.
+A first header-driven Mazda adapter now preserves the note field and duplicate
+position rows, but needs raw HTML captures and checks across other markets.
 
 ### Mitsubishi
 
@@ -111,7 +118,11 @@ were subsequently opened successfully.
 - The decoded CatCar filter must be preserved in every extracted document.
 - Suzuki numeric region IDs are mapped only to the labels observed above.
 - Mazda and Mitsubishi use explicit textual market labels.
+- Mazda's inspected Japan/Axela detail table has a distinct `Code / Part number / Name / Note` layout.
 - Isuzu requires family/model/modification hierarchy preservation.
 - Subaru market navigation and a parts-list table layout are now verified. A first header-driven adapter is implemented for the observed columns, but it still needs a retained raw HTML fixture and validation across multiple groups and markets.
-- None of these observations authorizes a detail-table parser. Detail parsers
-  must be based on retained real HTML samples and regression fixtures.
+- Mazda, Suzuki and Subaru now have first-pass header-driven detail adapters;
+  their synthetic regression fixtures must be replaced or supplemented with
+  retained raw HTML captures and additional market/group checks.
+- Mitsubishi and Isuzu remain discovery-only until their real detail tables
+  are inspected and captured.
