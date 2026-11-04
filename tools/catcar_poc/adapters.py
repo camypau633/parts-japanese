@@ -226,6 +226,83 @@ class HondaAdapter(StaticTableAdapter):
         }
 
 
+class SubaruAdapter(StaticTableAdapter):
+    """Parse the observed Subaru CatCar parts-list table.
+
+    The parser is intentionally header-driven. It preserves applicable-model,
+    destination-code and comment columns rather than treating them as OEM data.
+    """
+
+    name = "subaru_static"
+
+    def parse(self, html):
+        parsed = parse_html(html)
+        header_index, headers = find_header_row(
+            parsed.rows, ("part number", "options", "applicable models")
+        )
+        if header_index is None:
+            raise ValueError("Subaru parts table header not found")
+
+        header_cells = [value.strip().lower() for value in cell_texts(parsed.rows[header_index])]
+
+        def column(*names):
+            for name in names:
+                if name in header_cells:
+                    return header_cells.index(name)
+            return None
+
+        position_index = column("№", "no.", "no")
+        part_number_index = column("part number")
+        description_index = column("options", "description")
+        applicable_index = column("applicable models")
+        period_index = column("production date", "production period")
+        destination_index = column("note/destination code", "destination code", "note")
+        comment_index = column("comment")
+
+        if position_index is None or part_number_index is None:
+            raise ValueError("Subaru parts table required columns are missing")
+
+        parts = []
+        for order, row in enumerate(parsed.rows[header_index + 1:], start=header_index + 1):
+            cells = cell_texts(row)
+            if len(cells) <= max(position_index, part_number_index):
+                continue
+            part_number = self._value(cells, part_number_index)
+            if not part_number:
+                continue
+            position = self._value(cells, position_index)
+            parts.append({
+                "source_row_id": str(order),
+                "source_row_order": order,
+                "diagram_position_code": position or None,
+                "part_number_raw": part_number,
+                "description_raw": self._value(cells, description_index),
+                "production_period_raw": self._value(cells, period_index),
+                "quantity_raw": "",
+                "alternative_number_raw": "",
+                "row_kind": "positioned" if position else "continuation",
+                "parent_position_code": None,
+                "additional_source_fields": {
+                    "raw_cells": list(cells),
+                    "applicable_models_raw": self._value(cells, applicable_index),
+                    "note_destination_code_raw": self._value(cells, destination_index),
+                    "comment_raw": self._value(cells, comment_index),
+                },
+            })
+
+        positions = [item["diagram_position_code"] for item in parts
+                     if item["diagram_position_code"]]
+        return {
+            "adapter": self.name,
+            "rows": parsed.rows,
+            "images": parsed.images,
+            "hotspots": parsed.hotspots,
+            "parts": parts,
+            "ajax_rows": [],
+            "hotspot_matching": self.match_hotspots(positions, parsed.hotspots),
+        }
+
+
 class FordAdapter(StaticTableAdapter):
     name = "ford_static"
     position_index = 0
