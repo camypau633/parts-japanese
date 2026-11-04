@@ -1,0 +1,109 @@
+name: CatCar Honda Accord B-30 rear shock absorber probe
+
+on:
+  push:
+    paths:
+      - '.github/workflows/catcar-honda-accord-b30-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect one Honda B-30 subgroup
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          sleep 10
+          python - <<'PY'
+          import json
+          import re
+          import urllib.request
+          from html.parser import HTMLParser
+          from urllib.parse import urljoin, urlsplit
+
+          URL = "http://www.catcar.info/honda/?l=bW9kbmFtZT09QUNDT1JEfHxkb30ycz09NHx8eWVhcj09MjAxMXx8c3Q9PTYwfHxzdHM9PXsiMjAiOiJcdTA0MTVcdTA0MzJcdTA0NDBcdTA0M2VcdTA0M2ZcdTA0MzAiLCIzMCI6IjIwMTEgQUNDT1JEIiwiNDAiOiJcdTA0MTBcdTA0MzJcdTA0NDFcdTA0NDJcdTA0NDBcdTA0MzhcdTA0NGYgKEtXKTo1QVQgMi4wRVgiLCI1MCI6Ilx1MDQyMFx1MDQyM1x1MDQxYlx1MDQxNVx1MDQxMlx1MDQxZVx1MDQxNSBcdTA0MjNcdTA0MWZcdTA0MjBcdTA0MTBcdTA0MTJcdTA0MWJcdTA0MTVcdTA0MWRcdTA0MThcdTA0MTUsIFx1MDQyMlx1MDQxZVx1MDQyMFx1MDQxY1x1MDQxZVx1MDQxN1x1MDQxZFx1MDQxMFx1MDQyZiBcdTA0MjFcdTA0MThcdTA0MjFcdTA0MjJcdTA0MTVcdTA0MWNcdTA0MTAsIFx1MDQxZlx1MDQxZVx1MDQxNFx1MDQxMlx1MDQxNVx1MDQyMVx1MDQxYVx1MDQxMCIsIjYwIjoiQi0zMCBSRUFSIFNIT0NLIEFCU09SQkVSIn18fGNhcmVhPT1LV3x8dHJhbnM9PTVBVHx8Z3JhZGU9PTIuMEVYfHxtb2RfaWRzPT00MDk0LDQwOTV8fGdycD09NHx8YmNvZGU9PUJfXzMwMDA%3D"
+          request = urllib.request.Request(URL, headers={"User-Agent": "PartScope-Japanese-Catalog-Discovery/1.0", "Accept": "text/html,application/xhtml+xml"})
+          with urllib.request.urlopen(request, timeout=30) as response:
+              status, final_url = response.status, response.geturl()
+              body = response.read(4 * 1024 * 1024 + 1)
+          if len(body) > 4 * 1024 * 1024:
+              raise SystemExit("B-30 page exceeded 4 MiB limit")
+          html = body.decode("utf-8", "replace")
+          open("out/honda-accord-b30.html", "w", encoding="utf-8").write(html)
+
+          class Page(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.rows, self.row, self.cell = [], None, None
+                  self.links, self.link = [], None
+                  self.images, self.scripts = [], []
+                  self.in_title, self.title = False, []
+              def handle_starttag(self, tag, attrs):
+                  a = dict(attrs)
+                  if tag == "title": self.in_title = True
+                  elif tag == "tr": self.row = []
+                  elif tag in ("td", "th") and self.row is not None: self.cell = []
+                  elif tag == "a" and a.get("href"):
+                      self.link = {"href": a["href"], "text": ""}
+                      self.links.append(self.link)
+                  elif tag == "img" and (a.get("src") or a.get("data-src")):
+                      self.images.append({"src": a.get("src") or a.get("data-src"), "alt": a.get("alt", ""), "class": a.get("class", "")})
+                  elif tag == "script": self.scripts.append(a.get("src", "inline"))
+              def handle_data(self, data):
+                  if self.in_title: self.title.append(data.strip())
+                  if self.cell is not None: self.cell.append(data.strip())
+                  if self.link is not None: self.link["text"] += data.strip()
+              def handle_endtag(self, tag):
+                  if tag == "title": self.in_title = False
+                  elif tag in ("td", "th") and self.cell is not None and self.row is not None:
+                      self.row.append(" ".join(" ".join(self.cell).split())); self.cell = None
+                  elif tag == "tr" and self.row is not None:
+                      if any(self.row): self.rows.append(self.row)
+                      self.row, self.cell = None, None
+                  elif tag == "a": self.link = None
+
+          p = Page()
+          p.feed(html)
+          links = []
+          for item in p.links:
+              target = urljoin(final_url, item["href"])
+              host = (urlsplit(target).hostname or "").lower()
+              if host == "catcar.info" or host.endswith(".catcar.info"):
+                  links.append({"text": " ".join(item["text"].split()), "url": target})
+          coords = re.findall(r"""<div\b(?=[^>]*class=["'][^"']*\bcoord\b[^"']*["'])([^>]*)>""", html, re.I | re.S)
+          hotspots = []
+          for raw in coords:
+              attrs = dict(re.findall(r"""([\w-]+)=["']([^"']*)["']""", raw))
+              hotspots.append({key: attrs.get(key, "") for key in ("name", "srcNum", "srcTop", "srcLeft", "srcWidth", "srcHeight")})
+          diagram_candidates = []
+          for item in p.images:
+              src = item["src"]
+              if any(ext in src.lower() for ext in (".png", ".jpg", ".jpeg")) and "logo" not in src.lower():
+                  diagram_candidates.append({"url": urljoin(final_url, src), "alt": item["alt"], "class": item["class"]})
+          result = {
+              "make": "Honda", "model": "Accord", "year": 2011, "region": "Austria (KW)",
+              "transmission": "5AT", "grade": "2.0EX", "subgroup_code": "B-30",
+              "subgroup": "FRONT SHOCK ABSORBER", "http_status": status, "final_url": final_url,
+              "bytes": len(body), "title": " ".join(x for x in p.title if x),
+              "table_rows": p.rows[:200], "table_row_count": len(p.rows),
+              "catalog_links": links[:200], "images": p.images[:100],
+              "diagram_candidates": diagram_candidates[:50], "hotspots": hotspots[:300],
+              "hotspot_count": len(hotspots), "scripts": p.scripts[:100],
+              "markers": {key: html.count(key) for key in ("srcNum", "srcTop", "srcLeft", "getArticles", "groups-parts__item", "diagram")}
+          }
+          open("out/honda-accord-b30-inspection.json", "w", encoding="utf-8").write(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
+          print(json.dumps(result, ensure_ascii=False, indent=2))
+          if status != 200: raise SystemExit("Honda B-30 did not return HTTP 200")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catcar-honda-accord-b30-inspection
+          path: out/
+          retention-days: 7
