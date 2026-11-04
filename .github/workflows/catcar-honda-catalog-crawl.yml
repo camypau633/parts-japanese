@@ -1,17 +1,22 @@
-name: CatCar Japanese bounded catalog crawl
+name: CatCar Japanese catalog discovery and extraction
 
 on:
   workflow_dispatch:
     inputs:
       make:
-        description: "Japanese vehicle make to crawl"
+        description: "CatCar catalog root (Toyota includes Lexus; Nissan includes Infiniti)"
         required: true
         default: "honda"
         type: choice
         options:
-          - honda
-          - nissan
           - toyota
+          - nissan
+          - honda
+          - suzuki
+          - mazda
+          - mitsubishi
+          - isuzu
+          - subaru
       max_pages:
         description: "Maximum pages to visit in this run (1-2000)"
         required: true
