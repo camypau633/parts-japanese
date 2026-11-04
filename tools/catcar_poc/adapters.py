@@ -52,6 +52,8 @@ class ToyotaAdapter(BaseAdapter):
         positions = [x.get("position_code", "") for x in parsed.hotspots]
         return {
             "adapter": self.name,
+            "page_status": "incomplete",
+            "page_warnings": ["toyota_ajax_lookup_not_implemented"] if ajax_rows else ["no_toyota_ajax_rows"],
             "rows": parsed.rows,
             "images": parsed.images,
             "hotspots": parsed.hotspots,
@@ -184,6 +186,12 @@ class NissanAdapter(StaticTableAdapter):
     period_index = 3
     quantity_index = 5
     alternative_number_index = 4
+
+    def parse(self, html):
+        result = super().parse(html)
+        parsed = parse_html(html)
+        result.update(detail_page_validation(parsed, result["parts"]))
+        return result
 
 
 
