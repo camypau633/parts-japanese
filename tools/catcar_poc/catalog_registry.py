@@ -44,7 +44,7 @@ CATCAR_JAPANESE_CATALOGS = {
     "subaru": {
         "url": "https://www.catcar.info/subaru/",
         "brands": ["Subaru"],
-        "detail_adapter": None,
+        "detail_adapter": "subaru",
     },
 }
 
