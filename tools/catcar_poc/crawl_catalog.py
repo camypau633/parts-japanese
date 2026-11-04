@@ -90,6 +90,50 @@ def decoded_filter(url):
     return result
 
 
+MARKET_LABELS = {
+    "euro": "Europe",
+    "europe": "Europe",
+    "japan": "Japan",
+    "jpn": "Japan",
+    "jdm": "Japan",
+    "usa": "United States",
+    "us": "United States",
+    "america": "United States",
+}
+
+
+def market_context(adapter_result, source_url):
+    """Extract only explicit market markers; never infer a market from model names."""
+    candidates = []
+    for key, value in decoded_filter(source_url).items():
+        if key.lower() in ("market", "region", "country", "sales_region", "catalog_region"):
+            candidates.append(str(value).strip().lower())
+
+    urls = [source_url]
+    urls.extend(
+        image.get("src", "")
+        for image in adapter_result.get("images", [])
+        if image.get("src")
+    )
+    for candidate_url in urls:
+        candidates.extend(
+            segment.lower()
+            for segment in urlsplit(candidate_url).path.split("/")
+            if segment
+        )
+
+    for candidate in candidates:
+        if candidate in MARKET_LABELS:
+            return {
+                "market_region": MARKET_LABELS[candidate],
+                "market_code_raw": candidate,
+            }
+    return {
+        "market_region": None,
+        "market_code_raw": candidates[0] if candidates else None,
+    }
+
+
 def discover_links(html, page_url, make):
     parser = LinkCollector()
     parser.feed(html)
@@ -220,6 +264,8 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
             else:
                 context = {
                     "brand": "Honda",
+                    "manufacturer_country": "Japan",
+                    **market_context(parsed, final_url),
                     "catalog_filter_raw": decoded_filter(final_url),
                     "source_page_label": item.get("label", ""),
                     "source_page_title": title,
