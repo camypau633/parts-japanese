@@ -435,3 +435,21 @@ Selected subgroup: 2011 Accord, 4-door, Austria (KW), 5AT, 2.0EX — B-33-60 `P.
 - OCR over the full frame and five regions found no CatCar, copyright or website watermark indicators.
 - Full-resolution visual inspection found no CatCar logo, watermark text, diagonal overlay or repeating translucent mark.
 - Conclusion applies only to this B-33-60 diagram; OCR is screening and visual inspection is the final check.
+
+### B-33-10 power steering gear box subgroup
+
+Probe: [41861417151](https://github.com/camypau633/parts-japanese/actions/runs/41861417151)  
+Workflow: [.github/workflows/catcar-honda-accord-b3310-probe.yml](https://github.com/camypau633/parts-japanese/blob/main/.github/workflows/catcar-honda-accord-b3310-probe.yml)
+
+Selected subgroup: 2011 Accord, 4-door, Austria (KW), 5AT, 2.0EX — B-33-10 `P.S. GEAR BOX (LH)`.
+
+- HTTP 200; HTML size 50,173 bytes; page title explicitly identifies B-33-10 P.S. GEAR BOX (LH).
+- 28 table rows: five equipment-option rows, one explicit parts header and 22 part rows.
+- 21 unique OEM numbers. OEM `53601-TA0-A02` appears twice with different option-code sets; both source rows are retained by HondaAdapter. OEM `53537-S3N-003` and `53537-S3V-A01` are distinct variants at position 10.
+- Adapter validation: `page_status=complete`, 22 part rows, 21 unique OEM numbers, 26 hotspot rectangles and one resolved diagram.
+- Diagram: `http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__3310.png`.
+- The page contains 26 hotspot rectangles representing 20 distinct position labels. Repeated positions: 3, 6, 8, 14, 17 and 18 each have two rectangles.
+- Description dimensions include `10X25`, `14X103`, `14MM`, `12MM` and `3.0X22`; these remain verbatim description text, not separately structured specifications.
+- Dedicated diagram geometry and watermark audit is the next step.
+
+**Important:** this sample is Austria (KW), not JDM. Honda data remains unpublished to PartScope preview or production.
