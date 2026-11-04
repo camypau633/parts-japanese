@@ -13,6 +13,8 @@ import jsonschema
 
 from .adapters import ToyotaAdapter
 from .normalize import normalize_page
+from .parser import parse_html
+from .adapters import detail_page_validation
 from .validate_real_artifacts import catcar_filter_params
 
 
@@ -242,8 +244,22 @@ def normalize_sample(sample, artifact_dir, schema):
         elif filter_params.get("ProfPeriod"):
             context["source_profile_period_raw"] = filter_params["ProfPeriod"]
 
+        page_validation = detail_page_validation(
+            parse_html(html), normalized_parts
+        )
+        fully_sampled = len(sampled_ids) == len(parsed_ids)
+        page_warnings = list(page_validation.get("page_warnings", []))
+        if not fully_sampled:
+            page_warnings.append("toyota_ajax_rows_not_fully_sampled")
+        page_status = (
+            "complete"
+            if fully_sampled and page_validation["page_status"] == "complete"
+            else "incomplete"
+        )
         adapter_result = {
             "adapter": parsed.get("adapter"),
+            "page_status": page_status,
+            "page_warnings": page_warnings,
             "rows": parsed.get("rows", []),
             "images": parsed.get("images", []),
             "hotspots": parsed.get("hotspots", []),
