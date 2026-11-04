@@ -16,10 +16,10 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 import jsonschema
-from urllib.parse import parse_qs, urljoin, urlsplit, urlunsplit
+from urllib.parse import parse_qs, quote, urljoin, urlsplit, urlunsplit
 import base64
 
-from .adapters import DiscoveryOnlyAdapter, HondaAdapter, MazdaAdapter, NissanAdapter, SubaruAdapter, SuzukiAdapter, ToyotaAdapter
+from .adapters import DiscoveryOnlyAdapter, HondaAdapter, MazdaAdapter, NissanAdapter, SubaruAdapter, SuzukiAdapter, ToyotaAdapter, detail_page_validation
 from .catalog_registry import CATCAR_JAPANESE_CATALOGS, catalog_config
 from .normalize import normalize_page
 from .parser import parse_html
@@ -223,6 +223,96 @@ def fetch_page(url, timeout):
         return response.status, response.geturl(), body.decode("utf-8", "replace")
 
 
+def build_toyota_ajax_url(token):
+    """Build the exact GET URL used by CatCar's observed getArticles() function."""
+    if not token or not re.fullmatch(r"[A-Za-z0-9_+/=-]+", token):
+        raise ValueError("invalid_toyota_ajax_token")
+    return "https://www.catcar.info/toyota/?l={}&st=81".format(
+        quote(token, safe="")
+    )
+
+
+def fetch_toyota_ajax_page(url, timeout):
+    """Fetch one Toyota row expansion; CatCar returns an HTML table fragment."""
+    if not allowed_catalog_url(url, "toyota"):
+        raise ValueError("toyota_ajax_url_outside_catalog_path")
+    request = urllib.request.Request(url, headers={
+        "User-Agent": USER_AGENT,
+        "Accept": "text/html, */*; q=0.01",
+        "X-Requested-With": "XMLHttpRequest",
+    })
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        body = response.read(MAX_PAGE_BYTES + 1)
+        if len(body) > MAX_PAGE_BYTES:
+            raise ValueError("toyota_ajax_response_exceeds_4_mib_limit")
+        content_type = response.headers.get("Content-Type", "")
+        if "html" not in content_type.lower():
+            raise ValueError("unexpected_toyota_ajax_content_type:" + content_type)
+        return response.status, response.geturl(), body.decode("utf-8", "replace")
+
+
+def resolve_toyota_ajax_rows(parsed, group_url, output_dir, timeout,
+                             request_delay=1.0):
+    """Resolve each Toyota getArticles row and retain the exact OEM source response."""
+    ajax_rows = parsed.get("ajax_rows") or []
+    if not ajax_rows:
+        return [], []
+
+    raw_dir = Path(output_dir) / "ajax_raw"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    oem_records = []
+    errors = []
+    group_id = decoded_filter(group_url).get("group_id")
+    for index, part in enumerate(ajax_rows):
+        token = part.get("ajax_token", "")
+        try:
+            ajax_url = build_toyota_ajax_url(token)
+            if index:
+                time.sleep(request_delay)
+            status, final_url, body = fetch_toyota_ajax_page(ajax_url, timeout)
+            if status != 200:
+                raise ValueError("toyota_ajax_http_status:%s" % status)
+            digest = hashlib.sha256(
+                (str(group_id or "") + "|" + str(part.get("source_row_id") or "")).encode("utf-8")
+            ).hexdigest()[:16]
+            raw_path = raw_dir / (digest + ".html")
+            raw_path.write_text(body, encoding="utf-8")
+            records = ToyotaAdapter.parse_ajax_records(
+                body, source_row_id=part.get("source_row_id")
+            )
+            if not records:
+                raise ValueError("toyota_ajax_empty_unclassified")
+            status_value = records[0].get("source_status", "available")
+            part["source_status"] = (
+                "no_applicable_data" if status_value == "no_applicable_data"
+                else "requires_ajax"
+            )
+            part.setdefault("additional_source_fields", {}).update({
+                "ajax_resolution_status": status_value,
+                "ajax_url": final_url,
+                "ajax_response_file": str(raw_path.relative_to(Path(output_dir))),
+                "ajax_record_count": 0 if status_value == "no_applicable_data" else len(records),
+            })
+            for order, record in enumerate(records):
+                record.update({
+                    "source_record_order": order if status_value == "available" else None,
+                    "source_group_id": group_id,
+                    "source_url": final_url,
+                })
+                oem_records.append(record)
+        except (urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
+            part["source_status"] = "requires_ajax"
+            part.setdefault("additional_source_fields", {}).update({
+                "ajax_resolution_status": "error",
+                "ajax_error": str(exc)[:300],
+            })
+            errors.append({
+                "source_row_id": part.get("source_row_id"),
+                "error": str(exc)[:300],
+            })
+    return oem_records, errors
+
+
 def write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n",
@@ -326,6 +416,21 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
 
             try:
                 parsed = adapter.parse(html)
+                oem_records = []
+                ajax_errors = []
+                if make == "toyota" and parsed.get("ajax_rows"):
+                    oem_records, ajax_errors = resolve_toyota_ajax_rows(
+                        parsed, final_url, output_dir, timeout
+                    )
+                    validation = detail_page_validation(parsed, parsed.get("parts", []))
+                    warnings = list(validation.get("page_warnings", []))
+                    if ajax_errors:
+                        warnings.append("toyota_ajax_request_failed")
+                    parsed["page_status"] = (
+                        "complete" if validation["page_status"] == "complete" and not ajax_errors
+                        else "incomplete"
+                    )
+                    parsed["page_warnings"] = warnings
             except ValueError as exc:
                 record["status"] = "navigation_or_unrecognized"
                 record["adapter_message"] = str(exc)
@@ -344,7 +449,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                     "source_page_label": item.get("label", ""),
                     "source_page_title": title,
                 }
-                document = normalize_page(parsed, context, final_url)
+                document = normalize_page(parsed, context, final_url, oem_records=oem_records)
                 jsonschema.validate(instance=document, schema=schema)
                 if parsed.get("page_status") == "incomplete":
                     record["status"] = "incomplete_detail"
@@ -366,9 +471,19 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                     record["diagram_count"] = len(document["diagrams"])
                     record["hotspot_count"] = len(document["hotspots"])
                     record["ajax_rows_requiring_lookup"] = sum(
-                        part.get("source_status") == "requires_ajax"
+                        part.get("additional_source_fields", {}).get("ajax_resolution_status") in (None, "error")
                         for part in document["parts"]
                     )
+                    record["ajax_rows_resolved"] = sum(
+                        part.get("additional_source_fields", {}).get("ajax_resolution_status") == "available"
+                        for part in document["parts"]
+                    )
+                    record["ajax_rows_no_applicable_data"] = sum(
+                        part.get("source_status") == "no_applicable_data"
+                        for part in document["parts"]
+                    )
+                    if ajax_errors:
+                        record["ajax_errors"] = ajax_errors
         except jsonschema.ValidationError as exc:
             failed_urls.append(url)
             record["status"] = "schema_validation_error"
