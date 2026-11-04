@@ -19,7 +19,7 @@ import jsonschema
 from urllib.parse import parse_qs, urljoin, urlsplit, urlunsplit
 import base64
 
-from .adapters import DiscoveryOnlyAdapter, HondaAdapter, NissanAdapter, SubaruAdapter, ToyotaAdapter
+from .adapters import DiscoveryOnlyAdapter, HondaAdapter, NissanAdapter, SubaruAdapter, SuzukiAdapter, ToyotaAdapter
 from .catalog_registry import CATCAR_JAPANESE_CATALOGS, catalog_config
 from .normalize import normalize_page
 from .parser import parse_html
@@ -32,6 +32,7 @@ ADAPTER_IMPLEMENTATIONS = {
     "nissan": NissanAdapter,
     "toyota": ToyotaAdapter,
     "subaru": SubaruAdapter,
+    "suzuki": SuzukiAdapter,
 }
 # The registry is the single source of truth for catalog roots. A missing
 # implementation deliberately falls back to discovery-only mode.
