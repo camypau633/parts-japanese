@@ -1,5 +1,6 @@
 import json
 import tempfile
+import urllib.error
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -109,6 +110,40 @@ class CrawlCatalogTests(unittest.TestCase):
             self.assertEqual(fetch.call_args.args[0], child)
             self.assertTrue(second["complete"])
             self.assertEqual(second["pages_visited"], 2)
+
+    def test_failed_page_is_retried_after_resume(self):
+        html = """
+        <table>
+          <tr><th>Код</th><th>Артикул</th><th>Описание</th></tr>
+          <tr><td>1</td><td>16400-RL2-G01</td><td>THROTTLE BODY</td></tr>
+        </table>
+        <img class="resize" src="http://ci.catcar.info/honda/euro/18TA0801/IMGE/E__0100.png">
+        """
+        url = "https://www.catcar.info/honda/"
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "out"
+            with patch(
+                "tools.catcar_poc.crawl_catalog.fetch_page",
+                side_effect=urllib.error.URLError("temporary network error"),
+            ):
+                first = crawl(url, output, max_pages=1, delay=10)
+            self.assertFalse(first["complete"])
+            self.assertEqual(first["retry_urls_pending"], 1)
+            with patch(
+                "tools.catcar_poc.crawl_catalog.fetch_page",
+                return_value=(200, url, html),
+            ) as fetch:
+                second = crawl(
+                    url,
+                    output,
+                    max_pages=1,
+                    delay=10,
+                    resume_state=output / "crawl-state.json",
+                )
+            fetch.assert_called_once()
+            self.assertTrue(second["complete"])
+            self.assertEqual(second["detail_pages_normalized"], 1)
+            self.assertEqual(second["fetch_errors"], 1)
 
 
 if __name__ == "__main__":
