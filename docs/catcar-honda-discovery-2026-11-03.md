@@ -295,3 +295,20 @@ Probe: [41827234190](https://github.com/camypau633/parts-japanese/actions/runs/4
 - Classified as an incomplete/intermediate response. It must not be normalized or exported as an empty parts group simply because HTTP returned 200.
 
 This is another verified example that HTTP status alone is not a sufficient success criterion for Honda catalog imports. Sample configuration remains Austria (KW), not JDM.
+
+
+## Sixth part-table subgroup: B-27-10 front lower arm
+
+Workflow: [41827617110](https://github.com/camypau633/parts-japanese/actions/runs/41827617110)  
+Adapter validation: [41827771648](https://github.com/camypau633/parts-japanese/actions/runs/41827771648)
+
+Selected subgroup: 2011 Accord, 4-door, Austria (KW), 5AT, 2.0 EX — B-27-10 `FRONT LOWER ARM`.
+
+- HTTP 200; HTML size 49,026 bytes.
+- The page contains 29 table rows: five equipment-option rows, one header and 23 part rows.
+- The 23 part rows contain 20 unique OEM numbers.
+- Positions 3, 4 and 9 each contain two rows for the same OEM with different option combinations. The adapter validation confirms that these rows remain separate and preserve their option-code fields.
+- There are 20 hotspot rectangles for 20 distinct position labels.
+- The actual captured HTML passed through `HondaAdapter`: 23 part rows, 20 unique OEMs, all three option-variant pairs, 20 hotspots and one diagram image were verified.
+
+Diagram: `http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2710.png`. **Watermark and pixel-geometry audit is pending.** This sample is Austria (KW), not JDM.
