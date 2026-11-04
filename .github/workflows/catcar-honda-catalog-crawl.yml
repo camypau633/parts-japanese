@@ -47,11 +47,16 @@ jobs:
           MAX_PAGES: ${{ inputs.max_pages }}
         run: |
           set -euo pipefail
-          python -m tools.catcar_poc.crawl_catalog \
-            --start-url "https://www.catcar.info/honda/" \
-            --max-pages "$MAX_PAGES" \
-            --delay 10 \
+          args=(
+            --start-url "https://www.catcar.info/honda/"
+            --max-pages "$MAX_PAGES"
+            --delay 10
             --output out/catcar-honda
+          )
+          if [ -s out/catcar-honda/crawl-state.json ]; then
+            args+=(--resume-state out/catcar-honda/crawl-state.json)
+          fi
+          python -m tools.catcar_poc.crawl_catalog "${args[@]}"
       - name: Upload crawl results for review
         uses: actions/upload-artifact@v4
         with:
