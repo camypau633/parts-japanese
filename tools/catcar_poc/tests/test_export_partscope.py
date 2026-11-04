@@ -287,7 +287,7 @@ class PartScopeExportTests(unittest.TestCase):
         report = validate_export_records(records)
         self.assertEqual(report["records_by_brand"], {"Honda": 7})
         self.assertEqual(report["factory_parts_validated"], 8)
-        self.assertEqual(report["hotspots_validated"], 6)
+        self.assertEqual(report["hotspots_validated"], 9)
 
     def test_honda_b28_export_preserves_duplicate_option_rows_and_diagram_geometry(self):
         document = {
