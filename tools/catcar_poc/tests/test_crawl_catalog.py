@@ -47,6 +47,30 @@ class CrawlCatalogTests(unittest.TestCase):
         self.assertEqual(asia["market_region"], "Asia")
         self.assertNotEqual(asia["market_region"], "Japan")
 
+    def test_asian_market_is_preserved_separately_from_japan_for_all_make_paths(self):
+        asia = {
+            "images": [{
+                "src": "https://ci.catcar.info/mazda/asia/ABC123/IMGE/diagram.png"
+            }]
+        }
+        japan = {
+            "images": [{
+                "src": "https://ci.catcar.info/mazda/japan/ABC123/IMGE/diagram.png"
+            }]
+        }
+        self.assertEqual(
+            market_context(asia, "https://www.catcar.info/mazda/")[ "market_region" ],
+            "Asia",
+        )
+        self.assertEqual(
+            market_context(japan, "https://www.catcar.info/mazda/")[ "market_region" ],
+            "Japan",
+        )
+        self.assertNotEqual(
+            market_context(asia, "https://www.catcar.info/mazda/")[ "market_region" ],
+            market_context(japan, "https://www.catcar.info/mazda/")[ "market_region" ],
+        )
+
     def test_discovery_only_catalog_retains_page_without_fabricating_records(self):
         html = "<html><head><title>Suzuki catalog</title></head><body><a href='/suzuki/?l=next'>Next</a></body></html>"
         url = "https://www.catcar.info/suzuki/"
