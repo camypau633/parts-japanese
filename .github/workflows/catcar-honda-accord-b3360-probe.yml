@@ -90,7 +90,7 @@ jobs:
           result = {
               "make": "Honda", "model": "Accord", "year": 2011, "region": "Austria (KW)",
               "transmission": "5AT", "grade": "2.0EX", "subgroup_code": "B-33-60",
-              "subgroup": "FRONT SHOCK ABSORBER", "http_status": status, "final_url": final_url,
+              "subgroup": "P.S. LINES (LH) (2.0L)", "http_status": status, "final_url": final_url,
               "bytes": len(body), "title": " ".join(x for x in p.title if x),
               "table_rows": p.rows[:200], "table_row_count": len(p.rows),
               "catalog_links": links[:200], "images": p.images[:100],
@@ -129,7 +129,7 @@ jobs:
               "validation_passed": True,
           }
           Path("out/honda-b3360-adapter-validation.json").write_text(
-              json.dumps(report, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
           print(json.dumps(report, ensure_ascii=False, indent=2))
           PY
       - uses: actions/upload-artifact@v4
