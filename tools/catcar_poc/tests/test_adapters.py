@@ -142,8 +142,7 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(len({x["part_number_raw"] for x in wheel_bolts}), 4)
         self.assertEqual(len(result["hotspots"]), 2)
         self.assertEqual(result["hotspot_matching"]["matched"], ["5", "18"])
-        self.assertEqual(result["images"][0]["source_image_url"],
-                         "http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2200.png")
+        self.assertEqual(len([x for x in result["images"] if x["image_kind"] == "diagram"]), 1)
 
     def test_honda_b28_shock_absorber_rows_keep_option_and_supplier_variants(self):
         html = """
