@@ -233,12 +233,14 @@ class CrawlCatalogTests(unittest.TestCase):
             self.assertTrue(second["complete"])
             self.assertEqual(second["pages_visited"], 2)
 
-    def test_toyota_ajax_url_matches_observed_getarticles_transport(self):
-        token = "abc+/=="
+    def test_toyota_ajax_url_preserves_catcar_pre_encoded_token(self):
+        token = "bWFya2V0PT1qYXBhbnx8c3Q9PTgw%3D"
         self.assertEqual(
             build_toyota_ajax_url(token),
-            "https://www.catcar.info/toyota/?l=abc%2B%2F%3D%3D&st=81",
+            "https://www.catcar.info/toyota/?l=bWFya2V0PT1qYXBhbnx8c3Q9PTgw%3D&st=81",
         )
+        with self.assertRaises(ValueError):
+            build_toyota_ajax_url("token&other=parameter")
 
     def test_toyota_ajax_rows_are_resolved_and_linked_to_source_group(self):
         html = """
