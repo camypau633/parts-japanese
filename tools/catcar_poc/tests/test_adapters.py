@@ -1,7 +1,7 @@
 import unittest
 
 from tools.catcar_poc.adapters import (
-    ToyotaAdapter, NissanAdapter, HondaAdapter, SubaruAdapter, FordAdapter, VagAdapter
+    ToyotaAdapter, NissanAdapter, HondaAdapter, SuzukiAdapter, SubaruAdapter, FordAdapter, VagAdapter
 )
 
 
@@ -307,6 +307,28 @@ class AdapterTests(unittest.TestCase):
             "sample note",
         )
         self.assertEqual(result["hotspot_matching"]["matched"], ["10100"])
+
+
+    def test_suzuki_asia_parts_table_preserves_part_name_additional_info_and_quantity(self):
+        html = """
+        <table>
+          <tr><th>Code</th><th>Part number</th><th>Name</th><th>Additional information</th><th>Qty</th></tr>
+          <tr><td>1</td><td>11402-61880</td><td>GASKET SET, ENGINE</td><td></td><td>1</td></tr>
+          <tr><td>2</td><td>11141-61J00</td><td>.GASKET, CYLINDER HEAD</td><td>Japan spec</td><td>1</td></tr>
+        </table>
+        <img class="resize" src="https://ci.catcar.info/suzuki/asia/ABC123/IMGE/diagram.png">
+        <div class="coord" srcNum="1" srcTop="10" srcLeft="20" srcWidth="30" srcHeight="40"></div>
+        """
+        result = SuzukiAdapter().parse(html)
+        self.assertEqual(len(result["parts"]), 2)
+        self.assertEqual(result["parts"][0]["part_number_raw"], "11402-61880")
+        self.assertEqual(result["parts"][0]["description_raw"], "GASKET SET, ENGINE")
+        self.assertEqual(result["parts"][0]["quantity_raw"], "1")
+        self.assertEqual(
+            result["parts"][1]["additional_source_fields"]["additional_information_raw"],
+            "Japan spec",
+        )
+        self.assertEqual(result["hotspot_matching"]["matched"], ["1"])
 
 
 if __name__ == "__main__":
