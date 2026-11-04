@@ -94,6 +94,28 @@ class CrawlCatalogTests(unittest.TestCase):
             self.assertEqual(len(list((output / "review").glob("*.html"))), 1)
             self.assertEqual(list((output / "normalized").glob("*.json")), [])
 
+    def test_discovery_only_pages_report_asian_market_coverage(self):
+        html = """
+        <html><head><title>Suzuki Asia</title></head><body>
+        <img class="resize" src="https://ci.catcar.info/suzuki/asia/ABC123/IMGE/diagram.png">
+        </body></html>
+        """
+        url = "https://www.catcar.info/suzuki/"
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "out"
+            with patch(
+                "tools.catcar_poc.crawl_catalog.fetch_page",
+                return_value=(200, url, html),
+            ):
+                report = crawl(url, output, max_pages=1, delay=10, make="suzuki")
+            self.assertEqual(report["market_coverage_pages"]["Asia"], 1)
+            records = [
+                json.loads(line)
+                for line in (output / "pages.jsonl").read_text(encoding="utf-8").splitlines()
+            ]
+            self.assertEqual(records[0]["market_region"], "Asia")
+            self.assertEqual(records[0]["status"], "navigation_or_unrecognized")
+
     def test_scope_rejects_other_makes_and_hosts(self):
         self.assertTrue(allowed_catalog_url("https://www.catcar.info/honda/?l=x", "honda"))
         self.assertFalse(allowed_catalog_url("https://www.catcar.info/toyota/", "honda"))
