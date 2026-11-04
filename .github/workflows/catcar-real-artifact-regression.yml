@@ -87,34 +87,39 @@ jobs:
           python -m tools.catcar_poc.inspect_diagram_geometry "${args[@]}" \
             --output out/diagram-geometry.json --max-urls 20 --timeout 12
           cat out/diagram-geometry.json
-      - name: Export Japanese fixtures to isolated PartScope preview shards
+      - name: Confirm Toyota AJAX pages remain blocked until lookup is implemented
+        run: |
+          python - <<'PY'
+          import json
+          with open("out/normalized/toyota-camry-oil-filter.json", encoding="utf-8") as stream:
+              document = json.load(stream)
+          validation = document["validation"]
+          assert validation["page_status"] == "incomplete", validation
+          assert "toyota_ajax_lookup_not_implemented" in validation["page_warnings"], validation
+          assert any(row.get("source_status") == "requires_ajax" for row in document["parts"])
+          print("Toyota fixture correctly withheld from export pending AJAX lookup.")
+          PY
+      - name: Export verified Nissan fixture to isolated PartScope preview shards
         shell: bash
         run: |
           set -euo pipefail
-          args=(
-            --input out/normalized/toyota-camry-oil-filter.json
-            --input out/normalized/nissan-pixo.json
-          )
-          for file in .catcar-fixtures/camry/normalized/toyota-camry-group-*.json; do
-            args+=(--input "$file")
-          done
-          python -m tools.catcar_poc.export_partscope "${args[@]}" \
+          python -m tools.catcar_poc.export_partscope \
+            --input out/normalized/nissan-pixo.json \
             --output out/partscope --geometry-report out/diagram-geometry.json
           cat out/partscope/export-report.json
-      - name: Require Japanese-only records and verified hotspots
+      - name: Require verified Nissan records and hotspots
         run: |
           python - <<'PY'
           import json
           with open("out/partscope/export-report.json", encoding="utf-8") as stream:
               report = json.load(stream)
           validation = report["validation"]
-          assert set(validation["records_by_brand"]) == {"Toyota", "Nissan"}, validation["records_by_brand"]
-          assert validation["records_by_brand"]["Toyota"] > 0
+          assert set(validation["records_by_brand"]) == {"Nissan"}, validation["records_by_brand"]
           assert validation["records_by_brand"]["Nissan"] > 0
           assert validation["records_with_compatibility_years"] == report["records_exported"]
           assert validation["hotspots_validated"] > 0
           assert validation["records_with_hotspots"] > 0
-          print("Japanese records:", validation["records_by_brand"])
+          print("Verified Nissan records:", validation["records_by_brand"])
           print("Verified hotspots:", validation["hotspots_validated"])
           print("Records with hotspots:", validation["records_with_hotspots"])
           PY
