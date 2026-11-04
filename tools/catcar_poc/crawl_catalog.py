@@ -400,8 +400,16 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
         with (output_dir / "pages.jsonl").open("a", encoding="utf-8") as stream:
             stream.write(json.dumps(record, ensure_ascii=False) + "\n")
 
-    market_coverage = {}
+    # A failed page can appear more than once after a resume/retry. Report
+    # the latest outcome per canonical URL so market coverage and status
+    # counters represent pages, not request attempts.
+    latest_by_url = {}
     for item in page_records:
+        latest_by_url[item.get("final_url") or item.get("url")] = item
+    unique_page_records = list(latest_by_url.values())
+
+    market_coverage = {}
+    for item in unique_page_records:
         region = item.get("market_region") or "Unspecified"
         market_coverage[region] = market_coverage.get(region, 0) + 1
 
@@ -410,17 +418,17 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
         "market_coverage_pages": dict(sorted(market_coverage.items())),
         "make": make.title(),
         "start_url": start_url,
-        "pages_visited": len(visited),
+        "pages_visited": len(unique_page_records),
         "detail_pages_normalized": details,
         "navigation_or_unrecognized_pages": sum(
-            item["status"] == "navigation_or_unrecognized" for item in page_records
+            item["status"] == "navigation_or_unrecognized" for item in unique_page_records
         ),
         "incomplete_detail_pages": sum(
-            item["status"] == "incomplete_detail" for item in page_records
+            item["status"] == "incomplete_detail" for item in unique_page_records
         ),
         "fetch_errors": sum(
             item["status"] in ("fetch_error", "schema_validation_error")
-            for item in page_records
+            for item in unique_page_records
         ),
         "queue_remaining": len(queue),
         "retry_urls_pending": len(set(failed_urls)),
