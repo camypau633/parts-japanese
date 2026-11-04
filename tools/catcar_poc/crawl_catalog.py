@@ -183,6 +183,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
             "discovered_as": item.get("label", ""),
             "status": "unknown",
         }
+        html = None
         try:
             status, final_url, html = fetch_page(url, timeout)
             final_url = canonical_url(final_url)
@@ -240,7 +241,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
             record["status"] = "schema_validation_error"
             record["error"] = str(exc.message)[:500]
             digest = hashlib.sha256(url.encode("utf-8")).hexdigest()[:16]
-            if "html" in locals():
+            if html is not None:
                 (review_dir / (digest + ".html")).write_text(html, encoding="utf-8")
             errors.append({"url": url, "error": record["error"]})
         except (urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
@@ -297,7 +298,14 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.max_pages < 1 or args.max_pages > 2000:
         parser.error("--max-pages must be between 1 and 2000")
-    crawl(args.start_url, args.output, args.max_pages, args.delay, args.timeout,\n          resume_state=args.resume_state)
+    crawl(
+        args.start_url,
+        args.output,
+        args.max_pages,
+        args.delay,
+        args.timeout,
+        resume_state=args.resume_state,
+    )
 
 
 if __name__ == "__main__":
