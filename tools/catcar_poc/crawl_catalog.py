@@ -14,6 +14,8 @@ import urllib.request
 from collections import deque
 from html.parser import HTMLParser
 from pathlib import Path
+
+import jsonschema
 from urllib.parse import parse_qs, urljoin, urlsplit, urlunsplit
 import base64
 
@@ -159,6 +161,8 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
     page_records = []
     pages_this_run = 0
     adapter = HondaAdapter()
+    schema_path = Path(__file__).resolve().parents[2] / "schemas" / "catcar-extraction-v0.1.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
     last_request_at = None
 
     while queue and pages_this_run < max_pages:
@@ -214,6 +218,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                     "source_page_title": title,
                 }
                 document = normalize_page(parsed, context, final_url)
+                jsonschema.validate(instance=document, schema=schema)
                 if parsed.get("page_status") == "incomplete":
                     record["status"] = "incomplete_detail"
                     record["warnings"] = parsed.get("page_warnings", [])
@@ -231,6 +236,13 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                     record["part_rows"] = len(document["parts"])
                     record["diagram_count"] = len(document["diagrams"])
                     record["hotspot_count"] = len(document["hotspots"])
+        except jsonschema.ValidationError as exc:
+            record["status"] = "schema_validation_error"
+            record["error"] = str(exc.message)[:500]
+            digest = hashlib.sha256(url.encode("utf-8")).hexdigest()[:16]
+            if "html" in locals():
+                (review_dir / (digest + ".html")).write_text(html, encoding="utf-8")
+            errors.append({"url": url, "error": record["error"]})
         except (urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
             record["status"] = "fetch_error"
             record["error"] = str(exc)[:500]
