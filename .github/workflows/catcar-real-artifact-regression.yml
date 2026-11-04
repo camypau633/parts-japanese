@@ -54,6 +54,37 @@ jobs:
           test -s .catcar-fixtures/camry/diagram-geometry.json
       - name: Install validation dependency
         run: python -m pip install -r requirements-dev.txt
+      - name: Live smoke-test the implemented Toyota AJAX fetcher
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from urllib.parse import parse_qs, urlsplit
+          from tools.catcar_poc.crawl_catalog import build_toyota_ajax_url, fetch_toyota_ajax_page
+          from tools.catcar_poc.adapters import ToyotaAdapter
+          sample = json.loads(Path(".catcar-fixtures/camry/oem_variation_sample.json").read_text(encoding="utf-8"))
+          part = next(
+              part
+              for group in sample["sampled_groups"]
+              for part in group.get("parts", [])
+              if part.get("source_status") == "available"
+          )
+          token = parse_qs(urlsplit(part["ajax_url"]).query)["l"][0]
+          url = build_toyota_ajax_url(token)
+          status, final_url, html = fetch_toyota_ajax_page(url, 30)
+          assert status == 200, status
+          actual = ToyotaAdapter.parse_ajax_records(html, part["part_number"])
+          expected = [
+              (row.get("oem"), row.get("period"), row.get("applicability"))
+              for row in part.get("records", [])
+          ]
+          observed = [
+              (row.get("oem_number_raw"), row.get("production_period_raw"), row.get("applicability_raw"))
+              for row in actual
+          ]
+          assert observed == expected, {"expected": expected, "observed": observed, "url": final_url}
+          print("Live Toyota AJAX fetch verified:", part["part_number"], "records:", len(actual))
+          PY
       - name: Parse captured Toyota and Nissan HTML fixtures
         run: |
           python -m tools.catcar_poc.validate_real_artifacts \
