@@ -55,10 +55,59 @@ jobs:
               --output "out/catcar-$make"
             echo "::endgroup::"
           done
-      - name: Upload survey artifacts
+      - name: Upload toyota survey checkpoint
         uses: actions/upload-artifact@v4
         with:
-          name: catcar-japanese-eight-catalog-survey-${{ github.run_id }}
-          path: out/
+          name: catcar-toyota-crawl-${{ github.run_id }}
+          path: out/catcar-toyota/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload nissan survey checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: catcar-nissan-crawl-${{ github.run_id }}
+          path: out/catcar-nissan/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload honda survey checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: catcar-honda-crawl-${{ github.run_id }}
+          path: out/catcar-honda/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload suzuki survey checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: catcar-suzuki-crawl-${{ github.run_id }}
+          path: out/catcar-suzuki/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload mazda survey checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: catcar-mazda-crawl-${{ github.run_id }}
+          path: out/catcar-mazda/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload mitsubishi survey checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: catcar-mitsubishi-crawl-${{ github.run_id }}
+          path: out/catcar-mitsubishi/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload isuzu survey checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: catcar-isuzu-crawl-${{ github.run_id }}
+          path: out/catcar-isuzu/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload subaru survey checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: catcar-subaru-crawl-${{ github.run_id }}
+          path: out/catcar-subaru/
           if-no-files-found: error
           retention-days: 14
