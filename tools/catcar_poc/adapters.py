@@ -95,6 +95,32 @@ class ToyotaAdapter(BaseAdapter):
         return records
 
 
+def detail_page_validation(parsed, parts):
+    """Require actual part rows and at least one resolved diagram before export."""
+    diagram_images = [
+        image for image in parsed.images
+        if image.get("image_kind") == "diagram"
+    ]
+    warnings = []
+    if not parts:
+        warnings.append("no_part_rows")
+    if not diagram_images:
+        warnings.append("no_diagram_image")
+    unresolved = [
+        image for image in diagram_images
+        if not image.get("src")
+        or "{npl}" in image.get("src", "").lower()
+        or "{" in image.get("src", "")
+        or "}" in image.get("src", "")
+    ]
+    if unresolved:
+        warnings.append("diagram_image_url_unresolved")
+    return {
+        "page_status": "complete" if parts and diagram_images and not unresolved else "incomplete",
+        "page_warnings": warnings,
+    }
+
+
 class StaticTableAdapter(BaseAdapter):
     position_index = 0
     part_number_index = 1
@@ -283,8 +309,10 @@ class MazdaAdapter(StaticTableAdapter):
 
         positions = [item["diagram_position_code"] for item in parts
                      if item["diagram_position_code"]]
+        validation = detail_page_validation(parsed, parts)
         return {
             "adapter": self.name,
+            **validation,
             "rows": parsed.rows,
             "images": parsed.images,
             "hotspots": parsed.hotspots,
@@ -352,8 +380,10 @@ class SuzukiAdapter(StaticTableAdapter):
 
         positions = [item["diagram_position_code"] for item in parts
                      if item["diagram_position_code"]]
+        validation = detail_page_validation(parsed, parts)
         return {
             "adapter": self.name,
+            **validation,
             "rows": parsed.rows,
             "images": parsed.images,
             "hotspots": parsed.hotspots,
@@ -429,8 +459,10 @@ class SubaruAdapter(StaticTableAdapter):
 
         positions = [item["diagram_position_code"] for item in parts
                      if item["diagram_position_code"]]
+        validation = detail_page_validation(parsed, parts)
         return {
             "adapter": self.name,
+            **validation,
             "rows": parsed.rows,
             "images": parsed.images,
             "hotspots": parsed.hotspots,
