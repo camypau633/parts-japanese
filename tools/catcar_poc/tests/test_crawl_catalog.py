@@ -293,6 +293,54 @@ class CrawlCatalogTests(unittest.TestCase):
             )
             self.assertEqual(len(list((output / "ajax_raw").glob("*.html"))), 1)
 
+    def test_toyota_ajax_resume_reuses_successful_raw_rows(self):
+        from tools.catcar_poc.adapters import ToyotaAdapter
+        group_html = """
+          <table>
+            <tr name="ROW-1" onclick="getArticles(this, 'TOKEN-1', 80, '/toyota/');"><td>ROW-1</td><td>PART ONE</td></tr>
+            <tr name="ROW-2" onclick="getArticles(this, 'TOKEN-2', 80, '/toyota/');"><td>ROW-2</td><td>PART TWO</td></tr>
+          </table>
+        """
+        first_response = """
+          <table><tr><td>OEM-ONE</td><td>01/2001-</td><td>ENGINE-A</td></tr></table>
+        """
+        second_response = """
+          <table><tr><td>OEM-TWO</td><td>02/2001-</td><td>ENGINE-B</td></tr></table>
+        """
+        group_url = "https://www.catcar.info/toyota/?l=Z3JvdXBfaWQ9PTExMDM%3D"
+        with tempfile.TemporaryDirectory() as temp:
+            first_parsed = ToyotaAdapter().parse(group_html)
+            with patch(
+                "tools.catcar_poc.crawl_catalog.fetch_toyota_ajax_page",
+                side_effect=[
+                    (200, "https://www.catcar.info/toyota/?l=TOKEN-1&st=81", first_response),
+                    urllib.error.URLError("temporary failure for second row"),
+                ],
+            ) as fetch, patch("tools.catcar_poc.crawl_catalog.time.sleep"):
+                first_records, first_errors = resolve_toyota_ajax_rows(
+                    first_parsed, group_url, temp, 30, request_delay=0
+                )
+            self.assertEqual(fetch.call_count, 2)
+            self.assertEqual(len(first_records), 1)
+            self.assertEqual(len(first_errors), 1)
+
+            resumed_parsed = ToyotaAdapter().parse(group_html)
+            with patch(
+                "tools.catcar_poc.crawl_catalog.fetch_toyota_ajax_page",
+                return_value=(200, "https://www.catcar.info/toyota/?l=TOKEN-2&st=81", second_response),
+            ) as resumed_fetch, patch("tools.catcar_poc.crawl_catalog.time.sleep"):
+                resumed_records, resumed_errors = resolve_toyota_ajax_rows(
+                    resumed_parsed, group_url, temp, 30, request_delay=0
+                )
+            resumed_fetch.assert_called_once_with(
+                "https://www.catcar.info/toyota/?l=TOKEN-2&st=81", 30
+            )
+            self.assertEqual(resumed_errors, [])
+            self.assertEqual(
+                [item["oem_number_raw"] for item in resumed_records],
+                ["OEM-ONE", "OEM-TWO"],
+            )
+
     def test_toyota_no_applicable_data_is_a_valid_resolved_ajax_state(self):
         from tools.catcar_poc.adapters import ToyotaAdapter
         parsed = ToyotaAdapter().parse("""
