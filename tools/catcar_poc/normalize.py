@@ -92,6 +92,8 @@ def normalize_page(adapter_result, context, source_url, oem_records=None):
         "diagrams": diagrams,
         "hotspots": hotspots,
         "validation": {
+            "page_status": adapter_result.get("page_status", "unknown"),
+            "page_warnings": list(adapter_result.get("page_warnings", [])),
             "hotspot_matching": matching,
             "raw_table_row_count": len(adapter_result.get("rows", [])),
             "part_row_count": len(parts),
