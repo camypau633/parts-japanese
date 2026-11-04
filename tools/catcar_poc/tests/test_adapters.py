@@ -1,7 +1,7 @@
 import unittest
 
 from tools.catcar_poc.adapters import (
-    ToyotaAdapter, NissanAdapter, HondaAdapter, FordAdapter, VagAdapter
+    ToyotaAdapter, NissanAdapter, HondaAdapter, SubaruAdapter, FordAdapter, VagAdapter
 )
 
 
@@ -276,6 +276,37 @@ class AdapterTests(unittest.TestCase):
         self.assertIsNone(item["part_number_raw"])
         self.assertEqual(item["additional_source_fields"]["entry_type_raw"], "Переход к группе")
         self.assertEqual(item["description_raw"], "support see illustration, item: 067-050,22")
+
+
+    def test_subaru_observed_parts_table_preserves_model_period_and_destination_fields(self):
+        html = """
+        <table>
+          <tr><th>№</th><th>Part number</th><th>Options</th><th>Applicable Models</th><th>Production date</th><th>Note/Destination Code</th><th>Comment</th></tr>
+          <tr><td>10100</td><td>10100CA610</td><td>ｴﾝｼﾞﾝ ｱｾﾝﾌﾞﾘ</td><td>25A FB25ASYHAA</td><td>01/08/2016-</td><td>/</td><td></td></tr>
+          <tr><td>001</td><td>10921AA231</td><td>GASKET</td><td>25A FB25ASYHAA</td><td>01/08/2016-</td><td>JAPAN</td><td>sample note</td></tr>
+        </table>
+        <img class="resize" src="https://ci.catcar.info/subaru/japan/B15/IMGE/diagram.png">
+        <div class="coord" srcNum="10100" srcTop="10" srcLeft="20" srcWidth="30" srcHeight="40"></div>
+        """
+        result = SubaruAdapter().parse(html)
+        self.assertEqual(len(result["parts"]), 2)
+        first = result["parts"][0]
+        self.assertEqual(first["part_number_raw"], "10100CA610")
+        self.assertEqual(first["diagram_position_code"], "10100")
+        self.assertEqual(first["production_period_raw"], "01/08/2016-")
+        self.assertEqual(
+            first["additional_source_fields"]["applicable_models_raw"],
+            "25A FB25ASYHAA",
+        )
+        self.assertEqual(
+            first["additional_source_fields"]["note_destination_code_raw"],
+            "/",
+        )
+        self.assertEqual(
+            result["parts"][1]["additional_source_fields"]["comment_raw"],
+            "sample note",
+        )
+        self.assertEqual(result["hotspot_matching"]["matched"], ["10100"])
 
 
 if __name__ == "__main__":
