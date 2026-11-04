@@ -158,7 +158,14 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
         previous_errors = 0
     queued = {item["url"] for item in queue} | visited
     errors = []
+    page_log = output_dir / "pages.jsonl"
     page_records = []
+    if page_log.exists():
+        for line in page_log.read_text(encoding="utf-8").splitlines():
+            try:
+                page_records.append(json.loads(line))
+            except ValueError:
+                continue
     pages_this_run = 0
     adapter = HondaAdapter()
     schema_path = Path(__file__).resolve().parents[2] / "schemas" / "catcar-extraction-v0.1.schema.json"
@@ -206,11 +213,10 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
             except ValueError as exc:
                 record["status"] = "navigation_or_unrecognized"
                 record["adapter_message"] = str(exc)
-                if not links:
-                    digest = hashlib.sha256(url.encode("utf-8")).hexdigest()[:16]
-                    (review_dir / (digest + ".html")).write_text(
-                        html, encoding="utf-8"
-                    )
+                digest = hashlib.sha256(url.encode("utf-8")).hexdigest()[:16]
+                (review_dir / (digest + ".html")).write_text(
+                    html, encoding="utf-8"
+                )
             else:
                 context = {
                     "brand": "Honda",
@@ -277,7 +283,10 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
         "incomplete_detail_pages": sum(
             item["status"] == "incomplete_detail" for item in page_records
         ),
-        "fetch_errors": previous_errors + len(errors),
+        "fetch_errors": sum(
+            item["status"] in ("fetch_error", "schema_validation_error")
+            for item in page_records
+        ),
         "queue_remaining": len(queue),
         "complete": not queue,
         "errors": errors,
