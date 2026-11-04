@@ -1,0 +1,123 @@
+name: CatCar Honda Accord B-33-10 diagram audit
+
+on:
+  push:
+    paths:
+      - '.github/workflows/catcar-honda-accord-b3310-diagram-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install image audit dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check Pillow
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr
+      - name: Download B-33-10 diagram and verify geometry and watermark indicators
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out/honda
+          sleep 10
+          python - <<'PY'
+          import hashlib
+          import json
+          import subprocess
+          import urllib.request
+          from pathlib import Path
+          from PIL import Image
+
+          url = "http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__3310.png"
+          req = urllib.request.Request(url, headers={"User-Agent": "PartScope-Japanese-Catalog-Discovery/1.0"})
+          with urllib.request.urlopen(req, timeout=35) as response:
+              status = response.status
+              content_type = response.headers.get("Content-Type", "")
+              body = response.read(8 * 1024 * 1024 + 1)
+          if len(body) > 8 * 1024 * 1024:
+              raise SystemExit("Honda B-33-10 diagram exceeds 8 MiB audit limit")
+          path = Path("out/honda/B__3310.png")
+          path.write_bytes(body)
+          img = Image.open(path).convert("RGB")
+          width, height = img.size
+          raw_boxes = [
+              ("1",567,1712,18,29), ("2",24,1272,25,29), ("3",612,23,26,29),
+              ("3",782,748,25,29), ("4",322,945,26,29), ("5",33,801,26,29),
+              ("6",624,437,25,29), ("6",773,340,26,30), ("7",353,1477,25,28),
+              ("8",680,560,25,29), ("8",723,213,25,29), ("9",93,1229,25,30),
+              ("10",60,1143,39,30), ("11",502,1612,36,29), ("12",535,1612,40,29),
+              ("13",416,346,40,29), ("14",426,930,40,29), ("14",830,1249,39,29),
+              ("17",85,1000,40,29), ("17",124,619,40,29), ("18",215,939,40,29),
+              ("18",701,922,40,29), ("19",899,1098,42,36), ("20",206,1494,42,30),
+              ("22",636,1847,43,29), ("23",673,1698,43,29)
+          ]
+          boxes = []
+          for pos, top, left, box_width, box_height in raw_boxes:
+              boxes.append({
+                  "position": pos, "top": top, "left": left,
+                  "width": box_width, "height": box_height,
+                  "inside_image": (left >= 0 and top >= 0 and
+                      left + box_width <= width and top + box_height <= height)
+              })
+
+          def ocr(image_path):
+              result = subprocess.run(["tesseract", str(image_path), "stdout", "--psm", "11"],
+                  capture_output=True, text=True, timeout=30)
+              return " ".join(result.stdout.split())
+
+          full = ocr(path)
+          crops = {}
+          for name, coords in {
+              "top_left": (0,0,width//3,height//3),
+              "top_right": (width*2//3,0,width,height//3),
+              "bottom_left": (0,height*2//3,width//3,height),
+              "bottom_right": (width*2//3,height*2//3,width,height),
+              "center": (width//3,height//3,width*2//3,height*2//3)
+          }.items():
+              crop_path = Path("out/honda") / ("b3310-crop-" + name + ".png")
+              img.crop(coords).save(crop_path)
+              crops[name] = ocr(crop_path)
+              crop_path.unlink()
+
+          combined = (full + " " + " ".join(crops.values())).lower()
+          positions = sorted(set(x["position"] for x in boxes), key=lambda x: int(x))
+          report = {
+              "make": "Honda", "model": "Accord", "year": 2011,
+              "configuration": "Austria (KW), 5AT, 2.0EX",
+              "group": "B-33-10 P.S. GEAR BOX (LH)",
+              "diagram_url": url, "http_status": status, "content_type": content_type,
+              "bytes": len(body), "sha256": hashlib.sha256(body).hexdigest(),
+              "dimensions": {"width": width, "height": height},
+              "hotspot_count": len(boxes), "distinct_positions": len(positions),
+              "positions": positions, "hotspots": boxes,
+              "all_hotspots_inside_image": all(x["inside_image"] for x in boxes),
+              "full_image_ocr": full, "corner_and_center_ocr": crops,
+              "ocr_watermark_indicators": {
+                  "catcar_text": "catcar" in combined,
+                  "copyright_text": "copyright" in combined,
+                  "website_text": "catcar.info" in combined
+              },
+              "manual_visual_review_required": True,
+              "note": "OCR is screening only; faint or image-only marks require visual inspection."
+          }
+          Path("out/honda/honda-b3310-diagram-audit.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          if status != 200 or not content_type.lower().startswith("image/png"):
+              raise SystemExit("Honda B-33-10 diagram was not returned as PNG")
+          if not report["all_hotspots_inside_image"]:
+              raise SystemExit("At least one B-33-10 hotspot is outside image bounds")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catcar-honda-accord-b3310-diagram-audit
+          path: out/honda/
+          retention-days: 7
