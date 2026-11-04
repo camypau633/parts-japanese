@@ -322,3 +322,15 @@ Workflow: [41827865889](https://github.com/camypau633/parts-japanese/actions/run
 - OCR screening found the native drawing identifier `TA08B2710`; no CatCar, copyright or website indicators were found.
 
 **B-27-10 sample: geometry pass, visible watermark not found.** This conclusion applies only to this image. This sample is Austria (KW), not JDM.
+
+
+## Honda PartScope export regression coverage
+
+Commit: `5b68be8` — added two exporter integration regressions.
+
+1. B-27-10 option variants: three OEM numbers, each with two source rows for different equipment options, remain six distinct factory rows. The test checks 2011 compatibility context, verified diagram URL, and one matched hotspot per OEM.
+2. Same OEM across groups: one OEM appearing in B-27-10 and E-1 exports under one cleaned SKU key but remains two distinct PartScope candidates because the source group and diagram differ. Each candidate retains its own factory row, diagram URL and hotspot.
+
+The full CatCar adapter/parser/schema unit-test workflow passed: [41828424650](https://github.com/camypau633/parts-japanese/actions/runs/41828424650).
+
+These are offline exporter regression tests; they do not publish Honda records to PartScope preview or production.
