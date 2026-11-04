@@ -52,93 +52,6 @@ jobs:
           download_artifact 13155555091 .catcar-fixtures/camry
           test -s .catcar-fixtures/camry/normalized/report.json
           test -s .catcar-fixtures/camry/diagram-geometry.json
-      - name: Inspect CatCar Toyota getArticles transport
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail --silent --show-error --location --max-time 20 \
-            'https://www.catcar.info/js/script.js?v=2.0' -o /tmp/catcar-script.js
-          python - <<'PY'
-          from pathlib import Path
-          source = Path("/tmp/catcar-script.js").read_text(encoding="utf-8", errors="replace")
-          marker = "function getArticles"
-          start = source.find(marker)
-          if start < 0:
-              marker = "getArticles = function"
-              start = source.find(marker)
-          if start < 0:
-              raise SystemExit("CatCar getArticles function was not found in script.js")
-          brace = source.find("{", start)
-          if brace < 0:
-              raise SystemExit("CatCar getArticles function has no body")
-          depth = 0
-          quote = None
-          escaped = False
-          end = None
-          for index in range(brace, len(source)):
-              char = source[index]
-              if quote:
-                  if escaped:
-                      escaped = False
-                  elif char == "\\\\":
-                      escaped = True
-                  elif char == quote:
-                      quote = None
-                  continue
-              if char in ("'", '"', "`"):
-                  quote = char
-              elif char == "{":
-                  depth += 1
-              elif char == "}":
-                  depth -= 1
-                  if depth == 0:
-                      end = index + 1
-                      break
-          if end is None:
-              raise SystemExit("Could not isolate getArticles function")
-          print("CATCAR_GETARTICLES_SOURCE_BEGIN")
-          print(source[start:end])
-          print("CATCAR_GETARTICLES_SOURCE_END")
-          PY
-      - name: Verify live Toyota getArticles AJAX lookups
-        env:
-          PYTHONPATH: .
-        run: |
-          python - <<'PY'
-          import json
-          import time
-          from pathlib import Path
-          from tools.catcar_poc.crawl_catalog import (
-              build_toyota_ajax_url, fetch_toyota_ajax_page,
-          )
-          from tools.catcar_poc.adapters import ToyotaAdapter
-          sample = json.loads(Path(".catcar-fixtures/camry/oem_variation_sample.json").read_text(encoding="utf-8"))
-          checked = 0
-          for group in sample.get("sampled_groups", []):
-              for part in group.get("parts", []):
-                  if part.get("source_status") != "available":
-                      continue
-                  url = build_toyota_ajax_url(part["ajax_url"].split("l=", 1)[1].split("&", 1)[0])
-                  status, final_url, html = fetch_toyota_ajax_page(url, 30)
-                  if status != 200:
-                      raise SystemExit("Toyota AJAX HTTP status: %s" % status)
-                  records = ToyotaAdapter.parse_ajax_records(html, part.get("part_number"))
-                  if not records or records[0].get("source_status") != "available":
-                      raise SystemExit("Toyota AJAX returned no classified OEM rows for %s" % part.get("part_number"))
-                  expected = [str(row.get("oem") or "").strip() for row in part.get("records", [])]
-                  actual = [row.get("oem_number_raw") or "" for row in records]
-                  if expected != actual:
-                      raise SystemExit("Toyota AJAX OEM mismatch for %s: %r != %r" % (part.get("part_number"), expected, actual))
-                  checked += 1
-                  if checked >= 3:
-                      break
-                  time.sleep(1)
-              if checked >= 3:
-                  break
-          if checked < 3:
-              raise SystemExit("Only %s live Toyota AJAX rows verified" % checked)
-          print("Verified live Toyota AJAX rows:", checked)
-          PY
       - name: Install validation dependency
         run: python -m pip install -r requirements-dev.txt
       - name: Parse captured Toyota and Nissan HTML fixtures
@@ -147,6 +60,29 @@ jobs:
             --root .catcar-fixtures \
             --schema schemas/catcar-extraction-v0.1.schema.json \
             --output out/normalized
+      - name: Replay captured Toyota getArticles responses across eight groups
+        run: |
+          python -m tools.catcar_poc.normalize_toyota_oem_sample \
+            --sample .catcar-fixtures/camry/oem_variation_sample.json \
+            --schema schemas/catcar-extraction-v0.1.schema.json \
+            --output out/toyota-oem-variation
+          python - <<'PY'
+          import json
+          with open("out/toyota-oem-variation/report.json", encoding="utf-8") as stream:
+              report = json.load(stream)
+          assert report["group_count"] == 8, report
+          assert report["part_row_count"] == 123, report
+          assert report["sampled_part_row_count"] == 123, report
+          assert report["unsampled_part_row_count"] == 0, report
+          assert report["oem_record_count"] == 330, report
+          assert report["unique_oem_number_count"] == 183, report
+          assert report["diagram_count"] == 8, report
+          assert report["schema_valid"] is True, report
+          print("Captured Toyota groups:", report["group_count"])
+          print("Toyota rows resolved by AJAX:", report["sampled_part_row_count"])
+          print("OEM records:", report["oem_record_count"])
+          print("Unique OEM numbers:", report["unique_oem_number_count"])
+          PY
       - name: Build bounded list of Japanese diagrams
         shell: bash
         run: |
