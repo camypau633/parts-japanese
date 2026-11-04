@@ -121,15 +121,36 @@ MARKET_LABELS = {
     "us": "United States",
     "america": "United States",
 }
+# Suzuki exposes numeric marketId values in its own region selector. These
+# mappings are based on the labels linked from the CatCar Suzuki root page.
+SUZUKI_MARKET_ID_LABELS = {
+    "1": "Africa",
+    "2": "Asia",
+    "3": "Canada",
+    "4": "Caribbean",
+    "5": "Europe",
+    "6": "Latin America",
+    "7": "Middle East",
+    "8": "Pacific",
+    "9": "Russia",
+    "10": "United States",
+}
 
 
 def market_context(adapter_result, source_url):
     """Extract only explicit market markers; never infer a market from model names."""
+    decoded = decoded_filter(source_url)
     filter_candidates = [
         str(value).strip().lower()
-        for key, value in decoded_filter(source_url).items()
+        for key, value in decoded.items()
         if key.lower() in ("market", "region", "country", "sales_region", "catalog_region")
     ]
+    market_id = str(decoded.get("marketId", "")).strip()
+    if market_id in SUZUKI_MARKET_ID_LABELS:
+        return {
+            "market_region": SUZUKI_MARKET_ID_LABELS[market_id],
+            "market_code_raw": "marketId=" + market_id,
+        }
 
     path_candidates = []
     urls = [source_url]
