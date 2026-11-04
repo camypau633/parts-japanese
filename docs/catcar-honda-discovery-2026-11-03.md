@@ -173,3 +173,12 @@ Workflow: [41820435155](https://github.com/camypau633/parts-japanese/actions/run
 **B-28 sample: geometry pass, visible watermark not found.** This conclusion applies only to this image, not to all Honda/CatCar diagrams.
 
 This is the second verified Honda part-table subgroup (after Engine E-1). Both are from the Austria (KW) catalog configuration; this does not establish JDM coverage or all Honda models/years.
+
+## B-28 parser and PartScope export regression
+
+- Added a B-28 adapter regression using representative rows from the captured source layout. It verifies duplicate spring OEM rows with different option-code sets, alternate supplier/part variants sharing a diagram position, repeated position 7, and the diagram reference.
+- Added a PartScope export regression for B-28. It verifies that the two spring rows remain separate factory-part rows, model year 2011 is retained, engine code remains blank rather than guessed, and both position-7 hotspot rectangles survive export.
+- Both test suites passed in [CatCar adapter unit tests run 115](https://github.com/camypau633/parts-japanese/actions/runs/41820744245).
+- The existing bounded Toyota/Nissan real-artifact regression also passed after these changes: [run 40](https://github.com/camypau633/parts-japanese/actions/runs/41820744247). This checks that the Honda additions did not break those existing source paths; it is not a full Honda production-import run.
+
+Honda conversion remains an offline preview capability only. No Honda records or images have been published to PartScope preview or production.
