@@ -29,7 +29,7 @@ CATCAR_JAPANESE_CATALOGS = {
     "mazda": {
         "url": "https://www.catcar.info/mazda/",
         "brands": ["Mazda"],
-        "detail_adapter": None,
+        "detail_adapter": "mazda",
     },
     "mitsubishi": {
         "url": "https://www.catcar.info/mitsubishi/",
