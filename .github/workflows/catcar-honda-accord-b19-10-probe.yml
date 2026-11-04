@@ -1,4 +1,4 @@
-name: CatCar Honda Accord B-19-10 front shock absorber probe
+name: CatCar Honda Accord B-19-10 rear brake probe
 
 on:
   push:
@@ -101,6 +101,45 @@ jobs:
           open("out/honda-accord-b19-10-inspection.json", "w", encoding="utf-8").write(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
           print(json.dumps(result, ensure_ascii=False, indent=2))
           if status != 200: raise SystemExit("Honda B-19-10 did not return HTTP 200")
+          PY
+      - name: Validate the captured B-19-10 HTML with the real Honda adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from tools.catcar_poc.adapters import HondaAdapter
+
+          html = Path("out/honda-accord-b19-10.html").read_text(encoding="utf-8")
+          parsed = HondaAdapter().parse(html)
+          parts = parsed["parts"]
+          assert len(parts) == 36, "expected 36 B-19-10 part rows, got %s" % len(parts)
+          assert len(set(x["part_number_raw"] for x in parts)) == 26
+          for position in ("1", "5", "6", "8", "10", "11", "14", "24", "25", "27"):
+              variants = [x for x in parts if x["diagram_position_code"] == position]
+              assert len(variants) == 2, "expected two option variants at position %s" % position
+              assert variants[0]["additional_source_fields"]["option_codes_raw"] != variants[1]["additional_source_fields"]["option_codes_raw"]
+          pos19 = [x for x in parts if x["diagram_position_code"] == "19"]
+          pos21 = [x for x in parts if x["diagram_position_code"] == "21"]
+          assert len(pos19) == 3 and len(set(x["part_number_raw"] for x in pos19)) == 3
+          assert len(pos21) == 2 and len(set(x["part_number_raw"] for x in pos21)) == 2
+          assert len(parsed["hotspots"]) == 26
+          assert len([x for x in parsed["images"] if x["image_kind"] == "diagram"]) == 1
+          report = {
+              "adapter": parsed["adapter"],
+              "part_rows": len(parts),
+              "unique_oem_numbers": len(set(x["part_number_raw"] for x in parts)),
+              "option_variant_positions": 10,
+              "position_19_distinct_oems": 3,
+              "position_21_distinct_oems": 2,
+              "hotspot_rectangles": len(parsed["hotspots"]),
+              "diagram_images": 1,
+              "validation_passed": True,
+          }
+          Path("out/honda-b19-10-adapter-validation.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+          print(json.dumps(report, ensure_ascii=False, indent=2))
           PY
       - uses: actions/upload-artifact@v4
         with:
