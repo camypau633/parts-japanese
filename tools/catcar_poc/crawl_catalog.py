@@ -368,7 +368,8 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
             for item in page_records
         ),
         "queue_remaining": len(queue),
-        "complete": not queue,
+        "retry_urls_pending": len(set(failed_urls)),
+        "complete": not queue and not failed_urls,
         "errors": errors,
     }
     write_json(output_dir / "crawl-report.json", report)
