@@ -225,11 +225,12 @@ def fetch_page(url, timeout):
 
 def build_toyota_ajax_url(token):
     """Build the exact GET URL used by CatCar's observed getArticles() function."""
-    if not token or not re.fullmatch(r"[A-Za-z0-9_+/=-]+", token):
+    # getArticles() concatenates the already URL-encoded token directly
+    # into the query string. CatCar tokens commonly end in %3D; quoting them
+    # again would turn %3D into %253D and change the lookup key.
+    if not token or not re.fullmatch(r"(?:[A-Za-z0-9_+/=-]|%[0-9A-Fa-f]{2})+", token):
         raise ValueError("invalid_toyota_ajax_token")
-    return "https://www.catcar.info/toyota/?l={}&st=81".format(
-        quote(token, safe="")
-    )
+    return "https://www.catcar.info/toyota/?l={}&st=81".format(token)
 
 
 def fetch_toyota_ajax_page(url, timeout):
