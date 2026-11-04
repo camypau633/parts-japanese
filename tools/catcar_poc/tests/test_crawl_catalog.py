@@ -1,3 +1,4 @@
+import base64
 import json
 import tempfile
 import urllib.error
@@ -29,6 +30,22 @@ class CrawlCatalogTests(unittest.TestCase):
     def test_discovery_only_adapter_does_not_fabricate_part_records(self):
         with self.assertRaisesRegex(ValueError, "detail_adapter_not_implemented"):
             DiscoveryOnlyAdapter().parse("<html><body>unknown layout</body></html>")
+
+    def test_suzuki_numeric_market_ids_are_decoded_from_verified_catalog_filters(self):
+        def url_for(filter_text):
+            encoded = base64.b64encode(filter_text.encode("utf-8")).decode("ascii")
+            return "https://www.catcar.info/suzuki/?l=" + encoded
+
+        europe = market_context(
+            {}, url_for("marketId==5||st==20")
+        )
+        asia = market_context(
+            {}, url_for("marketId==2||st==20")
+        )
+        self.assertEqual(europe["market_region"], "Europe")
+        self.assertEqual(europe["market_code_raw"], "marketId=5")
+        self.assertEqual(asia["market_region"], "Asia")
+        self.assertNotEqual(asia["market_region"], "Japan")
 
     def test_discovery_only_catalog_retains_page_without_fabricating_records(self):
         html = "<html><head><title>Suzuki catalog</title></head><body><a href='/suzuki/?l=next'>Next</a></body></html>"
