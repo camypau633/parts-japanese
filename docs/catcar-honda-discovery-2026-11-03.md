@@ -359,3 +359,28 @@ Verified result:
 **Conclusion:** the offline Honda adapter → normalization → multi-document PartScope export path passed this six-group real-data test, including row preservation, option variants, cross-group SKU collisions, compatibility, diagram URLs and hotspot geometry. The generated shards were uploaded only as a CI artifact. Honda has still not been published to PartScope preview or production.
 
 The CI regression downloads historical GitHub Actions artifacts by run ID; those source artifacts are subject to GitHub Actions artifact retention and this one-off run should be repeated with refreshed captures if the historical artifacts expire.
+
+## Real six-group PartScope export regression
+
+Workflow: [41829393308](https://github.com/camypau633/parts-japanese/actions/runs/41829393308)
+
+The offline exporter was run against the six previously captured real Honda Accord groups above, together with their audited diagram geometry reports. No new CatCar requests were made by this regression.
+
+- 6 source groups; 165 source part rows.
+- All 165 factory catalogue rows survived export.
+- 130 unique cleaned SKU keys became 134 PartScope candidate records. Multiple group candidates for the same OEM remain separate, each with its own source group and diagram.
+- 6 verified diagrams and 148 exported hotspot associations.
+- All 134 candidates retain 2011 compatibility context; engine code remains blank because it was not verified.
+- Four cross-group OEM cases were explicitly checked: three shared between B-22/B-19-10 and one shared between B-27-10/B-29.
+- The regression report and isolated JSON shards are stored in the workflow artifact.
+- Source region remains Austria (KW), not JDM. Honda data has not been published to PartScope preview or production.
+
+## Incomplete Honda page rejection
+
+- HondaAdapter now emits page_status and explicit page_warnings.
+- A Honda page is marked incomplete when it has no part rows after the explicit table header, does not contain exactly one diagram image, or contains an unresolved/template image URL.
+- normalize_page carries that status into the normalized document and the extraction schema now permits the two fields.
+- document_to_records refuses to export documents explicitly marked incomplete.
+- Added adapter tests for a header-only page with a template diagram URL and for a valid page with one part row and one resolved diagram.
+- Adapter and schema tests passed in [run 41829866143](https://github.com/camypau633/parts-japanese/actions/runs/41829866143); existing Toyota/Nissan real-artifact regression passed in [run 41829866093](https://github.com/camypau633/parts-japanese/actions/runs/41829866093).
+- The six-group Honda regression is now configured to rerun whenever the Honda parser, normalizer, exporter or shared extraction schema changes.
