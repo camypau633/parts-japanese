@@ -143,3 +143,22 @@ Selected group: 2011 Accord, 4-door, Austria (KW), 5AT, 2.0 EX — “РУЛЕВ
 This confirms that the second main Honda group uses the same high-level navigation pattern as Engine: main group → named subgroup → part table/diagram. It does **not** yet prove that every subgroup's part-table layout is identical to E-1, so the adapter remains validated only against the E-1 part page.
 
 The next useful probe is one bounded subgroup page from this list (for example B-28 Front Shock Absorber), to check whether its part table and diagram geometry follow the E-1 pattern.
+
+
+## B-28 subgroup: front shock absorber
+
+Workflow: [41820216716](https://github.com/camypau633/parts-japanese/actions/runs/41820216716)
+
+Selected subgroup: 2011 Accord, 4-door, Austria (KW), 5AT, 2.0 EX — B-28 `FRONT SHOCK ABSORBER`.
+
+- HTTP 200; HTML size 58,183 bytes.
+- The page contains 37 table rows: five equipment-option rows, one explicit part-table header, and 31 part rows including distinct option and supplier variants.
+- The OEM table includes spring, right/left front shock absorber assemblies and units, mounting bases, dust covers, bump stops, collars and fasteners.
+- The same OEM can occur in multiple rows because option codes differ. These rows must remain distinct; position numbers alone are not unique row identifiers.
+- There are 19 distinct diagram positions and 20 hotspot rectangles. Position 7 has two separate rectangles.
+- All hotspot coordinates are available as `srcTop`, `srcLeft`, `srcWidth` and `srcHeight`; the image is `http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2800.png`.
+- The B-28 HTML includes the actual diagram URL and hotspot geometry, confirming the same core table/diagram structure as E-1. The part-row count and duplicate-option behavior are more complex, so regression coverage should be expanded before broad Honda enablement.
+
+**Image watermark audit is still pending for B-28.** The image URL and hotspot metadata were found, but this probe did not download the PNG itself. No conclusion about watermarks on B-28 is made yet.
+
+This is the second verified Honda part-table subgroup (after Engine E-1). Both are from the Austria (KW) catalog configuration; this does not establish JDM coverage or all Honda models/years.
