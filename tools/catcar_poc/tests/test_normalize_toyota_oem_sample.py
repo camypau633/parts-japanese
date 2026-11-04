@@ -72,6 +72,8 @@ class ToyotaOemSampleTests(unittest.TestCase):
             self.assertEqual(report["unsampled_part_row_count"], 1)
             self.assertEqual(report["oem_record_count"], 2)
             document = documents[0][1]
+            self.assertEqual(document["validation"]["page_status"], "incomplete")
+            self.assertIn("toyota_ajax_rows_not_fully_sampled", document["validation"]["page_warnings"])
             self.assertEqual(document["catalog_context"]["source_group_id"], "1103")
             self.assertEqual(document["catalog_context"]["production_period_raw"], "09/2001-01/2006")
             self.assertEqual(document["parts"][0]["source_status"], "requires_ajax")
