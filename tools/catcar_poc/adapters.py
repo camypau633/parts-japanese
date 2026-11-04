@@ -201,8 +201,22 @@ class HondaAdapter(StaticTableAdapter):
 
         positions = [item["diagram_position_code"] for item in parts
                      if item["diagram_position_code"]]
+        diagram_images = [image for image in parsed.images
+                          if image.get("image_kind") == "diagram"]
+        diagram_src = diagram_images[0].get("src", "") if len(diagram_images) == 1 else ""
+        template_image = "{npl}" in diagram_src or "{" in diagram_src or "}" in diagram_src
+        page_status = "complete" if parts and len(diagram_images) == 1 and diagram_src and not template_image else "incomplete"
+        warnings = []
+        if not parts:
+            warnings.append("no_part_rows_after_honda_header")
+        if len(diagram_images) != 1:
+            warnings.append("expected_exactly_one_diagram_image")
+        elif not diagram_src or template_image:
+            warnings.append("diagram_image_url_unresolved")
         return {
             "adapter": self.name,
+            "page_status": page_status,
+            "page_warnings": warnings,
             "rows": parsed.rows,
             "images": parsed.images,
             "hotspots": parsed.hotspots,
