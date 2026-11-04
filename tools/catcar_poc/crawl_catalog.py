@@ -22,6 +22,7 @@ import base64
 from .adapters import DiscoveryOnlyAdapter, HondaAdapter, NissanAdapter, ToyotaAdapter
 from .catalog_registry import CATCAR_JAPANESE_CATALOGS, catalog_config
 from .normalize import normalize_page
+from .parser import parse_html
 
 
 USER_AGENT = "PartScope-Japanese-Catalog-Importer/0.1 (+catalog research)"
@@ -304,11 +305,16 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
             if not allowed_catalog_url(final_url, make):
                 raise ValueError("redirect_left_selected_make_path")
             title, links = discover_links(html, final_url, make)
+            page_market = market_context(
+                {"images": parse_html(html).images}, final_url
+            )
             record.update({
                 "http_status": status,
                 "final_url": final_url,
                 "title": title,
                 "discovered_links": len(links),
+                "market_region": page_market["market_region"],
+                "market_code_raw": page_market["market_code_raw"],
             })
             for link in links:
                 if link["url"] not in queued and link["url"] not in visited:
@@ -330,7 +336,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                     "brand": brand_candidates[0] if len(brand_candidates) == 1 else None,
                     "brand_candidates": brand_candidates,
                     "manufacturer_country": "Japan",
-                    **market_context(parsed, final_url),
+                    **page_market,
                     "catalog_filter_raw": decoded_filter(final_url),
                     "source_page_label": item.get("label", ""),
                     "source_page_title": title,
@@ -391,8 +397,14 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
         with (output_dir / "pages.jsonl").open("a", encoding="utf-8") as stream:
             stream.write(json.dumps(record, ensure_ascii=False) + "\n")
 
+    market_coverage = {}
+    for item in page_records:
+        region = item.get("market_region") or "Unspecified"
+        market_coverage[region] = market_coverage.get(region, 0) + 1
+
     report = {
         "crawler": "catcar_japanese_bounded_v1",
+        "market_coverage_pages": dict(sorted(market_coverage.items())),
         "make": make.title(),
         "start_url": start_url,
         "pages_visited": len(visited),
