@@ -283,7 +283,7 @@ def resolve_toyota_ajax_rows(parsed, group_url, output_dir, timeout,
         try:
             ajax_url = build_toyota_ajax_url(token)
             digest = hashlib.sha256(
-                (str(group_id or "") + "|" + str(part.get("source_row_id") or "")).encode("utf-8")
+                (str(group_id or group_url) + "|" + str(part.get("source_row_id") or "")).encode("utf-8")
             ).hexdigest()[:16]
             raw_path = raw_dir / (digest + ".html")
             if raw_path.is_file():
@@ -301,6 +301,8 @@ def resolve_toyota_ajax_rows(parsed, group_url, output_dir, timeout,
                 body, source_row_id=part.get("source_row_id")
             )
             if not records:
+                if raw_path.exists():
+                    raw_path.rename(raw_path.with_suffix(".unclassified.html"))
                 raise ValueError("toyota_ajax_empty_unclassified")
             status_value = records[0].get("source_status", "available")
             part["source_status"] = (
