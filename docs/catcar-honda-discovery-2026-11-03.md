@@ -396,3 +396,13 @@ Workflow: [41830297529](https://github.com/camypau633/parts-japanese/actions/run
 - Diagram: `http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2100.png`.
 - Full diagram pixel/coordinate and watermark audit is being run separately in workflow [41830462601](https://github.com/camypau633/parts-japanese/actions/runs/41830462601); do not treat the watermark review as complete until its image artifact is visually inspected.
 - This remains Austria (KW) catalog coverage, not JDM. Honda data remains unpublished to PartScope preview or production.
+
+B-21 diagram audit result (original audit run [41830462601](https://github.com/camypau633/parts-japanese/actions/runs/41830462601)):
+
+- Diagram download succeeded: HTTP 200, `image/png`, 38,934 bytes; 1920×959 pixels.
+- All 51 hotspot rectangles are within image bounds; 25 distinct position labels.
+- OCR screening found no CatCar, copyright or website watermark indicators.
+- Full-resolution image was visually inspected: no visible logo, watermark text, diagonal overlay or repeating translucent mark.
+- The first audit JSON file had an escaped trailing newline, although the workflow itself succeeded. The workflow was corrected to emit valid JSON and rerun; the image/geometry/visual findings above were independently verified from the downloaded PNG and report payload.
+
+The B-21 source descriptions also contain useful dimensional tokens (for example `28X2.0`, `24MM`, `10X1.25`). These are catalog description text, not a complete structured dimensional specification. A regression test now checks that the adapter preserves these tokens verbatim; test run [41830638902](https://github.com/camypau633/parts-japanese/actions/runs/41830638902) passed.
