@@ -31,6 +31,14 @@ Russia, United States, Middle East, Caribbean and Pacific. Selecting a region
 changes the model list. Selecting a model leads to equipment/grade choices and
 then catalog groups.
 
+A live Asia branch was followed through APV → GC415T → Engine →
+1 - ENGINE GASKET SET. Its parts table exposes the columns `Code`,
+`Part number`, `Name`, `Additional information` and `Qty`; the inspected
+sample contains real Suzuki part numbers such as `11402-61880` and
+`11141-61J00`. A first header-driven Suzuki adapter now parses these fields,
+preserving the selected market from the page filter. The adapter still needs
+raw HTML regression captures and checks on other models and markets.
+
 Suzuki stores the selected region in the base64-encoded `l` filter using a
 numeric `marketId`. The following identifiers were observed directly on the
 region links from the Suzuki root page:
@@ -86,8 +94,12 @@ includes, among others, Legacy B10-B15, Impreza G10-G14, Forester S10-S13,
 WRX/LEVORG V10 and BRZ Z10. Several entries have open-ended production ranges
 (for example, Legacy B15 from 07/2014 and Impreza G14 from 08/2016), so the
 catalog must not be treated as ending at those dates. The next level is a
-model/series page; its actual detail-group layout still needs a retained HTML
-fixture before a Subaru detail adapter is implemented.
+model/series page, followed by main groups and detail-group tables. The inspected
+Legacy B15 C-series Engine group exposed Japanese selector fields and a parts
+list with columns `№`, `Part number`, `Options`, `Applicable Models`,
+`Production date`, `Note/Destination Code` and `Comment`. A first
+header-driven Subaru adapter now preserves these fields. It still needs a
+retained raw HTML fixture and validation across additional groups and markets.
 
 The initial web inspection timeout was transient: the root and Japan branch
 were subsequently opened successfully.
