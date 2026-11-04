@@ -278,6 +278,18 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(item["description_raw"], "support see illustration, item: 067-050,22")
 
 
+    def test_suzuki_adapter_rejects_page_without_diagram_as_incomplete(self):
+        html = """
+        <table>
+          <tr><th>Code</th><th>Part number</th><th>Name</th><th>Qty</th></tr>
+          <tr><td>1</td><td>11402-61880</td><td>GASKET SET, ENGINE</td><td>1</td></tr>
+        </table>
+        """
+        result = SuzukiAdapter().parse(html)
+        self.assertEqual(len(result["parts"]), 1)
+        self.assertEqual(result["page_status"], "incomplete")
+        self.assertIn("no_diagram_image", result["page_warnings"])
+
     def test_subaru_observed_parts_table_preserves_model_period_and_destination_fields(self):
         html = """
         <table>
