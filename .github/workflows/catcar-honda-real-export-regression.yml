@@ -3,7 +3,11 @@ name: CatCar Honda real multi-group export regression
 on:
   push:
     paths:
+      - 'tools/catcar_poc/adapters.py'
+      - 'tools/catcar_poc/normalize.py'
+      - 'tools/catcar_poc/export_partscope.py'
       - 'tools/catcar_poc/tests/run_honda_real_export_regression.py'
+      - 'schemas/catcar-extraction-v0.1.schema.json'
       - '.github/workflows/catcar-honda-real-export-regression.yml'
   workflow_dispatch:
 
