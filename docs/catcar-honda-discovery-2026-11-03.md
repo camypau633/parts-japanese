@@ -425,3 +425,13 @@ Selected subgroup: 2011 Accord, 4-door, Austria (KW), 5AT, 2.0EX — B-33-60 `P.
 - Dedicated diagram audit workflow downloads the full PNG, checks all 38 hotspot rectangles against native image dimensions, and screens the full frame plus corners/center for watermark text. Full-resolution visual inspection remains required after the artifact is produced.
 
 **Important:** this sample is Austria (KW), not JDM. Honda data remains unpublished to PartScope preview or production.
+
+### B-33-60 diagram audit result
+
+- Audit workflow: [41860834876](https://github.com/camypau633/parts-japanese/actions/runs/41860834876) — success.
+- Full PNG downloaded from the diagram source: HTTP 200, `image/png`, 28,260 bytes, SHA-256 `7ca56bc967b41d325b707862af1fcb3c475a9ce0466ee733aecc522e492007b6`.
+- Native image dimensions: 1920×959.
+- All 38/38 hotspot rectangles are inside the image; 25 distinct position labels.
+- OCR over the full frame and five regions found no CatCar, copyright or website watermark indicators.
+- Full-resolution visual inspection found no CatCar logo, watermark text, diagonal overlay or repeating translucent mark.
+- Conclusion applies only to this B-33-60 diagram; OCR is screening and visual inspection is the final check.
