@@ -254,7 +254,7 @@ class CrawlCatalogTests(unittest.TestCase):
           <tr><td>90915-YZZE2</td><td>06/2004-</td><td>2AZFE..ACV3#</td></tr>
         </table>
         """
-        url = "https://www.catcar.info/toyota/?l=group-token"
+        url = "https://www.catcar.info/toyota/?l=Z3JvdXBfaWQ9PTExMDM%3D"
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp) / "out"
             with patch(
@@ -282,7 +282,7 @@ class CrawlCatalogTests(unittest.TestCase):
             )
             self.assertEqual(
                 [item["source_group_id"] for item in document["oem_records"]],
-                [None, None],
+                ["1103", "1103"],
             )
             self.assertEqual(document["parts"][0]["source_status"], "requires_ajax")
             self.assertEqual(
