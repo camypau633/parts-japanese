@@ -45,7 +45,7 @@ The CLI converts one previously saved HTML page into normalized JSON and perform
 python -m tools.catcar_poc.cli --adapter toyota --input page.html --output catalog.json --source-url "https://www.catcar.info/example/page" --context context.json
 ```
 
-For the current Japanese project, the crawler accepts all eight catalog roots: `toyota`, `nissan`, `honda`, `suzuki`, `mazda`, `mitsubishi`, `isuzu`, and `subaru`. The last five currently collect review artifacts only. Legacy `ford` and `vag` CLI choices remain only for historical fixture reproduction and are not part of the active project scope. For Toyota, already extracted AJAX records can be supplied with `--oem-records`.
+For the current Japanese project, the crawler accepts all eight catalog roots: `toyota`, `nissan`, `honda`, `suzuki`, `mazda`, `mitsubishi`, `isuzu`, and `subaru`. Mitsubishi and Isuzu currently collect review artifacts only. Legacy `ford` and `vag` CLI choices remain only for historical fixture reproduction and are not part of the active project scope. For Toyota, already extracted AJAX records can be supplied with `--oem-records`.
 
 ## Tests and real fixtures
 
@@ -53,7 +53,7 @@ GitHub Actions runs parser, adapter, regression, crawler unit, and JSON Schema t
 
 Toyota AJAX responses with the source message `No applicable data!` are retained as OEM records with `source_status: no_applicable_data`, rather than silently disappearing. Blank OEM period/applicability cells remain null.
 
-Before production use, the crawler must be exercised over all eight Japanese catalog roots; detail adapters must be implemented for Mitsubishi and Isuzu; Mazda, Suzuki and Subaru's first adapters must be validated against retained real HTML from multiple groups and markets; Toyota `getArticles` AJAX collection must be implemented; market labels must be checked against real CatCar regional catalog paths; incomplete-page handling and resume behavior must be verified on real runs; and source permissions/terms must be reviewed.
+Before production use, the crawler must be exercised over all eight Japanese catalog roots; detail adapters must be implemented for Mitsubishi and Isuzu; Mazda, Suzuki and Subaru's first adapters must be validated against retained real HTML from multiple groups and markets; those three adapters now reject pages without a resolved diagram instead of exporting them as complete; Toyota `getArticles` AJAX collection must be implemented; market labels must be checked against real CatCar regional catalog paths; incomplete-page handling and resume behavior must be verified on real runs; and source permissions/terms must be reviewed.
 
 ## Bounded Toyota Camry group/AJAX sample
 
