@@ -585,7 +585,7 @@ class PartScopeExportTests(unittest.TestCase):
 
 
     def test_incomplete_honda_page_is_rejected_before_export(self):
-        document = self._honda_document_fixture()
+        document = sample("Honda")
         document.setdefault("validation", {})["page_status"] = "incomplete"
         document["validation"]["page_warnings"] = ["no_part_rows_after_honda_header"]
         with self.assertRaisesRegex(ValueError, "Refusing to export incomplete CatCar page"):
