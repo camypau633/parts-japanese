@@ -217,6 +217,10 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                 if parsed.get("page_status") == "incomplete":
                     record["status"] = "incomplete_detail"
                     record["warnings"] = parsed.get("page_warnings", [])
+                    digest = hashlib.sha256(url.encode("utf-8")).hexdigest()[:16]
+                    (review_dir / (digest + ".html")).write_text(
+                        html, encoding="utf-8"
+                    )
                 elif not parsed.get("parts"):
                     record["status"] = "unrecognized_table"
                 else:
