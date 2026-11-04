@@ -384,3 +384,15 @@ The offline exporter was run against the six previously captured real Honda Acco
 - Added adapter tests for a header-only page with a template diagram URL and for a valid page with one part row and one resolved diagram.
 - Adapter and schema tests passed in [run 41829866143](https://github.com/camypau633/parts-japanese/actions/runs/41829866143); existing Toyota/Nissan real-artifact regression passed in [run 41829866093](https://github.com/camypau633/parts-japanese/actions/runs/41829866093).
 - The six-group Honda regression is now configured to rerun whenever the Honda parser, normalizer, exporter or shared extraction schema changes.
+
+## B-21 front driveshaft subgroup discovery
+
+Workflow: [41830297529](https://github.com/camypau633/parts-japanese/actions/runs/41830297529)
+
+- Selected the B-21 FRONT DRIVESHAFT/HALF SHAFT (2.0L) subgroup for the same 2011 Accord configuration, Austria (KW), 5AT, 2.0EX.
+- Captured page: HTTP 200, 82,110 bytes; 46 table rows including five equipment-option rows and the explicit parts header.
+- HondaAdapter validated 40 part rows, 25 unique OEM numbers, 51 hotspot rectangles and one diagram image. Page status is complete.
+- Several OEM/position rows repeat under different option-code combinations. They are retained as separate source rows; no deduplication by OEM or position is allowed.
+- Diagram: `http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2100.png`.
+- Full diagram pixel/coordinate and watermark audit is being run separately in workflow [41830462601](https://github.com/camypau633/parts-japanese/actions/runs/41830462601); do not treat the watermark review as complete until its image artifact is visually inspected.
+- This remains Austria (KW) catalog coverage, not JDM. Honda data remains unpublished to PartScope preview or production.
