@@ -121,6 +121,38 @@ jobs:
           assert observed == expected, {"expected": expected, "observed": observed, "url": final_url}
           print("Live Toyota AJAX fetch verified:", part["part_number"], "records:", len(actual))
           PY
+      - name: Live end-to-end crawl one Toyota Camry group
+        run: |
+          python - <<'PY'
+          import glob
+          import json
+          import subprocess
+          import sys
+          from pathlib import Path
+          sample = json.loads(Path(".catcar-fixtures/camry/oem_variation_sample.json").read_text(encoding="utf-8"))
+          group = next(item for item in sample["sampled_groups"] if item.get("group_id") == "1103")
+          output = Path("out/toyota-live-crawl")
+          subprocess.run([
+              sys.executable, "-m", "tools.catcar_poc.crawl_catalog",
+              "--make", "toyota", "--start-url", group["url"],
+              "--output", str(output), "--max-pages", "1",
+              "--delay", "10", "--timeout", "30",
+          ], check=True)
+          report = json.loads((output / "crawl-report.json").read_text(encoding="utf-8"))
+          documents = glob.glob(str(output / "normalized" / "*.json"))
+          assert report["complete"] is True, report
+          assert report["detail_pages_normalized"] == 1, report
+          assert len(documents) == 1, documents
+          document = json.loads(Path(documents[0]).read_text(encoding="utf-8"))
+          assert document["validation"]["page_status"] == "complete", document["validation"]
+          assert len(document["parts"]) == 2, len(document["parts"])
+          assert len(document["oem_records"]) > 0, document["oem_records"]
+          assert len(list((output / "ajax_raw").glob("*.html"))) == 2
+          print("Live Toyota group:", group["group_id"])
+          print("Rows:", len(document["parts"]))
+          print("OEM records:", len(document["oem_records"]))
+          print("Saved raw AJAX responses:", len(list((output / "ajax_raw").glob("*.html"))))
+          PY
       - name: Parse captured Toyota and Nissan HTML fixtures
         run: |
           python -m tools.catcar_poc.validate_real_artifacts \
