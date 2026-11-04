@@ -1,10 +1,10 @@
 # CatCar extraction adapters — POC
 
-This package contains the shared parser, brand/layout adapters, and draft JSON normalization layer. It is not a crawler, downloader, or production importer.
+This package contains shared parsers, brand/layout adapters, draft JSON normalization, a PartScope exporter, and a bounded/resumable CatCar Honda crawler. It is an early importer implementation, not yet a complete production importer for all Japanese makes.
 
 ## Current project scope
 
-The active project is limited to Japanese vehicle makes only. Toyota and Nissan have bounded real-page fixtures. Honda is currently in catalog-layout discovery; no Honda adapter is enabled until a real detail-group page is captured and validated.
+The active project is limited to Japanese vehicle makes only. Toyota and Nissan have bounded real-page fixtures. Honda has a working static-table adapter and a bounded/resumable catalog crawler. The crawler currently targets only the Honda path and uses a minimum 10-second delay. It discovers catalog links, normalizes recognized detail pages, checkpoints its queue, and records unrecognized pages for review. The current crawl is not yet a complete Japanese-market dataset.
 
 Ford and VAG adapters remain legacy experimental code from earlier probes. They are excluded from the current Japanese-only regression, importer, and preview publication. Do not run or extend them in this repository; other vehicle markets belong in separate repositories.
 
@@ -49,7 +49,7 @@ GitHub Actions runs parser, adapter, regression, and JSON Schema tests on Python
 
 Toyota AJAX responses with the source message `No applicable data!` are retained as OEM records with `source_status: no_applicable_data`, rather than silently disappearing. Blank OEM period/applicability cells remain null.
 
-Before a production importer is considered, adapters still need fixture-based validation against additional Japanese page variants and an explicit permission review.
+Before production use, the crawler must be exercised over the full Honda index, Toyota and Nissan traversal/AJAX collection must be implemented, incomplete-page handling and resume behavior must be verified on real runs, and source permissions/terms must be reviewed.
 
 ## Bounded Toyota Camry group/AJAX sample
 
