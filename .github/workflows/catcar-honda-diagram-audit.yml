@@ -736,7 +736,7 @@ jobs:
               "note":"OCR is screening only; faint or image-only marks require visual inspection."
           }
           Path("out/honda/honda-b21-diagram-audit.json").write_text(
-              json.dumps(report, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
           print(json.dumps(report, ensure_ascii=False, indent=2))
           if status != 200 or not content_type.lower().startswith("image/png"):
               raise SystemExit("Honda B-21 diagram was not returned as PNG")
