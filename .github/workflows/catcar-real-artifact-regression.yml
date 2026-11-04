@@ -100,6 +100,45 @@ jobs:
           print(source[start:end])
           print("CATCAR_GETARTICLES_SOURCE_END")
           PY
+      - name: Verify live Toyota getArticles AJAX lookups
+        env:
+          PYTHONPATH: .
+        run: |
+          python - <<'PY'
+          import json
+          import time
+          from pathlib import Path
+          from tools.catcar_poc.crawl_catalog import (
+              build_toyota_ajax_url, fetch_toyota_ajax_page,
+          )
+          from tools.catcar_poc.adapters import ToyotaAdapter
+          sample = json.loads(Path(".catcar-fixtures/camry/oem_variation_sample.json").read_text(encoding="utf-8"))
+          checked = 0
+          for group in sample.get("sampled_groups", []):
+              for part in group.get("parts", []):
+                  if part.get("source_status") != "available":
+                      continue
+                  url = build_toyota_ajax_url(part["ajax_url"].split("l=", 1)[1].split("&", 1)[0])
+                  status, final_url, html = fetch_toyota_ajax_page(url, 30)
+                  if status != 200:
+                      raise SystemExit("Toyota AJAX HTTP status: %s" % status)
+                  records = ToyotaAdapter.parse_ajax_records(html, part.get("part_number"))
+                  if not records or records[0].get("source_status") != "available":
+                      raise SystemExit("Toyota AJAX returned no classified OEM rows for %s" % part.get("part_number"))
+                  expected = [str(row.get("oem") or "").strip() for row in part.get("records", [])]
+                  actual = [row.get("oem_number_raw") or "" for row in records]
+                  if expected != actual:
+                      raise SystemExit("Toyota AJAX OEM mismatch for %s: %r != %r" % (part.get("part_number"), expected, actual))
+                  checked += 1
+                  if checked >= 3:
+                      break
+                  time.sleep(1)
+              if checked >= 3:
+                  break
+          if checked < 3:
+              raise SystemExit("Only %s live Toyota AJAX rows verified" % checked)
+          print("Verified live Toyota AJAX rows:", checked)
+          PY
       - name: Install validation dependency
         run: python -m pip install -r requirements-dev.txt
       - name: Parse captured Toyota and Nissan HTML fixtures
