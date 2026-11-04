@@ -105,12 +105,27 @@ def decoded_filter(url):
 MARKET_LABELS = {
     "euro": "Europe",
     "europe": "Europe",
+    "eu": "Europe",
     "japan": "Japan",
     "jpn": "Japan",
     "jdm": "Japan",
+    "asia": "Asia",
+    "asian": "Asia",
+    "asia-pacific": "Asia-Pacific",
+    "asiapacific": "Asia-Pacific",
+    "africa": "Africa",
+    "canada": "Canada",
+    "caribbean": "Caribbean",
+    "latin-america": "Latin America",
+    "latinamerica": "Latin America",
+    "middle-east": "Middle East",
+    "middleeast": "Middle East",
+    "pacific": "Pacific",
+    "russia": "Russia",
     "usa": "United States",
     "us": "United States",
     "america": "United States",
+    "united-states": "United States",
 }
 # Suzuki exposes numeric marketId values in its own region selector. These
 # mappings are based on the labels linked from the CatCar Suzuki root page.
