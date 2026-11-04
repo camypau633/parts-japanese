@@ -406,3 +406,22 @@ B-21 diagram audit result (original audit run [41830462601](https://github.com/c
 - The first audit JSON file had an escaped trailing newline, although the workflow itself succeeded. The workflow was corrected to emit valid JSON and rerun; the image/geometry/visual findings above were independently verified from the downloaded PNG and report payload.
 
 The B-21 source descriptions also contain useful dimensional tokens (for example `28X2.0`, `24MM`, `10X1.25`). These are catalog description text, not a complete structured dimensional specification. A regression test now checks that the adapter preserves these tokens verbatim; test run [41830638902](https://github.com/camypau633/parts-japanese/actions/runs/41830638902) passed.
+
+## B-33-60 power steering lines subgroup
+
+Probe: [41830874359](https://github.com/camypau633/parts-japanese/actions/runs/41830874359)  
+Diagram audit workflow: [.github/workflows/catcar-honda-accord-b3360-diagram-audit.yml](https://github.com/camypau633/parts-japanese/blob/main/.github/workflows/catcar-honda-accord-b3360-diagram-audit.yml)
+
+Selected subgroup: 2011 Accord, 4-door, Austria (KW), 5AT, 2.0EX — B-33-60 `P.S. LINES (LH) (2.0L)`.
+
+- HTTP 200; HTML size 59,296 bytes. The actual page title explicitly contains `B-33-60 P.S. LINES(LH)(2.0L)`.
+- The page contains 32 table rows: five equipment-option rows, one parts header and 26 part rows.
+- The 26 part rows contain 25 unique OEM numbers. OEM `53713-TA2-P05` appears twice with different option-code sets and must remain two separate source rows.
+- Other useful catalog description tokens are retained verbatim, including `15.5MM`, `10MM`, `7.8X1.9`, `14.4X1.9`, `6X12` and `6X20`. These are description strings, not independently verified structured specifications.
+- There are 38 hotspot rectangles for 25 distinct position labels. Position 5 has three rectangles, position 20 has five, position 23 has two, position 24 has six and position 25 has two.
+- The captured HTML passed the actual HondaAdapter: page status `complete`, 26 part rows, 25 unique OEM numbers, 38 hotspot rectangles and one resolved diagram image.
+- Diagram: `http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__3360.png`.
+- An initial probe metadata field accidentally retained the previous subgroup label; it has been corrected to `P.S. LINES (LH) (2.0L)`. The JSON report newline was corrected at the same time.
+- Dedicated diagram audit workflow downloads the full PNG, checks all 38 hotspot rectangles against native image dimensions, and screens the full frame plus corners/center for watermark text. Full-resolution visual inspection remains required after the artifact is produced.
+
+**Important:** this sample is Austria (KW), not JDM. Honda data remains unpublished to PartScope preview or production.
