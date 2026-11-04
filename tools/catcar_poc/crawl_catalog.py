@@ -19,7 +19,7 @@ import jsonschema
 from urllib.parse import parse_qs, urljoin, urlsplit, urlunsplit
 import base64
 
-from .adapters import DiscoveryOnlyAdapter, HondaAdapter, NissanAdapter, SubaruAdapter, SuzukiAdapter, ToyotaAdapter
+from .adapters import DiscoveryOnlyAdapter, HondaAdapter, MazdaAdapter, NissanAdapter, SubaruAdapter, SuzukiAdapter, ToyotaAdapter
 from .catalog_registry import CATCAR_JAPANESE_CATALOGS, catalog_config
 from .normalize import normalize_page
 from .parser import parse_html
@@ -29,6 +29,7 @@ USER_AGENT = "PartScope-Japanese-Catalog-Importer/0.1 (+catalog research)"
 MAX_PAGE_BYTES = 4 * 1024 * 1024
 ADAPTER_IMPLEMENTATIONS = {
     "honda": HondaAdapter,
+    "mazda": MazdaAdapter,
     "nissan": NissanAdapter,
     "toyota": ToyotaAdapter,
     "subaru": SubaruAdapter,
