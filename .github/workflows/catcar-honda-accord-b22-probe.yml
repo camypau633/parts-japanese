@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 7
     steps:
+      - uses: actions/checkout@v4
       - name: Inspect one Honda B-22 subgroup
         shell: bash
         run: |
@@ -100,6 +101,42 @@ jobs:
           open("out/honda-accord-b22-inspection.json", "w", encoding="utf-8").write(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
           print(json.dumps(result, ensure_ascii=False, indent=2))
           if status != 200: raise SystemExit("Honda B-22 did not return HTTP 200")
+          PY
+      - name: Validate the captured B-22 HTML with the real Honda adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from tools.catcar_poc.adapters import HondaAdapter
+
+          html = Path("out/honda-accord-b22.html").read_text(encoding="utf-8")
+          parsed = HondaAdapter().parse(html)
+          parts = parsed["parts"]
+          assert len(parts) == 25, "expected 25 B-22 part rows, got %s" % len(parts)
+          assert len(set(x["part_number_raw"] for x in parts)) == 24
+          hub = [x for x in parts if x["diagram_position_code"] == "5"]
+          assert len(hub) == 2 and hub[0]["part_number_raw"] == hub[1]["part_number_raw"]
+          assert hub[0]["additional_source_fields"]["option_codes_raw"] != hub[1]["additional_source_fields"]["option_codes_raw"]
+          wheel_bolts = [x for x in parts if x["diagram_position_code"] == "18"]
+          assert len(wheel_bolts) == 4
+          assert len(set(x["part_number_raw"] for x in wheel_bolts)) == 4
+          assert len(parsed["hotspots"]) == 23
+          assert len([x for x in parsed["images"] if x["image_kind"] == "diagram"]) == 1
+          report = {
+              "adapter": parsed["adapter"],
+              "part_rows": len(parts),
+              "unique_oem_numbers": len(set(x["part_number_raw"] for x in parts)),
+              "position_5_option_variants": len(hub),
+              "position_18_distinct_oems": len(wheel_bolts),
+              "hotspot_rectangles": len(parsed["hotspots"]),
+              "diagram_images": len([x for x in parsed["images"] if x["image_kind"] == "diagram"]),
+              "validation_passed": True,
+          }
+          Path("out/honda-b22-adapter-validation.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")
+          print(json.dumps(report, ensure_ascii=False, indent=2))
           PY
       - uses: actions/upload-artifact@v4
         with:
