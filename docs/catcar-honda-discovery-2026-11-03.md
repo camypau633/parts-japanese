@@ -242,4 +242,15 @@ Selected subgroup: 2011 Accord, 4-door, Austria (KW), 5AT, 2.0 EX — B-19-10 `R
 - There are 26 hotspot rectangles for 23 distinct position labels. Position 17 has three separate rectangles and position 10 has two.
 - The captured HTML passed the actual `HondaAdapter` regression step in the workflow: all 36 part rows, 26 unique OEMs, ten option-variant pairs, the three position-19 OEMs, the two position-21 OEMs, 26 hotspots and one diagram image were verified.
 
-**B-19-10 diagram watermark and geometry audit is pending.** The diagram URL is `http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__1910.png`; the image audit is being added to the bounded audit workflow. This sample is also Austria (KW), not JDM.
+## B-19-10 diagram: watermark and geometry audit
+
+Workflow: [41822240524](https://github.com/camypau633/parts-japanese/actions/runs/41822240524)
+
+- Diagram: `B__1910.png`, HTTP 200, PNG, 38,652 bytes.
+- Native dimensions: 1920 × 960 pixels.
+- All 26 hotspot rectangles are inside the image bounds; 23 distinct position labels are present.
+- Position 17 has three separate rectangles; position 10 has two.
+- The full-resolution image was visually inspected. No CatCar logo, watermark text, diagonal overlay or translucent repeating mark was observed.
+- OCR screening found native drawing labels and identifier `TA08B1910E`; no CatCar, copyright or website indicators were found.
+
+**B-19-10 sample: geometry pass, visible watermark not found.** This result applies only to this one image. This sample is also Austria (KW), not JDM.
