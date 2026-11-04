@@ -26,25 +26,16 @@ from .normalize import normalize_page
 
 USER_AGENT = "PartScope-Japanese-Catalog-Importer/0.1 (+catalog research)"
 MAX_PAGE_BYTES = 4 * 1024 * 1024
-ADAPTERS = {
+ADAPTER_IMPLEMENTATIONS = {
     "honda": HondaAdapter,
     "nissan": NissanAdapter,
     "toyota": ToyotaAdapter,
-    "suzuki": DiscoveryOnlyAdapter,
-    "mazda": DiscoveryOnlyAdapter,
-    "mitsubishi": DiscoveryOnlyAdapter,
-    "isuzu": DiscoveryOnlyAdapter,
-    "subaru": DiscoveryOnlyAdapter,
 }
-BRAND_NAMES = {
-    "honda": "Honda",
-    "nissan": None,
-    "toyota": None,
-    "suzuki": "Suzuki",
-    "mazda": "Mazda",
-    "mitsubishi": "Mitsubishi",
-    "isuzu": "Isuzu",
-    "subaru": "Subaru",
+# The registry is the single source of truth for catalog roots. A missing
+# implementation deliberately falls back to discovery-only mode.
+ADAPTERS = {
+    make: ADAPTER_IMPLEMENTATIONS.get(config["detail_adapter"], DiscoveryOnlyAdapter)
+    for make, config in CATCAR_JAPANESE_CATALOGS.items()
 }
 
 
@@ -319,9 +310,10 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                     html, encoding="utf-8"
                 )
             else:
+                brand_candidates = catalog_config(make)["brands"]
                 context = {
-                    "brand": BRAND_NAMES[make],
-                    "brand_candidates": catalog_config(make)["brands"],
+                    "brand": brand_candidates[0] if len(brand_candidates) == 1 else None,
+                    "brand_candidates": brand_candidates,
                     "manufacturer_country": "Japan",
                     **market_context(parsed, final_url),
                     "catalog_filter_raw": decoded_filter(final_url),
