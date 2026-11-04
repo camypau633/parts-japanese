@@ -254,3 +254,20 @@ Workflow: [41822240524](https://github.com/camypau633/parts-japanese/actions/run
 - OCR screening found native drawing labels and identifier `TA08B1910E`; no CatCar, copyright or website indicators were found.
 
 **B-19-10 sample: geometry pass, visible watermark not found.** This result applies only to this one image. This sample is also Austria (KW), not JDM.
+
+
+## Fifth part-table subgroup: B-29 rear lower arm
+
+Probe: [41826563235](https://github.com/camypau633/parts-japanese/actions/runs/41826563235)  
+Real adapter validation: [41826682904](https://github.com/camypau633/parts-japanese/actions/runs/41826682904)
+
+Selected subgroup: 2011 Accord, 4-door, Austria (KW), 5AT, 2.0 EX — B-29 `REAR LOWER ARM`.
+
+- HTTP 200; HTML size 77,717 bytes.
+- The page contains 50 table rows: five equipment-option rows, one header and 44 part rows.
+- The 44 part rows contain 38 unique OEM numbers.
+- Six position labels contain two rows each with different option-code sets: 7, 8, 15, 19, 23 and 31. All option variants are preserved.
+- There are 41 hotspot rectangles for 38 distinct position labels. Position 25 has three separate rectangles; position 26 has two.
+- The actual captured HTML passed through `HondaAdapter`: all 44 part rows, 38 unique OEMs, six option-variant pairs, 41 hotspots and one diagram image were verified.
+
+**B-29 diagram watermark and geometry audit is running.** Diagram URL: `http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2900.png`. This sample is also Austria (KW), not JDM.
