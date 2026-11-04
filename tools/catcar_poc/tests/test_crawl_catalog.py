@@ -8,7 +8,8 @@ from unittest.mock import patch
 
 from tools.catcar_poc.crawl_catalog import (
     ADAPTERS, allowed_catalog_url, decoded_filter,
-    discover_links, market_context, crawl
+    discover_links, market_context, crawl,
+    build_toyota_ajax_url, resolve_toyota_ajax_rows,
 )
 from tools.catcar_poc.catalog_registry import CATCAR_JAPANESE_CATALOGS, catalog_config
 from tools.catcar_poc.adapters import DiscoveryOnlyAdapter, MazdaAdapter, SubaruAdapter, SuzukiAdapter
@@ -231,6 +232,108 @@ class CrawlCatalogTests(unittest.TestCase):
             self.assertEqual(fetch.call_args.args[0], child)
             self.assertTrue(second["complete"])
             self.assertEqual(second["pages_visited"], 2)
+
+    def test_toyota_ajax_url_matches_observed_getarticles_transport(self):
+        token = "abc+/=="
+        self.assertEqual(
+            build_toyota_ajax_url(token),
+            "https://www.catcar.info/toyota/?l=abc%2B%2F%3D%3D&st=81",
+        )
+
+    def test_toyota_ajax_rows_are_resolved_and_linked_to_source_group(self):
+        html = """
+        <table><tr name="15600A" onclick="getArticles(this, 'TOKEN-15600A', 80, '/toyota/');">
+          <td>15600A</td><td>UNION(FOR OIL FILTER)</td>
+        </tr></table>
+        <img class="resize" src="https://ci.catcar.info/toyota/japan/diagram.png">
+        <div class="coord" srcNum="15600A" srcTop="10" srcLeft="20" srcWidth="30" srcHeight="40"></div>
+        """
+        ajax = """
+        <table class="table inner-part">
+          <tr><td>90915-YZZE1</td><td>09/2001-06/2004</td><td>2AZFE..ACV3#</td></tr>
+          <tr><td>90915-YZZE2</td><td>06/2004-</td><td>2AZFE..ACV3#</td></tr>
+        </table>
+        """
+        url = "https://www.catcar.info/toyota/?l=group-token"
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "out"
+            with patch(
+                "tools.catcar_poc.crawl_catalog.fetch_page",
+                return_value=(200, url, html),
+            ), patch(
+                "tools.catcar_poc.crawl_catalog.fetch_toyota_ajax_page",
+                return_value=(200, "https://www.catcar.info/toyota/?l=TOKEN-15600A&st=81", ajax),
+            ) as ajax_fetch, patch(
+                "tools.catcar_poc.crawl_catalog.time.sleep",
+            ):
+                report = crawl(url, output, max_pages=1, delay=10, make="toyota")
+            ajax_fetch.assert_called_once_with(
+                "https://www.catcar.info/toyota/?l=TOKEN-15600A&st=81", 30
+            )
+            self.assertTrue(report["complete"])
+            self.assertEqual(report["detail_pages_normalized"], 1)
+            document_path = list((output / "normalized").glob("*.json"))[0]
+            document = json.loads(document_path.read_text(encoding="utf-8"))
+            self.assertEqual(document["validation"]["page_status"], "complete")
+            self.assertEqual(len(document["oem_records"]), 2)
+            self.assertEqual(
+                [item["oem_number_raw"] for item in document["oem_records"]],
+                ["90915-YZZE1", "90915-YZZE2"],
+            )
+            self.assertEqual(
+                [item["source_group_id"] for item in document["oem_records"]],
+                [None, None],
+            )
+            self.assertEqual(document["parts"][0]["source_status"], "requires_ajax")
+            self.assertEqual(
+                document["parts"][0]["additional_source_fields"]["ajax_resolution_status"],
+                "available",
+            )
+            self.assertEqual(len(list((output / "ajax_raw").glob("*.html"))), 1)
+
+    def test_toyota_no_applicable_data_is_a_valid_resolved_ajax_state(self):
+        from tools.catcar_poc.adapters import ToyotaAdapter
+        parsed = ToyotaAdapter().parse("""
+          <table><tr name="12321A" onclick="getArticles(this, 'TOKEN-12321A', 80, '/toyota/');">
+          <td>12321A</td><td>CLIP</td></tr></table>
+          <img class="resize" src="https://ci.catcar.info/toyota/japan/diagram.png">
+        """)
+        with tempfile.TemporaryDirectory() as temp:
+            records, errors = resolve_toyota_ajax_rows(
+                parsed,
+                "https://www.catcar.info/toyota/?l=group",
+                temp,
+                30,
+                request_delay=0,
+            )
+            self.assertEqual(errors, [])
+            self.assertEqual(len(records), 1)
+            self.assertEqual(records[0]["source_status"], "no_applicable_data")
+            self.assertEqual(parsed["parts"][0]["source_status"], "no_applicable_data")
+
+    def test_toyota_ajax_failure_keeps_page_incomplete(self):
+        html = """
+        <table><tr name="15600A" onclick="getArticles(this, 'TOKEN-15600A', 80, '/toyota/');">
+          <td>15600A</td><td>UNION(FOR OIL FILTER)</td>
+        </tr></table>
+        <img class="resize" src="https://ci.catcar.info/toyota/japan/diagram.png">
+        """
+        url = "https://www.catcar.info/toyota/?l=group"
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "out"
+            with patch(
+                "tools.catcar_poc.crawl_catalog.fetch_page",
+                return_value=(200, url, html),
+            ), patch(
+                "tools.catcar_poc.crawl_catalog.fetch_toyota_ajax_page",
+                side_effect=urllib.error.URLError("temporary AJAX failure"),
+            ), patch("tools.catcar_poc.crawl_catalog.time.sleep"):
+                report = crawl(url, output, max_pages=1, delay=10, make="toyota")
+            self.assertEqual(report["detail_pages_normalized"], 0)
+            self.assertFalse(report["complete"])
+            self.assertEqual(report["incomplete_detail_pages"], 1)
+            document_files = list((output / "normalized").glob("*.json"))
+            self.assertEqual(document_files, [])
 
     def test_failed_page_is_retried_after_resume(self):
         html = """
