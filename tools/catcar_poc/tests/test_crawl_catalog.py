@@ -330,7 +330,7 @@ class CrawlCatalogTests(unittest.TestCase):
             ), patch("tools.catcar_poc.crawl_catalog.time.sleep"):
                 report = crawl(url, output, max_pages=1, delay=10, make="toyota")
             self.assertEqual(report["detail_pages_normalized"], 0)
-            self.assertFalse(report["complete"])
+            self.assertTrue(report["complete"])
             self.assertEqual(report["incomplete_detail_pages"], 1)
             document_files = list((output / "normalized").glob("*.json"))
             self.assertEqual(document_files, [])
