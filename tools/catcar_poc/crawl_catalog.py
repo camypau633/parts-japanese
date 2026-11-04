@@ -104,11 +104,13 @@ MARKET_LABELS = {
 
 def market_context(adapter_result, source_url):
     """Extract only explicit market markers; never infer a market from model names."""
-    candidates = []
-    for key, value in decoded_filter(source_url).items():
-        if key.lower() in ("market", "region", "country", "sales_region", "catalog_region"):
-            candidates.append(str(value).strip().lower())
+    filter_candidates = [
+        str(value).strip().lower()
+        for key, value in decoded_filter(source_url).items()
+        if key.lower() in ("market", "region", "country", "sales_region", "catalog_region")
+    ]
 
+    path_candidates = []
     urls = [source_url]
     urls.extend(
         image.get("src", "")
@@ -116,23 +118,26 @@ def market_context(adapter_result, source_url):
         if image.get("src")
     )
     for candidate_url in urls:
-        candidates.extend(
+        segments = [
             segment.lower()
             for segment in urlsplit(candidate_url).path.split("/")
             if segment
-        )
+        ]
+        # CatCar image paths use /<make>/<market>/...; retain that raw code.
+        if len(segments) >= 2:
+            path_candidates.append(segments[1])
 
-    for candidate in candidates:
+    for candidate in filter_candidates + path_candidates:
         if candidate in MARKET_LABELS:
             return {
                 "market_region": MARKET_LABELS[candidate],
                 "market_code_raw": candidate,
             }
+    raw_code = (filter_candidates + path_candidates)
     return {
         "market_region": None,
-        "market_code_raw": candidates[0] if candidates else None,
+        "market_code_raw": raw_code[0] if raw_code else None,
     }
-
 
 def discover_links(html, page_url, make):
     parser = LinkCollector()
