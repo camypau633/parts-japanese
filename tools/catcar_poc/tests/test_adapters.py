@@ -185,6 +185,34 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(sum(x["position_code"] == "7" for x in result["hotspots"]), 2)
         self.assertEqual(len([x for x in result["images"] if x["image_kind"] == "diagram"]), 1)
 
+    def test_honda_header_only_or_unresolved_diagram_page_is_marked_incomplete(self):
+        html = """
+        <table>
+          <tr><td>AB3:</td><td>SIDE SRS</td></tr>
+          <tr><td>ABS:</td><td>ABS</td></tr>
+          <tr><th>Код</th><th>Артикул</th><th>Описание</th><th>Дополнительная информация</th><th>Опционные коды</th></tr>
+        </table>
+        <img class="resize" src="/honda/euro/{npl}/IMGE/B__2700.png">
+        """
+        result = HondaAdapter().parse(html)
+        self.assertEqual(result["parts"], [])
+        self.assertEqual(result["page_status"], "incomplete")
+        self.assertIn("no_part_rows_after_honda_header", result["page_warnings"])
+        self.assertIn("diagram_image_url_unresolved", result["page_warnings"])
+
+    def test_honda_valid_part_table_is_marked_complete(self):
+        html = """
+        <table>
+          <tr><th>Код</th><th>Артикул</th><th>Описание</th></tr>
+          <tr><td>1</td><td>12345-ABC-001</td><td>TEST PART</td></tr>
+        </table>
+        <img class="resize" src="https://ci.catcar.info/honda/euro/18TA0801/IMGE/TEST.png">
+        """
+        result = HondaAdapter().parse(html)
+        self.assertEqual(len(result["parts"]), 1)
+        self.assertEqual(result["page_status"], "complete")
+        self.assertEqual(result["page_warnings"], [])
+
     def test_ford_static_table_code_mapping(self):
         html = """
         <table>
