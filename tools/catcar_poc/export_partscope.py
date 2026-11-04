@@ -177,6 +177,10 @@ def document_to_records(document, geometry_index=None):
     source_url = text(source.get("url"))
     if not source_url:
         raise ValueError("Normalized document has no source URL")
+    page_status = text((document.get("validation") or {}).get("page_status"))
+    if page_status == "incomplete":
+        warnings = (document.get("validation") or {}).get("page_warnings") or []
+        raise ValueError("Refusing to export incomplete CatCar page: %s" % ", ".join(warnings))
 
     oem_by_row = defaultdict(list)
     for item in document.get("oem_records") or []:
