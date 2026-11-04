@@ -121,7 +121,7 @@ were subsequently opened successfully.
 - Mazda's inspected Japan/Axela detail table has a distinct `Code / Part number / Name / Note` layout.
 - Isuzu requires family/model/modification hierarchy preservation.
 - Subaru market navigation and a parts-list table layout are now verified. A first header-driven adapter is implemented for the observed columns, but it still needs a retained raw HTML fixture and validation across multiple groups and markets.
-- Mazda, Suzuki and Subaru now have first-pass header-driven detail adapters;
+- Mazda, Suzuki and Subaru now have first-pass header-driven detail adapters. They require a resolved diagram image before a page can be marked complete, and their synthetic fixtures still need replacement/addition with retained raw CatCar HTML;
   their synthetic regression fixtures must be replaced or supplemented with
   retained raw HTML captures and additional market/group checks.
 - Mitsubishi and Isuzu remain discovery-only until their real detail tables
