@@ -270,4 +270,15 @@ Selected subgroup: 2011 Accord, 4-door, Austria (KW), 5AT, 2.0 EX — B-29 `REAR
 - There are 41 hotspot rectangles for 38 distinct position labels. Position 25 has three separate rectangles; position 26 has two.
 - The actual captured HTML passed through `HondaAdapter`: all 44 part rows, 38 unique OEMs, six option-variant pairs, 41 hotspots and one diagram image were verified.
 
-**B-29 diagram watermark and geometry audit is running.** Diagram URL: `http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2900.png`. This sample is also Austria (KW), not JDM.
+## B-29 diagram: watermark and geometry audit
+
+Workflow: [41826735617](https://github.com/camypau633/parts-japanese/actions/runs/41826735617)
+
+- Diagram: `B__2900.png`, HTTP 200, PNG, 25,461 bytes.
+- Native dimensions: 1920 × 959 pixels.
+- All 41 hotspot rectangles are inside image bounds; 38 distinct position labels are present.
+- Position 25 has three separate rectangles; position 26 has two.
+- The full-resolution image was visually inspected. No CatCar logo, watermark text, diagonal overlay or translucent repeating mark was observed.
+- OCR screening found native diagram labels and drawing identifier `TA08B2900A`; no CatCar, copyright or website indicators were found.
+
+**B-29 sample: geometry pass, visible watermark not found.** This conclusion applies only to this image. This sample is also Austria (KW), not JDM.
