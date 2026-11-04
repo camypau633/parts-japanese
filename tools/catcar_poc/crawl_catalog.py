@@ -127,7 +127,7 @@ def write_json(path, value):
 
 
 def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
-          make="honda"):
+          make="honda", resume_state=None):
     if delay < 10:
         raise ValueError("delay must be at least 10 seconds")
     if not allowed_catalog_url(start_url, make):
@@ -139,16 +139,29 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
     detail_dir.mkdir(parents=True, exist_ok=True)
     review_dir.mkdir(parents=True, exist_ok=True)
 
-    queue = deque([{"url": canonical_url(start_url), "label": "start"}])
-    queued = {canonical_url(start_url)}
-    visited = set()
+    if resume_state:
+        state = json.loads(Path(resume_state).read_text(encoding="utf-8"))
+        if state.get("make", "").lower() != make.lower():
+            raise ValueError("resume state belongs to a different make")
+        if canonical_url(state.get("start_url", "")) != canonical_url(start_url):
+            raise ValueError("resume state belongs to a different start URL")
+        queue = deque(state.get("queue") or [])
+        visited = set(state.get("visited") or [])
+        details = int(state.get("detail_pages", 0))
+        previous_errors = int(state.get("errors", 0))
+    else:
+        queue = deque([{"url": canonical_url(start_url), "label": "start"}])
+        visited = set()
+        details = 0
+        previous_errors = 0
+    queued = {item["url"] for item in queue} | visited
     errors = []
     page_records = []
-    details = 0
+    pages_this_run = 0
     adapter = HondaAdapter()
     last_request_at = None
 
-    while queue and len(visited) < max_pages:
+    while queue and pages_this_run < max_pages:
         item = queue.popleft()
         url = item["url"]
         if url in visited:
@@ -159,6 +172,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                 time.sleep(wait)
         last_request_at = time.monotonic()
         visited.add(url)
+        pages_this_run += 1
 
         record = {
             "url": url,
@@ -227,7 +241,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
             "pages_visited": len(visited),
             "queue_remaining": len(queue),
             "detail_pages": details,
-            "errors": len(errors),
+            "errors": previous_errors + len(errors),
             "queue": list(queue),
             "visited": sorted(visited),
         })
@@ -246,7 +260,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
         "incomplete_detail_pages": sum(
             item["status"] == "incomplete_detail" for item in page_records
         ),
-        "fetch_errors": len(errors),
+        "fetch_errors": previous_errors + len(errors),
         "queue_remaining": len(queue),
         "complete": not queue,
         "errors": errors,
@@ -263,10 +277,11 @@ def main(argv=None):
     parser.add_argument("--max-pages", type=int, default=100)
     parser.add_argument("--delay", type=float, default=10.0)
     parser.add_argument("--timeout", type=int, default=30)
+    parser.add_argument("--resume-state", type=Path, help="Previously downloaded crawl-state.json")
     args = parser.parse_args(argv)
     if args.max_pages < 1 or args.max_pages > 2000:
         parser.error("--max-pages must be between 1 and 2000")
-    crawl(args.start_url, args.output, args.max_pages, args.delay, args.timeout)
+    crawl(args.start_url, args.output, args.max_pages, args.delay, args.timeout,\n          resume_state=args.resume_state)
 
 
 if __name__ == "__main__":
