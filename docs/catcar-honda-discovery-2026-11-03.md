@@ -282,3 +282,16 @@ Workflow: [41826735617](https://github.com/camypau633/parts-japanese/actions/run
 - OCR screening found native diagram labels and drawing identifier `TA08B2900A`; no CatCar, copyright or website indicators were found.
 
 **B-29 sample: geometry pass, visible watermark not found.** This conclusion applies only to this image. This sample is also Austria (KW), not JDM.
+
+
+## B-30 rear shock absorber: incomplete catalog response
+
+Probe: [41827234190](https://github.com/camypau633/parts-japanese/actions/runs/41827234190)
+
+- HTTP 200; HTML size 19,005 bytes.
+- The page contains five equipment-option rows and the part-table header only; there are no part rows.
+- No hotspot coordinates were returned.
+- The diagram candidate contains the unresolved template path `/honda/euro/{npl}/IMGE/B__3000.png`, not a usable image URL.
+- Classified as an incomplete/intermediate response. It must not be normalized or exported as an empty parts group simply because HTTP returned 200.
+
+This is another verified example that HTTP status alone is not a sufficient success criterion for Honda catalog imports. Sample configuration remains Austria (KW), not JDM.
