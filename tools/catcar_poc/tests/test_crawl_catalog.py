@@ -263,6 +263,8 @@ class CrawlCatalogTests(unittest.TestCase):
             fetch.assert_called_once()
             self.assertTrue(second["complete"])
             self.assertEqual(second["detail_pages_normalized"], 1)
+            self.assertEqual(second["pages_visited"], 1)
+            self.assertEqual(second["market_coverage_pages"].get("Unspecified"), 1)
             self.assertEqual(second["fetch_errors"], 1)
 
 
