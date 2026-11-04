@@ -277,20 +277,26 @@ def resolve_toyota_ajax_rows(parsed, group_url, output_dir, timeout,
     oem_records = []
     errors = []
     group_id = decoded_filter(group_url).get("group_id")
+    requests_made = 0
     for index, part in enumerate(ajax_rows):
         token = part.get("ajax_token", "")
         try:
             ajax_url = build_toyota_ajax_url(token)
-            if index:
-                time.sleep(request_delay)
-            status, final_url, body = fetch_toyota_ajax_page(ajax_url, timeout)
-            if status != 200:
-                raise ValueError("toyota_ajax_http_status:%s" % status)
             digest = hashlib.sha256(
                 (str(group_id or "") + "|" + str(part.get("source_row_id") or "")).encode("utf-8")
             ).hexdigest()[:16]
             raw_path = raw_dir / (digest + ".html")
-            raw_path.write_text(body, encoding="utf-8")
+            if raw_path.is_file():
+                body = raw_path.read_text(encoding="utf-8", errors="replace")
+                final_url = ajax_url
+            else:
+                if requests_made:
+                    time.sleep(request_delay)
+                status, final_url, body = fetch_toyota_ajax_page(ajax_url, timeout)
+                requests_made += 1
+                if status != 200:
+                    raise ValueError("toyota_ajax_http_status:%s" % status)
+                raw_path.write_text(body, encoding="utf-8")
             records = ToyotaAdapter.parse_ajax_records(
                 body, source_row_id=part.get("source_row_id")
             )
@@ -436,6 +442,9 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                     oem_records, ajax_errors = resolve_toyota_ajax_rows(
                         parsed, final_url, output_dir, timeout
                     )
+                    if ajax_errors:
+                        failed_urls.append(url)
+                        errors.append({"url": url, "error": "toyota_ajax_request_failed"})
                     validation = detail_page_validation(parse_html(html), parsed.get("parts", []))
                     warnings = list(validation.get("page_warnings", []))
                     if ajax_errors:
