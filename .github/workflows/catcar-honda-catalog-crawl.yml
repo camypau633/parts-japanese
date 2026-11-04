@@ -4,9 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       max_pages:
-        description: "Maximum pages per run (1-2000); continue from saved crawl-state in a later iteration"
+        description: "Maximum pages to visit in this run (1-2000)"
         required: true
         default: "100"
+        type: string
+      resume_run_id:
+        description: "Optional previous crawl workflow run ID to resume from"
+        required: false
         type: string
 
 permissions:
@@ -25,6 +29,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Restore previous crawl artifact when requested
+        if: ${{ inputs.resume_run_id != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RESUME_RUN_ID: ${{ inputs.resume_run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p out/catcar-honda
+          gh run download "$RESUME_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "catcar-honda-crawl-$RESUME_RUN_ID" \
+            --dir out/catcar-honda
+          test -s out/catcar-honda/crawl-state.json
       - name: Run bounded crawler
         env:
           MAX_PAGES: ${{ inputs.max_pages }}
