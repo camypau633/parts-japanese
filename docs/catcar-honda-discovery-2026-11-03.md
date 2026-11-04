@@ -159,6 +159,17 @@ Selected subgroup: 2011 Accord, 4-door, Austria (KW), 5AT, 2.0 EX — B-28 `FRON
 - All hotspot coordinates are available as `srcTop`, `srcLeft`, `srcWidth` and `srcHeight`; the image is `http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2800.png`.
 - The B-28 HTML includes the actual diagram URL and hotspot geometry, confirming the same core table/diagram structure as E-1. The part-row count and duplicate-option behavior are more complex, so regression coverage should be expanded before broad Honda enablement.
 
-**Image watermark audit is still pending for B-28.** The image URL and hotspot metadata were found, but this probe did not download the PNG itself. No conclusion about watermarks on B-28 is made yet.
+## B-28 diagram: watermark and geometry audit
+
+Workflow: [41820435155](https://github.com/camypau633/parts-japanese/actions/runs/41820435155)
+
+- Diagram: `B__2800.png`, HTTP 200, PNG, 17,331 bytes.
+- Native dimensions: 1920 × 959 pixels.
+- All 20 hotspot rectangles are inside the image bounds; 19 distinct position labels are present.
+- Position 7 has two separate rectangles, and both are retained.
+- The full-resolution image was visually inspected. No CatCar logo, watermark text, diagonal overlay or translucent repeating mark was observed.
+- OCR screening found only native diagram position labels and the drawing identifier `TA08B2800`; no CatCar, copyright or website indicators were found.
+
+**B-28 sample: geometry pass, visible watermark not found.** This conclusion applies only to this image, not to all Honda/CatCar diagrams.
 
 This is the second verified Honda part-table subgroup (after Engine E-1). Both are from the Austria (KW) catalog configuration; this does not establish JDM coverage or all Honda models/years.
