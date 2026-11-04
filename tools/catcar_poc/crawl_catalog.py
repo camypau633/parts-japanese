@@ -405,7 +405,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
     # counters represent pages, not request attempts.
     latest_by_url = {}
     for item in page_records:
-        latest_by_url[item.get("final_url") or item.get("url")] = item
+        latest_by_url[item.get("url") or item.get("final_url")] = item
     unique_page_records = list(latest_by_url.values())
 
     market_coverage = {}
