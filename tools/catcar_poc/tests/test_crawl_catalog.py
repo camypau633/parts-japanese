@@ -332,10 +332,15 @@ class CrawlCatalogTests(unittest.TestCase):
             ), patch("tools.catcar_poc.crawl_catalog.time.sleep"):
                 report = crawl(url, output, max_pages=1, delay=10, make="toyota")
             self.assertEqual(report["detail_pages_normalized"], 0)
-            self.assertTrue(report["complete"])
+            self.assertFalse(report["complete"])
             self.assertEqual(report["incomplete_detail_pages"], 1)
+            self.assertEqual(report["retry_urls_pending"], 1)
             document_files = list((output / "normalized").glob("*.json"))
             self.assertEqual(document_files, [])
+            review_documents = list((output / "review").glob("*.json"))
+            self.assertEqual(len(review_documents), 1)
+            partial = json.loads(review_documents[0].read_text(encoding="utf-8"))
+            self.assertEqual(partial["validation"]["page_status"], "incomplete")
 
     def test_failed_page_is_retried_after_resume(self):
         html = """
