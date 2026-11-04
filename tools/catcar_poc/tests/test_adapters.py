@@ -16,6 +16,8 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(result["parts"][0]["description_raw"], "OIL FILTER")
         self.assertEqual(result["parts"][0]["additional_source_fields"]["raw_cells"], ["15600A", "OIL FILTER"])
         self.assertEqual(result["hotspot_matching"]["matched"], ["15600A"])
+        self.assertEqual(result["page_status"], "incomplete")
+        self.assertIn("toyota_ajax_lookup_not_implemented", result["page_warnings"])
 
         ajax = """
         <table>
@@ -65,6 +67,8 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(result["parts"][0]["additional_source_fields"]["raw_cells"][4], "ALT-12000")
         self.assertEqual(result["parts"][0]["additional_source_fields"]["raw_cells"][5], "03")
         self.assertEqual(result["hotspot_matching"]["matched"], ["12010S"])
+        self.assertEqual(result["page_status"], "incomplete")
+        self.assertIn("no_diagram_image", result["page_warnings"])
 
 
     def test_honda_accord_real_table_layout_preserves_duplicate_positions_and_options(self):
