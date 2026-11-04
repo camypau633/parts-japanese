@@ -215,3 +215,14 @@ Workflow: [41821329190](https://github.com/camypau633/parts-japanese/actions/run
 - The B-22 adapter and PartScope export regressions passed in [CatCar adapter unit tests run 116](https://github.com/camypau633/parts-japanese/actions/runs/41821425683).
 - The captured 51,218-byte B-22 HTML was also passed through the actual `HondaAdapter` in [B-22 probe run](https://github.com/camypau633/parts-japanese/actions/runs/41821659669): 25 part rows, 24 unique OEMs, both option variants at position 5, all four distinct position-18 wheel-bolt OEMs, 23 hotspots and one diagram image were verified.
 - Existing Toyota/Nissan real-artifact regression passed again after the Honda changes: [run 42](https://github.com/camypau633/parts-japanese/actions/runs/41821425837).
+
+
+## B-27 front knuckle: incomplete catalog response
+
+Probe: [41821783325](https://github.com/camypau633/parts-japanese/actions/runs/41821783325)
+
+- HTTP 200; HTML size 16,429 bytes.
+- The returned page contains the five equipment-option rows and a part-table header only; there are no part rows.
+- No hotspot coordinates were returned.
+- The only diagram candidate contains the literal template path `/honda/euro/{npl}/IMGE/B__2700.png`, not a resolved image URL.
+- This response is classified as an incomplete/intermediate catalog page and is not eligible for normalization or export. HTTP 200 alone is not sufficient evidence that a subgroup contains usable parts.
