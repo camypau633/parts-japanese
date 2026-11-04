@@ -138,6 +138,20 @@ class CrawlCatalogTests(unittest.TestCase):
         url = "https://www.catcar.info/honda/?l=bW9kbmFtZT09QUNDT1JE"
         self.assertEqual(decoded_filter(url), {"modname": "ACCORD"})
 
+    def test_mazda_and_subaru_explicit_japan_filters_are_not_confused_with_asia(self):
+        def url_for(make, filter_text):
+            encoded = base64.b64encode(filter_text.encode("utf-8")).decode("ascii")
+            return "https://www.catcar.info/{}/?l={}".format(make, encoded)
+
+        mazda_japan = market_context({}, url_for("mazda", "market==japan||st==60"))
+        subaru_japan = market_context({}, url_for("subaru", "region==japan||st==20"))
+        suzuki_asia = market_context({}, url_for("suzuki", "marketId==2||st==20"))
+
+        self.assertEqual(mazda_japan["market_region"], "Japan")
+        self.assertEqual(subaru_japan["market_region"], "Japan")
+        self.assertEqual(suzuki_asia["market_region"], "Asia")
+        self.assertNotEqual(suzuki_asia["market_region"], mazda_japan["market_region"])
+
     def test_market_region_is_separate_from_japanese_manufacturer_origin(self):
         european = {
             "images": [{"src": "https://ci.catcar.info/honda/euro/18TA0801/IMGE/E__0100.png"}]
