@@ -1,0 +1,110 @@
+name: CatCar Honda Accord steering, brakes and suspension group probe
+
+on:
+  push:
+    paths:
+      - '.github/workflows/catcar-honda-accord-suspension-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Inspect one Honda engine parts group
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          sleep 10
+          python - <<'PY'
+          import json
+          import re
+          import urllib.request
+          from html.parser import HTMLParser
+          from urllib.parse import urljoin, urlsplit
+
+          URL = "http://www.catcar.info/honda/?l=bW9kbmFtZT09QUNDT1JEfHxkb29ycz09NHx8eWVhcj09MjAxMXx8c3Q9PTUwfHxzdHM9PXsiMjAiOiJcdTA0MTVcdTA0MzJcdTA0NDBcdTA0M2VcdTA0M2ZcdTA0MzAiLCIzMCI6IjIwMTEgQUNDT1JEIiwiNDAiOiJcdTA0MTBcdTA0MzJcdTA0NDFcdTA0NDJcdTA0NDBcdTA0MzhcdTA0NGYgKEtXKTo1QVQgMi4wRVgiLCI1MCI6Ilx1MDQyMFx1MDQyM1x1MDQxYlx1MDQxNVx1MDQxMlx1MDQxZVx1MDQxNSBcdTA0MjNcdTA0MWZcdTA0MjBcdTA0MTBcdTA0MTJcdTA0MWJcdTA0MTVcdTA0MWRcdTA0MThcdTA0MTUsIFx1MDQyMlx1MDQxZVx1MDQyMFx1MDQxY1x1MDQxZVx1MDQxN1x1MDQxZFx1MDQxMFx1MDQyZiBcdTA0MjFcdTA0MThcdTA0MjFcdTA0MjJcdTA0MTVcdTA0MWNcdTA0MTAsIFx1MDQxZlx1MDQxZVx1MDQxNFx1MDQxMlx1MDQxNVx1MDQyMVx1MDQxYVx1MDQxMCJ9fHxjYXJlYT09S1d8fHRyYW5zPT01QVR8fGdyYWRlPT0yLjBFWHx8bW9kX2lkcz09NDA5NCw0MDk1fHxncnA9PTQ%3D"
+          req=urllib.request.Request(URL,headers={"User-Agent":"PartScope-Japanese-Catalog-Discovery/1.0","Accept":"text/html,application/xhtml+xml"})
+          with urllib.request.urlopen(req,timeout=30) as response:
+              status,final_url=response.status,response.geturl()
+              body=response.read(4*1024*1024+1)
+          if len(body)>4*1024*1024: raise SystemExit("Honda group page exceeded 4 MiB limit")
+          html=body.decode("utf-8","replace")
+          open("out/honda-accord-suspension-group.html","w",encoding="utf-8").write(html)
+
+          class Page(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.rows=[]; self.row=None; self.cell=None
+                  self.links=[]; self.current_link=None
+                  self.images=[]; self.scripts=[]
+                  self.title=False; self.title_text=[]
+                  self.breadcrumb=False; self.breadcrumb_text=[]
+              def handle_starttag(self,tag,attrs):
+                  a=dict(attrs)
+                  if tag=="title": self.title=True
+                  elif tag=="tr": self.row=[]
+                  elif tag in ("td","th") and self.row is not None: self.cell=[]
+                  elif tag=="a" and a.get("href"):
+                      self.current_link={"href":a["href"],"text":""}; self.links.append(self.current_link)
+                  elif tag=="img" and (a.get("src") or a.get("data-src")):
+                      self.images.append({"src":a.get("src") or a.get("data-src"),"alt":a.get("alt",""),"class":a.get("class","")})
+                  elif tag=="script": self.scripts.append(a.get("src","inline"))
+                  if tag=="ul" and "breadcrumbs" in a.get("class","").split(): self.breadcrumb=True
+              def handle_data(self,data):
+                  if self.title: self.title_text.append(data.strip())
+                  if self.cell is not None: self.cell.append(data.strip())
+                  if self.current_link is not None: self.current_link["text"]+=data.strip()
+                  if self.breadcrumb: self.breadcrumb_text.append(data.strip())
+              def handle_endtag(self,tag):
+                  if tag=="title": self.title=False
+                  elif tag in ("td","th") and self.cell is not None and self.row is not None:
+                      self.row.append(" ".join(" ".join(self.cell).split())); self.cell=None
+                  elif tag=="tr" and self.row is not None:
+                      if any(self.row): self.rows.append(self.row)
+                      self.row=None; self.cell=None
+                  elif tag=="a": self.current_link=None
+                  elif tag=="ul" and self.breadcrumb: self.breadcrumb=False
+
+          p=Page(); p.feed(html)
+          links=[]
+          for x in p.links:
+              target=urljoin(final_url,x["href"])
+              host=(urlsplit(target).hostname or "").lower()
+              if host=="catcar.info" or host.endswith(".catcar.info"):
+                  links.append({"text":" ".join(x["text"].split()),"url":target})
+          coords=re.findall(r"""<div\b(?=[^>]*class=["'][^"']*\bcoord\b[^"']*["'])([^>]*)>""",html,re.I|re.S)
+          hotspots=[]
+          for raw in coords:
+              attrs=dict(re.findall(r"""([\w-]+)=["']([^"']*)["']""",raw))
+              hotspots.append({k:attrs.get(k,"") for k in ("name","srcNum","srcTop","srcLeft","srcWidth","srcHeight")})
+          diagrams=[]
+          for x in p.images:
+              src=x["src"]
+              if any(e in src.lower() for e in (".png",".jpg",".jpeg")) and "logo" not in src.lower():
+                  diagrams.append({"url":urljoin(final_url,src),"alt":x["alt"],"class":x["class"]})
+          result={
+              "make":"Honda","model":"Accord","year":"2011","region":"Austria (KW)",
+              "transmission":"5AT","grade":"2.0EX","group":"STEERING, BRAKES, SUSPENSION",
+              "http_status":status,"final_url":final_url,"bytes":len(body),
+              "title":" ".join(x for x in p.title_text if x),
+              "breadcrumbs":" ".join(x for x in p.breadcrumb_text if x),
+              "table_rows":p.rows[:150],"table_row_count":len(p.rows),
+              "catalog_links":links[:150],"images":p.images[:100],
+              "diagram_candidates":diagrams[:30],"hotspots":hotspots[:200],
+              "hotspot_count":len(hotspots),"scripts":p.scripts[:80],
+              "markers":{k:html.count(k) for k in ("srcNum","srcTop","srcLeft","getArticles","groups-parts__item")}
+          }
+          open("out/honda-accord-suspension-inspection.json","w",encoding="utf-8").write(json.dumps(result,ensure_ascii=False,indent=2)+"\n")
+          print(json.dumps(result,ensure_ascii=False,indent=2))
+          if status!=200: raise SystemExit("Honda engine group did not return HTTP 200")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catcar-honda-accord-suspension-inspection
+          path: out/
+          retention-days: 7
