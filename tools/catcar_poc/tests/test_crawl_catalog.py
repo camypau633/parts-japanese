@@ -11,7 +11,7 @@ from tools.catcar_poc.crawl_catalog import (
     discover_links, market_context, crawl
 )
 from tools.catcar_poc.catalog_registry import CATCAR_JAPANESE_CATALOGS, catalog_config
-from tools.catcar_poc.adapters import DiscoveryOnlyAdapter, SubaruAdapter
+from tools.catcar_poc.adapters import DiscoveryOnlyAdapter, SubaruAdapter, SuzukiAdapter
 
 
 class CrawlCatalogTests(unittest.TestCase):
@@ -24,7 +24,7 @@ class CrawlCatalogTests(unittest.TestCase):
         self.assertEqual(set(ADAPTERS), expected)
         self.assertEqual(catalog_config("toyota")["brands"], ["Toyota", "Lexus"])
         self.assertEqual(catalog_config("nissan")["brands"], ["Nissan", "Infiniti"])
-        self.assertIs(ADAPTERS["suzuki"], DiscoveryOnlyAdapter)
+        self.assertIs(ADAPTERS["suzuki"], SuzukiAdapter)
         self.assertIs(ADAPTERS["mazda"], DiscoveryOnlyAdapter)
         self.assertIs(ADAPTERS["subaru"], SubaruAdapter)
 
