@@ -220,6 +220,64 @@ class PartScopeExportTests(unittest.TestCase):
         self.assertEqual(report["factory_parts_validated"], 6)
         self.assertEqual(report["hotspots_validated"], 9)
 
+    def test_honda_b28_export_preserves_duplicate_option_rows_and_diagram_geometry(self):
+        document = {
+            "source": {"name": "CatCar", "url": "https://www.catcar.info/honda/accord/b28"},
+            "catalog_context": {
+                "brand": "Honda", "model": "Accord", "model_year": "2011",
+                "region": "Austria (KW)", "transmission": "5AT", "grade": "2.0EX",
+                "source_group_id": "B-28",
+            },
+            "parts": [
+                {"source_row_id": "1", "diagram_position_code": "1", "part_number_raw": "51401-TA0-A13",
+                 "description_raw": "SPRING, FR.", "additional_source_fields": {"option_codes_raw": "AB3 ABS LH SR STL"}},
+                {"source_row_id": "2", "diagram_position_code": "1", "part_number_raw": "51401-TA0-A13",
+                 "description_raw": "SPRING, FR.", "additional_source_fields": {"option_codes_raw": "AB3 ABS LH STL"}},
+                {"source_row_id": "3", "diagram_position_code": "2", "part_number_raw": "51610-TA0-P15",
+                 "description_raw": "ABSORBER ASSY., R. FR. SHOCK", "additional_source_fields": {"option_codes_raw": "AB3 ABS LH"}},
+                {"source_row_id": "4", "diagram_position_code": "7", "part_number_raw": "51605-TA0-A01",
+                 "description_raw": "BASE, FR. SHOCK ABSORBER", "additional_source_fields": {}},
+            ],
+            "oem_records": [],
+            "diagrams": [{"diagram_id": "diagram-1", "source_image_url": "http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2800.png"}],
+            "hotspots": [
+                {"hotspot_id": "hotspot-1", "diagram_id": "diagram-1", "source_position_code": "1",
+                 "source_row_ids": ["1", "2"], "top_raw": "701", "left_raw": "806",
+                 "width_raw": "18", "height_raw": "29", "resolution_status": "matched"},
+                {"hotspot_id": "hotspot-2", "diagram_id": "diagram-1", "source_position_code": "7",
+                 "source_row_ids": ["4"], "top_raw": "105", "left_raw": "715",
+                 "width_raw": "25", "height_raw": "29", "resolution_status": "matched"},
+                {"hotspot_id": "hotspot-3", "diagram_id": "diagram-1", "source_position_code": "7",
+                 "source_row_ids": ["4"], "top_raw": "415", "left_raw": "729",
+                 "width_raw": "25", "height_raw": "29", "resolution_status": "matched"},
+            ],
+        }
+        image_url = "https://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2800.png"
+        geometry = verified_geometry([image_url])
+        geometry["images"][0].update({
+            "http_status": 200,
+            "content_type": "image/png",
+            "image_dimensions": {"width": 1920, "height": 959},
+            "hotspot_count": 20,
+            "all_hotspot_boxes_inside_image_bounds": True,
+        })
+        records = document_to_records(document, geometry_index=validate_geometry_report(geometry))
+        spring = records["51401TA0A13"]
+        self.assertEqual(len(spring["factory_parts"]), 2)
+        self.assertNotEqual(
+            spring["factory_parts"][0]["source_fields"]["option_codes_raw"],
+            spring["factory_parts"][1]["source_fields"]["option_codes_raw"],
+        )
+        self.assertEqual(spring["compatibility"][0]["years"], "2011")
+        self.assertEqual(spring["compatibility"][0]["engine"], "")
+        self.assertEqual(records["51605TA0A01"]["diagram"]["diagramUrl"],
+                         "https://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2800.png")
+        self.assertEqual(len(records["51605TA0A01"]["diagram"]["hotspots"]), 2)
+        report = validate_export_records(records)
+        self.assertEqual(report["records_by_brand"], {"Honda": 3})
+        self.assertEqual(report["factory_parts_validated"], 4)
+        self.assertEqual(report["hotspots_validated"], 3)
+
     def test_export_validator_reports_provenance_and_context_coverage(self):
         records = document_to_records(sample())
         report = validate_export_records(records)
