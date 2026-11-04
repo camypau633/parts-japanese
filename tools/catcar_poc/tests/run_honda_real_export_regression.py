@@ -20,17 +20,17 @@ from tools.catcar_poc.export_partscope import export_documents
 
 GROUPS = [
     ("E-1", "e1", "honda-accord-e1-throttle-body.html", "honda-accord-e1-inspection.json", 6, 9,
-     "https://ci.catcar.info/honda/euro/18TA0801/IMGE/E__0100.png"),
+     "http://ci.catcar.info/honda/euro/18TA0801/IMGE/E__0100.png"),
     ("B-28", "b28", "honda-accord-b28.html", "honda-accord-b28-inspection.json", 31, 20,
-     "https://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2800.png"),
+     "http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2800.png"),
     ("B-22", "b22", "honda-accord-b22.html", "honda-accord-b22-inspection.json", 25, 23,
-     "https://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2200.png"),
+     "http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2200.png"),
     ("B-19-10", "b19-10", "honda-accord-b19-10.html", "honda-accord-b19-10-inspection.json", 36, 26,
-     "https://ci.catcar.info/honda/euro/18TA0801/IMGE/B__1910.png"),
+     "http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__1910.png"),
     ("B-29", "b29", "honda-accord-b29.html", "honda-accord-b29-inspection.json", 44, 41,
-     "https://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2900.png"),
+     "http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2900.png"),
     ("B-27-10", "b27-10", "honda-accord-b27-10.html", "honda-accord-b27-10-inspection.json", 23, 20,
-     "https://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2710.png"),
+     "http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2710.png"),
 ]
 
 
