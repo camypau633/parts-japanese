@@ -142,7 +142,7 @@ def main(root):
         if audit.get("all_hotspots_inside_image") is not True:
             raise AssertionError("%s contains out-of-bounds hotspot rectangles" % group_id)
         geometry["images"].append({
-            "image_url": audit["diagram_url"],
+            "image_url": audit["diagram_url"].replace("http://", "https://", 1),
             "http_status": audit["http_status"],
             "content_type": audit["content_type"],
             "image_dimensions": audit["dimensions"],
