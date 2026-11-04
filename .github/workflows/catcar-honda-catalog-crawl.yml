@@ -1,8 +1,17 @@
-name: CatCar Honda bounded catalog crawl
+name: CatCar Japanese bounded catalog crawl
 
 on:
   workflow_dispatch:
     inputs:
+      make:
+        description: "Japanese vehicle make to crawl"
+        required: true
+        default: "honda"
+        type: choice
+        options:
+          - honda
+          - nissan
+          - toyota
       max_pages:
         description: "Maximum pages to visit in this run (1-2000)"
         required: true
@@ -37,33 +46,37 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RESUME_RUN_ID: ${{ inputs.resume_run_id }}
+          MAKE: ${{ inputs.make }}
         run: |
           set -euo pipefail
           mkdir -p out/catcar-honda
+          mkdir -p "out/catcar-$MAKE"
           gh run download "$RESUME_RUN_ID" \
             --repo "$GITHUB_REPOSITORY" \
-            --name "catcar-honda-crawl-$RESUME_RUN_ID" \
-            --dir out/catcar-honda
-          test -s out/catcar-honda/crawl-state.json
+            --name "catcar-$MAKE-crawl-$RESUME_RUN_ID" \
+            --dir "out/catcar-$MAKE"
+          test -s "out/catcar-$MAKE/crawl-state.json"
       - name: Run bounded crawler
         env:
           MAX_PAGES: ${{ inputs.max_pages }}
+          MAKE: ${{ inputs.make }}
         run: |
           set -euo pipefail
           args=(
-            --start-url "https://www.catcar.info/honda/"
+            --make "$MAKE"
+            --start-url "https://www.catcar.info/$MAKE/"
             --max-pages "$MAX_PAGES"
             --delay 10
-            --output out/catcar-honda
+            --output "out/catcar-$MAKE"
           )
-          if [ -s out/catcar-honda/crawl-state.json ]; then
-            args+=(--resume-state out/catcar-honda/crawl-state.json)
+          if [ -s "out/catcar-$MAKE/crawl-state.json" ]; then
+            args+=(--resume-state "out/catcar-$MAKE/crawl-state.json")
           fi
           python -m tools.catcar_poc.crawl_catalog "${args[@]}"
       - name: Upload crawl results for review
         uses: actions/upload-artifact@v4
         with:
-          name: catcar-honda-crawl-${{ github.run_id }}
-          path: out/catcar-honda/
+          name: catcar-${{ inputs.make }}-crawl-${{ github.run_id }}
+          path: out/catcar-${{ inputs.make }}/
           if-no-files-found: error
           retention-days: 14
