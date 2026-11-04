@@ -1,7 +1,7 @@
 import unittest
 
 from tools.catcar_poc.adapters import (
-    ToyotaAdapter, NissanAdapter, HondaAdapter, SuzukiAdapter, SubaruAdapter, FordAdapter, VagAdapter
+    ToyotaAdapter, NissanAdapter, HondaAdapter, MazdaAdapter, SuzukiAdapter, SubaruAdapter, FordAdapter, VagAdapter
 )
 
 
@@ -329,6 +329,28 @@ class AdapterTests(unittest.TestCase):
             "Japan spec",
         )
         self.assertEqual(result["hotspot_matching"]["matched"], ["1"])
+
+
+    def test_mazda_japan_parts_table_preserves_notes_and_duplicate_position_rows(self):
+        html = """
+        <table>
+          <tr><th>Code</th><th>Part number</th><th>Name</th><th>Note</th></tr>
+          <tr><td>20130</td><td>ZJY1-20-130</td><td>SHUTTER VALVE ACTUATOR</td><td>ILLUST NO.1</td></tr>
+          <tr><td>20130</td><td>ZY01-20-130B</td><td>SHUTTER VALVE ACTUATOR</td><td>ILLUST NO.2</td></tr>
+        </table>
+        <img class="resize" src="https://ci.catcar.info/mazda/japan/BL5FP/IMGE/diagram.png">
+        <div class="coord" srcNum="20130" srcTop="10" srcLeft="20" srcWidth="30" srcHeight="40"></div>
+        """
+        result = MazdaAdapter().parse(html)
+        self.assertEqual(len(result["parts"]), 2)
+        self.assertEqual(result["parts"][0]["part_number_raw"], "ZJY1-20-130")
+        self.assertEqual(result["parts"][1]["part_number_raw"], "ZY01-20-130B")
+        self.assertEqual(result["parts"][0]["diagram_position_code"], "20130")
+        self.assertEqual(
+            result["parts"][1]["additional_source_fields"]["note_raw"],
+            "ILLUST NO.2",
+        )
+        self.assertEqual(result["hotspot_matching"]["matched"], ["20130"])
 
 
 if __name__ == "__main__":
