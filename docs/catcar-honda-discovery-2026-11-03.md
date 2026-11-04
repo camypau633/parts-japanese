@@ -182,3 +182,21 @@ This is the second verified Honda part-table subgroup (after Engine E-1). Both a
 - The existing bounded Toyota/Nissan real-artifact regression also passed after these changes: [run 40](https://github.com/camypau633/parts-japanese/actions/runs/41820744247). This checks that the Honda additions did not break those existing source paths; it is not a full Honda production-import run.
 
 Honda conversion remains an offline preview capability only. No Honda records or images have been published to PartScope preview or production.
+
+
+## Third part-table subgroup: B-22 front brake
+
+Workflow: [41821028881](https://github.com/camypau633/parts-japanese/actions/runs/41821028881)
+
+Selected subgroup: 2011 Accord, 4-door, Austria (KW), 5AT, 2.0 EX — B-22 `FRONT BRAKE`.
+
+- HTTP 200; HTML size 51,218 bytes.
+- The page contains 31 table rows: five equipment-option rows, one header and 25 part rows.
+- The 25 part rows contain 24 unique OEM numbers.
+- Position 5 contains two rows for the same hub-bearing OEM `44300-TA0-A61`, with different option-code sets.
+- Position 18 contains four distinct wheel-bolt OEMs from different suppliers: `90113-S84-901`, `90113-SD4-901`, `90113-SD4-902` and `90113-SJK-901`. All four rows must remain distinct even though they share the same diagram position.
+- The diagram is `http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2200.png`.
+- There are 23 hotspot rectangles for 21 distinct position labels. Positions 12 and 13 each have two rectangles.
+- The adapter and exporter regression tests now cover this pattern: repeated OEM with option differences, four different OEMs at one position, and repeated hotspot rectangles.
+
+**B-22 image audit is pending.** The part table and hotspot metadata are confirmed, but the PNG has not yet been downloaded and visually inspected for watermarking or pixel geometry. This is another Austria (KW) catalog sample, not JDM data.
