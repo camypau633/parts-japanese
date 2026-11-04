@@ -4,7 +4,7 @@ This package contains shared parsers, brand/layout adapters, draft JSON normaliz
 
 ## Current project scope
 
-The active project is limited to Japanese vehicle makes, but includes all regional versions available in CatCar: Japan/JDM, Europe, USA, and other export markets. Vehicle manufacturer origin and catalog market are separate fields. Honda has a working static-table adapter and a bounded/resumable catalog crawler. The crawler currently targets only the Honda path and uses a minimum 10-second delay. It discovers catalog links, normalizes recognized detail pages, checkpoints its queue, and records unrecognized pages for review. It preserves an explicit market label when CatCar exposes a recognized market code (for example, `euro` in the diagram path); unknown raw codes are retained and missing market information is not guessed. The current crawl is not yet a complete Honda dataset.
+The active project is limited to Japanese vehicle makes, but includes all regional versions available in CatCar: Japan/JDM, Europe, USA, and other export markets. Vehicle manufacturer origin and catalog market are separate fields. The bounded/resumable crawler can now select Honda, Nissan, or Toyota and uses a minimum 10-second delay. It discovers HTML links, normalizes recognized detail pages through the selected adapter, checkpoints its queue, and records unrecognized pages for review. It preserves an explicit market label when CatCar exposes a recognized market code (for example, `euro` in a diagram path); unknown raw codes are retained and missing market information is not guessed. This is not yet a complete catalog crawl. Toyota rows requiring a `getArticles` lookup remain marked `requires_ajax`; the crawler does not yet fetch those OEM responses.
 
 Ford and VAG adapters remain legacy experimental code from earlier probes. They are excluded from the current Japanese-only regression, importer, and preview publication. Do not run or extend them in this repository; other vehicle markets belong in separate repositories.
 
@@ -29,6 +29,7 @@ Raw strings, all original static-table cells, table order, and original hotspot 
 
 The current importer does not yet:
 - complete a full mass crawl or download the complete catalogs;
+- fetch Toyota `getArticles` AJAX responses during crawling;
 - infer OEM replacement/supersession;
 - normalize ambiguous date formats;
 - write to the production PartScope database.
@@ -49,7 +50,7 @@ GitHub Actions runs parser, adapter, regression, crawler unit, and JSON Schema t
 
 Toyota AJAX responses with the source message `No applicable data!` are retained as OEM records with `source_status: no_applicable_data`, rather than silently disappearing. Blank OEM period/applicability cells remain null.
 
-Before production use, the crawler must be exercised over the full Honda index, Toyota and Nissan traversal/AJAX collection must be implemented, market labels must be checked against real CatCar regional catalog paths, incomplete-page handling and resume behavior must be verified on real runs, and source permissions/terms must be reviewed.
+Before production use, the crawler must be exercised over the full Honda, Nissan, and Toyota indexes; Toyota `getArticles` AJAX collection must be implemented; market labels must be checked against real CatCar regional catalog paths; incomplete-page handling and resume behavior must be verified on real runs; and source permissions/terms must be reviewed.
 
 ## Bounded Toyota Camry group/AJAX sample
 
