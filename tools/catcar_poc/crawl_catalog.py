@@ -19,7 +19,8 @@ import jsonschema
 from urllib.parse import parse_qs, urljoin, urlsplit, urlunsplit
 import base64
 
-from .adapters import HondaAdapter, NissanAdapter, ToyotaAdapter
+from .adapters import DiscoveryOnlyAdapter, HondaAdapter, NissanAdapter, ToyotaAdapter
+from .catalog_registry import CATCAR_JAPANESE_CATALOGS, catalog_config
 from .normalize import normalize_page
 
 
@@ -29,11 +30,21 @@ ADAPTERS = {
     "honda": HondaAdapter,
     "nissan": NissanAdapter,
     "toyota": ToyotaAdapter,
+    "suzuki": DiscoveryOnlyAdapter,
+    "mazda": DiscoveryOnlyAdapter,
+    "mitsubishi": DiscoveryOnlyAdapter,
+    "isuzu": DiscoveryOnlyAdapter,
+    "subaru": DiscoveryOnlyAdapter,
 }
 BRAND_NAMES = {
     "honda": "Honda",
-    "nissan": "Nissan",
-    "toyota": "Toyota",
+    "nissan": None,
+    "toyota": None,
+    "suzuki": "Suzuki",
+    "mazda": "Mazda",
+    "mitsubishi": "Mitsubishi",
+    "isuzu": "Isuzu",
+    "subaru": "Subaru",
 }
 
 
@@ -289,6 +300,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
             else:
                 context = {
                     "brand": BRAND_NAMES[make],
+                    "brand_candidates": catalog_config(make)["brands"],
                     "manufacturer_country": "Japan",
                     **market_context(parsed, final_url),
                     "catalog_filter_raw": decoded_filter(final_url),
@@ -389,7 +401,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.max_pages < 1 or args.max_pages > 2000:
         parser.error("--max-pages must be between 1 and 2000")
-    start_url = args.start_url or "https://www.catcar.info/{}/".format(args.make)
+    start_url = args.start_url or catalog_config(args.make)["url"]
     output = args.output or Path("out/catcar-{}".format(args.make))
     crawl(
         start_url,
