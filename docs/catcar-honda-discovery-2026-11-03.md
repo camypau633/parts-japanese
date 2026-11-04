@@ -125,3 +125,21 @@ Workflow: [41595234384](https://github.com/camypau633/parts-japanese/actions/run
 - Existing Toyota/Nissan real-artifact regression passed after exporter changes: [41595507960](https://github.com/camypau633/parts-japanese/actions/runs/41595507960).
 
 The Honda sample can now be converted to PartScope preview records offline. It has not yet been published into the PartScope preview directory or production catalogue.
+
+
+## Second main group: steering, brakes and suspension
+
+Workflow: [41819963305](https://github.com/camypau633/parts-japanese/actions/runs/41819963305)
+
+Selected group: 2011 Accord, 4-door, Austria (KW), 5AT, 2.0 EX — “РУЛЕВОЕ УПРАВЛЕНИЕ, ТОРМОЗНАЯ СИСТЕМА, ПОДВЕСКА”.
+
+- HTTP 200; HTML size 36,240 bytes.
+- The page contains 26 table rows: five equipment-option rows, one header row and 20 subgroup links.
+- Subgroups cover tires/wheels, rear and front brakes, front driveshaft, brake pedal/master cylinder, ABS/VSA, brake lines, parking brake, front knuckle, front and rear lower arms, front and rear shock absorbers, steering wheel/column, power-steering gearbox and lines, and selector lever.
+- Each subgroup link carries the same selected Accord configuration context plus a distinct subgroup code (`bcode`).
+- Like the Engine group listing, this is a hierarchy page, not a part-level table: it has no exploded diagram or hotspot geometry yet.
+- The inspected page returned only generic checkbox icons; no actual diagram image was embedded at this level.
+
+This confirms that the second main Honda group uses the same high-level navigation pattern as Engine: main group → named subgroup → part table/diagram. It does **not** yet prove that every subgroup's part-table layout is identical to E-1, so the adapter remains validated only against the E-1 part page.
+
+The next useful probe is one bounded subgroup page from this list (for example B-28 Front Shock Absorber), to check whether its part table and diagram geometry follow the E-1 pattern.
