@@ -220,6 +220,75 @@ class PartScopeExportTests(unittest.TestCase):
         self.assertEqual(report["factory_parts_validated"], 6)
         self.assertEqual(report["hotspots_validated"], 9)
 
+    def test_honda_b22_export_maps_multiple_oems_at_one_position(self):
+        document = {
+            "source": {"name": "CatCar", "url": "https://www.catcar.info/honda/accord/b22"},
+            "catalog_context": {
+                "brand": "Honda", "model": "Accord", "model_year": "2011",
+                "region": "Austria (KW)", "transmission": "5AT", "grade": "2.0EX",
+                "source_group_id": "B-22",
+            },
+            "parts": [
+                {"source_row_id": "6", "diagram_position_code": "5", "part_number_raw": "44300-TA0-A61",
+                 "description_raw": "BEARING ASSY., FR. HUB", "additional_source_fields": {"option_codes_raw": "AB3 ABS LH SR STL"}},
+                {"source_row_id": "7", "diagram_position_code": "5", "part_number_raw": "44300-TA0-A61",
+                 "description_raw": "BEARING ASSY., FR. HUB", "additional_source_fields": {"option_codes_raw": "AB3 ABS LH STL"}},
+                {"source_row_id": "8", "diagram_position_code": "18", "part_number_raw": "90113-S84-901",
+                 "description_raw": "BOLT, WHEEL (ROCKNEL FASTENER)", "additional_source_fields": {}},
+                {"source_row_id": "9", "diagram_position_code": "18", "part_number_raw": "90113-SD4-901",
+                 "description_raw": "BOLT, WHEEL (MEIRA)", "additional_source_fields": {}},
+                {"source_row_id": "10", "diagram_position_code": "18", "part_number_raw": "90113-SD4-902",
+                 "description_raw": "BOLT, WHEEL (SAGA)", "additional_source_fields": {}},
+                {"source_row_id": "11", "diagram_position_code": "18", "part_number_raw": "90113-SJK-901",
+                 "description_raw": "BOLT, WHEEL (THAI MEIRA)", "additional_source_fields": {}},
+                {"source_row_id": "12", "diagram_position_code": "12", "part_number_raw": "45240-SM4-003",
+                 "description_raw": "BOLT, FLANGE, 10X24", "additional_source_fields": {}},
+                {"source_row_id": "13", "diagram_position_code": "13", "part_number_raw": "45251-TA1-A00",
+                 "description_raw": "DISK, FR. BRAKE", "additional_source_fields": {}},
+            ],
+            "oem_records": [],
+            "diagrams": [{"diagram_id": "diagram-1", "source_image_url": "http://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2200.png"}],
+            "hotspots": [
+                {"hotspot_id": "h5", "diagram_id": "diagram-1", "source_position_code": "5", "source_row_ids": ["6", "7"],
+                 "top_raw": "151", "left_raw": "1197", "width_raw": "26", "height_raw": "28", "resolution_status": "matched"},
+                {"hotspot_id": "h18", "diagram_id": "diagram-1", "source_position_code": "18", "source_row_ids": ["8", "9", "10", "11"],
+                 "top_raw": "246", "left_raw": "1353", "width_raw": "40", "height_raw": "29", "resolution_status": "matched"},
+                {"hotspot_id": "h12a", "diagram_id": "diagram-1", "source_position_code": "12", "source_row_ids": ["12"],
+                 "top_raw": "632", "left_raw": "1126", "width_raw": "40", "height_raw": "29", "resolution_status": "matched"},
+                {"hotspot_id": "h12b", "diagram_id": "diagram-1", "source_position_code": "12", "source_row_ids": ["12"],
+                 "top_raw": "884", "left_raw": "1121", "width_raw": "43", "height_raw": "34", "resolution_status": "matched"},
+                {"hotspot_id": "h13a", "diagram_id": "diagram-1", "source_position_code": "13", "source_row_ids": ["13"],
+                 "top_raw": "548", "left_raw": "364", "width_raw": "40", "height_raw": "29", "resolution_status": "matched"},
+                {"hotspot_id": "h13b", "diagram_id": "diagram-1", "source_position_code": "13", "source_row_ids": ["13"],
+                 "top_raw": "848", "left_raw": "403", "width_raw": "40", "height_raw": "29", "resolution_status": "matched"},
+            ],
+        }
+        image_url = "https://ci.catcar.info/honda/euro/18TA0801/IMGE/B__2200.png"
+        geometry = verified_geometry([image_url])
+        geometry["images"][0].update({
+            "http_status": 200,
+            "content_type": "image/png",
+            "image_dimensions": {"width": 1920, "height": 959},
+            "hotspot_count": 23,
+            "all_hotspot_boxes_inside_image_bounds": True,
+        })
+        records = document_to_records(document, geometry_index=validate_geometry_report(geometry))
+        self.assertEqual(len(records["44300TA0A61"]["factory_parts"]), 2)
+        self.assertNotEqual(
+            records["44300TA0A61"]["factory_parts"][0]["source_fields"]["option_codes_raw"],
+            records["44300TA0A61"]["factory_parts"][1]["source_fields"]["option_codes_raw"],
+        )
+        wheel_bolt_skus = ["90113S84-901", "90113SD4-901", "90113SD4-902", "90113SJK-901"]
+        for sku in wheel_bolt_skus:
+            normalized = sku.replace("-", "")
+            self.assertEqual(len(records[normalized]["diagram"]["hotspots"]), 1)
+        self.assertEqual(len(records["45240SM4003"]["diagram"]["hotspots"]), 2)
+        self.assertEqual(len(records["45251TA1A00"]["diagram"]["hotspots"]), 2)
+        report = validate_export_records(records)
+        self.assertEqual(report["records_by_brand"], {"Honda": 7})
+        self.assertEqual(report["factory_parts_validated"], 8)
+        self.assertEqual(report["hotspots_validated"], 6)
+
     def test_honda_b28_export_preserves_duplicate_option_rows_and_diagram_geometry(self):
         document = {
             "source": {"name": "CatCar", "url": "https://www.catcar.info/honda/accord/b28"},
