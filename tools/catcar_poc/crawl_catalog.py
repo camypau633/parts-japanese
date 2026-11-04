@@ -19,12 +19,22 @@ import jsonschema
 from urllib.parse import parse_qs, urljoin, urlsplit, urlunsplit
 import base64
 
-from .adapters import HondaAdapter
+from .adapters import HondaAdapter, NissanAdapter, ToyotaAdapter
 from .normalize import normalize_page
 
 
 USER_AGENT = "PartScope-Japanese-Catalog-Importer/0.1 (+catalog research)"
 MAX_PAGE_BYTES = 4 * 1024 * 1024
+ADAPTERS = {
+    "honda": HondaAdapter,
+    "nissan": NissanAdapter,
+    "toyota": ToyotaAdapter,
+}
+BRAND_NAMES = {
+    "honda": "Honda",
+    "nissan": "Nissan",
+    "toyota": "Toyota",
+}
 
 
 class LinkCollector(HTMLParser):
@@ -179,6 +189,9 @@ def write_json(path, value):
 
 def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
           make="honda", resume_state=None):
+    make = make.lower()
+    if make not in ADAPTERS:
+        raise ValueError("make must be one of: " + ", ".join(sorted(ADAPTERS)))
     if delay < 10:
         raise ValueError("delay must be at least 10 seconds")
     if not allowed_catalog_url(start_url, make):
@@ -216,7 +229,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
             except ValueError:
                 continue
     pages_this_run = 0
-    adapter = HondaAdapter()
+    adapter = ADAPTERS[make]()
     schema_path = Path(__file__).resolve().parents[2] / "schemas" / "catcar-extraction-v0.1.schema.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     last_request_at = None
@@ -268,7 +281,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                 )
             else:
                 context = {
-                    "brand": "Honda",
+                    "brand": BRAND_NAMES[make],
                     "manufacturer_country": "Japan",
                     **market_context(parsed, final_url),
                     "catalog_filter_raw": decoded_filter(final_url),
@@ -294,6 +307,10 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                     record["part_rows"] = len(document["parts"])
                     record["diagram_count"] = len(document["diagrams"])
                     record["hotspot_count"] = len(document["hotspots"])
+                    record["ajax_rows_requiring_lookup"] = sum(
+                        part.get("source_status") == "requires_ajax"
+                        for part in document["parts"]
+                    )
         except jsonschema.ValidationError as exc:
             record["status"] = "schema_validation_error"
             record["error"] = str(exc.message)[:500]
@@ -323,7 +340,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
             stream.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     report = {
-        "crawler": "catcar_honda_bounded_v1",
+        "crawler": "catcar_japanese_bounded_v1",
         "make": make.title(),
         "start_url": start_url,
         "pages_visited": len(visited),
@@ -348,9 +365,10 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Bounded CatCar Honda catalog crawler")
-    parser.add_argument("--start-url", default="https://www.catcar.info/honda/")
-    parser.add_argument("--output", type=Path, default=Path("out/catcar-honda"))
+    parser = argparse.ArgumentParser(description="Bounded CatCar Japanese catalog crawler")
+    parser.add_argument("--make", choices=sorted(ADAPTERS), default="honda")
+    parser.add_argument("--start-url")
+    parser.add_argument("--output", type=Path)
     parser.add_argument("--max-pages", type=int, default=100)
     parser.add_argument("--delay", type=float, default=10.0)
     parser.add_argument("--timeout", type=int, default=30)
@@ -358,12 +376,15 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.max_pages < 1 or args.max_pages > 2000:
         parser.error("--max-pages must be between 1 and 2000")
+    start_url = args.start_url or "https://www.catcar.info/{}/".format(args.make)
+    output = args.output or Path("out/catcar-{}".format(args.make))
     crawl(
-        args.start_url,
-        args.output,
+        start_url,
+        output,
         args.max_pages,
         args.delay,
         args.timeout,
+        make=args.make,
         resume_state=args.resume_state,
     )
 
