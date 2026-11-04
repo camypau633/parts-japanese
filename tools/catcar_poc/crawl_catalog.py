@@ -422,7 +422,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                     oem_records, ajax_errors = resolve_toyota_ajax_rows(
                         parsed, final_url, output_dir, timeout
                     )
-                    validation = detail_page_validation(parsed, parsed.get("parts", []))
+                    validation = detail_page_validation(parse_html(html), parsed.get("parts", []))
                     warnings = list(validation.get("page_warnings", []))
                     if ajax_errors:
                         warnings.append("toyota_ajax_request_failed")
