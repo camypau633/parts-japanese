@@ -100,6 +100,6 @@ were subsequently opened successfully.
 - Suzuki numeric region IDs are mapped only to the labels observed above.
 - Mazda and Mitsubishi use explicit textual market labels.
 - Isuzu requires family/model/modification hierarchy preservation.
-- Subaru market navigation is now verified; its detail adapter remains discovery-only until a real model/series and parts-group HTML sample is retained.
+- Subaru market navigation and a parts-list table layout are now verified. A first header-driven adapter is implemented for the observed columns, but it still needs a retained raw HTML fixture and validation across multiple groups and markets.
 - None of these observations authorizes a detail-table parser. Detail parsers
   must be based on retained real HTML samples and regression fixtures.
