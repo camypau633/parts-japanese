@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tools.catcar_poc.crawl_catalog import (
-    ADAPTERS, BRAND_NAMES, allowed_catalog_url, decoded_filter,
+    ADAPTERS, allowed_catalog_url, decoded_filter,
     discover_links, market_context, crawl
 )
 from tools.catcar_poc.catalog_registry import CATCAR_JAPANESE_CATALOGS, catalog_config
@@ -24,8 +24,8 @@ class CrawlCatalogTests(unittest.TestCase):
         self.assertEqual(set(ADAPTERS), expected)
         self.assertEqual(catalog_config("toyota")["brands"], ["Toyota", "Lexus"])
         self.assertEqual(catalog_config("nissan")["brands"], ["Nissan", "Infiniti"])
-        self.assertIsNone(BRAND_NAMES["toyota"])
-        self.assertIsNone(BRAND_NAMES["nissan"])
+        self.assertIs(ADAPTERS["suzuki"], DiscoveryOnlyAdapter)
+        self.assertIs(ADAPTERS["mazda"], DiscoveryOnlyAdapter)
 
     def test_discovery_only_adapter_does_not_fabricate_part_records(self):
         with self.assertRaisesRegex(ValueError, "detail_adapter_not_implemented"):
