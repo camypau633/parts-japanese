@@ -1,0 +1,54 @@
+name: CatCar Honda real multi-group export regression
+
+on:
+  push:
+    paths:
+      - 'tools/catcar_poc/tests/run_honda_real_export_regression.py'
+      - '.github/workflows/catcar-honda-real-export-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  real-honda-export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install parser and schema dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Download the six captured Honda source-page artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/honda-real/sources
+          gh run download 41594994163 --repo "$GITHUB_REPOSITORY" --name catcar-honda-accord-e1-inspection --dir /tmp/honda-real/sources/e1
+          gh run download 41820216716 --repo "$GITHUB_REPOSITORY" --name catcar-honda-accord-b28-inspection --dir /tmp/honda-real/sources/b28
+          gh run download 41821028881 --repo "$GITHUB_REPOSITORY" --name catcar-honda-accord-b22-inspection --dir /tmp/honda-real/sources/b22
+          gh run download 41822139081 --repo "$GITHUB_REPOSITORY" --name catcar-honda-accord-b19-10-inspection --dir /tmp/honda-real/sources/b19-10
+          gh run download 41826682904 --repo "$GITHUB_REPOSITORY" --name catcar-honda-accord-b29-inspection --dir /tmp/honda-real/sources/b29
+          gh run download 41827771648 --repo "$GITHUB_REPOSITORY" --name catcar-honda-accord-b27-10-inspection --dir /tmp/honda-real/sources/b27-10
+          gh run download 41827865889 --repo "$GITHUB_REPOSITORY" --name catcar-honda-diagram-audit --dir /tmp/honda-real/audit
+
+      - name: Export all six real Honda groups and validate merged PartScope records
+        run: |
+          set -euo pipefail
+          python tools/catcar_poc/tests/run_honda_real_export_regression.py /tmp/honda-real
+
+      - name: Upload real Honda export report and isolated shards
+        uses: actions/upload-artifact@v4
+        with:
+          name: honda-real-multigroup-partscope-export
+          path: |
+            /tmp/honda-real/honda-real-export-regression-report.json
+            /tmp/honda-real/export/
+          if-no-files-found: error
