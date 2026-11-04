@@ -140,8 +140,11 @@ jobs:
           ], check=True)
           report = json.loads((output / "crawl-report.json").read_text(encoding="utf-8"))
           documents = glob.glob(str(output / "normalized" / "*.json"))
-          assert report["complete"] is True, report
+          assert report["fetch_errors"] == 0, report
+          assert report["incomplete_detail_pages"] == 0, report
+          assert report["retry_urls_pending"] == 0, report
           assert report["detail_pages_normalized"] == 1, report
+          assert report["queue_remaining"] > 0, report
           assert len(documents) == 1, documents
           document = json.loads(Path(documents[0]).read_text(encoding="utf-8"))
           assert document["validation"]["page_status"] == "complete", document["validation"]
