@@ -1,6 +1,6 @@
 import unittest
 
-from tools.catcar_poc.adapters import NissanAdapter, ToyotaAdapter, VagAdapter
+from tools.catcar_poc.adapters import MitsubishiAdapter, NissanAdapter, ToyotaAdapter, VagAdapter
 from tools.catcar_poc.normalize import normalize_page
 
 
@@ -40,6 +40,29 @@ class NormalizeTests(unittest.TestCase):
         self.assertEqual(len(normalized["oem_records"]), 1)
         self.assertEqual(normalized["oem_records"][0]["source_row_id"], "15600A")
         self.assertIsNone(normalized["oem_records"][0]["production_period_raw"])
+
+    def test_mitsubishi_oem_detail_url_survives_normalization(self):
+        ajax = """
+        <table class="table inner-part">
+          <tr>
+            <td><a href="http://www.auto-vision.ru/search.html?article=MD155451">MD155451</a></td>
+            <td></td>
+            <td>01.04.1990-03.10.1990</td>
+            <td>Все</td>
+            <td><a href="http://www.catcar.info/mitsubishi/?l=DETAIL-TOKEN">open</a></td>
+          </tr>
+        </table>
+        """
+        records = MitsubishiAdapter.parse_ajax_records(ajax, source_row_id="01100AR")
+        parsed = MitsubishiAdapter().parse(
+            '<table><tr name="01100AR" onclick="getArticles(this, \'TOKEN\', 80, \'/mitsubishi/\')"><td>01100AR</td><td>COVER ASSY</td></tr></table>'
+        )
+        normalized = normalize_page(
+            parsed, {"brand": "Mitsubishi"}, "https://www.catcar.info/mitsubishi/group",
+            oem_records=records,
+        )
+        self.assertEqual(normalized["oem_records"][0]["source_detail_url"],
+                         "http://www.catcar.info/mitsubishi/?l=DETAIL-TOKEN")
 
     def test_normalizes_vag_parts_diagram_and_unresolved_position(self):
         html = """
