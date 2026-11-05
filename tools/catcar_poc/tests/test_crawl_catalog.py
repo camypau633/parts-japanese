@@ -161,6 +161,26 @@ class CrawlCatalogTests(unittest.TestCase):
             "mazda_model_selector",
         )
 
+
+    def test_mazda_stage_80_group_table_is_classified_as_navigation(self):
+        html = """
+        <table>
+          <tr><th>Код</th><th>Номер</th><th>Название</th></tr>
+          <tr><td>5500A</td><td></td><td><a href="/mazda/?l=NEXT">DASHBOARD EQUIPMENTS</a></td></tr>
+        </table>
+        """
+        links = [{"url": "https://www.catcar.info/mazda/?l=NEXT", "label": "5500A"}]
+        self.assertEqual(
+            catalog_navigation_reason(
+                "mazda",
+                "https://www.catcar.info/mazda/?l=STAGE80",
+                html,
+                links,
+            ),
+            "mazda_model_selector",
+        )
+
+
     def test_catalog_root_without_filter_is_classified_as_selector(self):
         html = "<html><body><a href='/toyota/?l=MARKET'>Europe</a></body></html>"
         links = [{"url": "https://www.catcar.info/toyota/?l=MARKET",
