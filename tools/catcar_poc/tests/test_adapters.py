@@ -369,5 +369,31 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(result["hotspot_matching"]["matched"], ["20130"])
 
 
+    def test_toyota_getarticles_ajax_request_and_observed_response(self):
+        url = ToyotaAdapter.build_ajax_request_url(
+            "/toyota/", "TOKEN123", state=80
+        )
+        self.assertEqual(url, "/toyota/?l=TOKEN123&st=81")
+        redirect = ToyotaAdapter.build_ajax_request_url(
+            "/toyota/", "TOKEN123", state=70
+        )
+        self.assertEqual(redirect, "/toyota/?l=TOKEN123")
+
+        html = """
+        <table class="table inner-part">
+          <tr><td>04111-36231</td><td>12/2014-03/2015</td><td>8ARFTS..AGZ1#</td></tr>
+          <tr><td>04111-36300</td><td>03/2015-02/2016</td><td>8ARFTS..AGZ1#</td></tr>
+          <tr><td>04111-36301</td><td>02/2016-04/2017</td><td>8ARFTS..AGZ1#</td></tr>
+          <tr><td>04111-36302</td><td>04/2017-</td><td>8ARFTS..AGZ1#</td></tr>
+        </table>
+        """
+        rows = ToyotaAdapter.parse_ajax_records(html, source_row_id="04111")
+        self.assertEqual(len(rows), 4)
+        self.assertEqual(rows[0]["oem_number_raw"], "04111-36231")
+        self.assertEqual(rows[0]["production_period_raw"], "12/2014-03/2015")
+        self.assertEqual(rows[0]["applicability_raw"], "8ARFTS..AGZ1#")
+        self.assertEqual(rows[-1]["oem_number_raw"], "04111-36302")
+
+
 if __name__ == "__main__":
     unittest.main()
