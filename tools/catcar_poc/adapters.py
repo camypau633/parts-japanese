@@ -65,6 +65,19 @@ class ToyotaAdapter(BaseAdapter):
         }
 
     @staticmethod
+    def build_ajax_request_url(script_href, token, state=80):
+        """Build the observed Toyota getArticles request URL.
+
+        CatCar's getArticles(el, l, state, script_href) redirects for state 70;
+        for a child group (observed state 80) it requests script_href/?l=<token>&st=81.
+        """
+        if not script_href or not token:
+            raise ValueError("Toyota AJAX request requires script_href and token")
+        if int(state) == 70:
+            return script_href.rstrip("/") + "/?l=" + token
+        return script_href.rstrip("/") + "/?l=" + token + "&st=81"
+
+    @staticmethod
     def parse_ajax_records(html, source_row_id=None):
         parsed = parse_html(html)
         records = []
