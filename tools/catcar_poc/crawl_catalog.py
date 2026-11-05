@@ -442,6 +442,36 @@ def write_json(path, value):
                     encoding="utf-8")
 
 
+def catalog_navigation_reason(make, url, html, links):
+    """Recognize CatCar selector pages before a detail adapter can misread them."""
+    parts = urlsplit(url)
+    query = parse_qs(parts.query)
+    if parts.path.rstrip("/") == "/" + make.lower() and not query.get("l") and links:
+        parsed = parse_html(html)
+        if not parsed.images or not any(
+            image.get("image_kind") == "diagram" for image in parsed.images
+        ):
+            return "catalog_root_selector"
+
+    if make.lower() == "nissan":
+        parsed = parse_html(html)
+        header_sets = (
+            {"модель", "дата производства", "серия"},
+            {"model", "production date", "series"},
+        )
+        for row in parsed.rows:
+            cells = {re.sub(r"\\s+", " ", value.strip().lower())
+                     for value in cell_texts(row)}
+            if any(required.issubset(cells) for required in header_sets):
+                model_links = [
+                    link for link in links
+                    if decoded_filter(link.get("url", "")).get("mod_id")
+                ]
+                if model_links:
+                    return "nissan_model_selector"
+    return None
+
+
 def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
           make="honda", resume_state=None):
     make = make.lower()
@@ -538,6 +568,9 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                     queued.add(link["url"])
 
             try:
+                navigation_reason = catalog_navigation_reason(make, final_url, html, links)
+                if navigation_reason:
+                    raise ValueError("catalog_navigation_page: " + navigation_reason)
                 parsed = adapter.parse(html)
                 oem_records = []
                 ajax_errors = []
