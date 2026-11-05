@@ -225,6 +225,30 @@ jobs:
               raise SystemExit("Expected exactly eight captured Toyota groups")
           print("Verified eight live Toyota groups; part rows:", total_parts, "OEM records:", total_oem)
           PY
+      - name: Survey Toyota model and market navigation from CatCar root
+        run: |
+          python -m tools.catcar_poc.crawl_catalog \
+            --make toyota \
+            --start-url https://www.catcar.info/toyota/ \
+            --output out/toyota-root-navigation \
+            --max-pages 18 --delay 10 --timeout 30
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("out/toyota-root-navigation")
+          report = json.loads((root / "crawl-report.json").read_text(encoding="utf-8"))
+          pages = [json.loads(line) for line in (root / "pages.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+          assert pages, "Toyota root survey produced no page records"
+          assert pages[0].get("http_status") == 200, pages[0]
+          print("Toyota root survey pages:", report["pages_visited"])
+          print("Normalized detail pages:", report["detail_pages_normalized"])
+          print("Market markers:", report["market_coverage_pages"])
+          print("Navigation/unrecognized pages:", report["navigation_or_unrecognized_pages"])
+          print("Fetch errors:", report["fetch_errors"])
+          print("Remaining navigation queue:", report["queue_remaining"])
+          for page in pages:
+              print(page.get("status"), page.get("market_region"), page.get("title"), page.get("final_url"))
+          PY
       - name: Parse captured Toyota and Nissan HTML fixtures
         run: |
           python -m tools.catcar_poc.validate_real_artifacts \
