@@ -1,6 +1,11 @@
 name: CatCar Japanese eight-catalog survey
 
 on:
+  push:
+    paths:
+      - ".github/workflows/catcar-japanese-eight-catalog-survey.yml"
+      - "tools/catcar_poc/**"
+      - "schemas/catcar-extraction-v0.1.schema.json"
   workflow_dispatch:
     inputs:
       max_pages_per_catalog:
@@ -36,7 +41,7 @@ jobs:
         run: python -m pip install -r requirements-dev.txt
       - name: Validate survey limit
         env:
-          MAX_PAGES: ${{ inputs.max_pages_per_catalog }}
+          MAX_PAGES: ${{ inputs.max_pages_per_catalog || '3' }}
         run: |
           set -euo pipefail
           if ! [[ "$MAX_PAGES" =~ ^[0-9]+$ ]] || (( MAX_PAGES < 1 || MAX_PAGES > 100 )); then
