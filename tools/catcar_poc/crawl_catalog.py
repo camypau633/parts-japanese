@@ -135,8 +135,12 @@ MARKET_LABELS = {
     "сша": "United States",
     "япония": "Japan",
     "европа": "Europe",
-    "европа (левый руль)": "Europe",
-    "европа (правый руль)": "Europe",
+    "европа (левый руль)": "Europe (LHD)",
+    "европа (правый руль)": "Europe (RHD)",
+    "europe (lhd)": "Europe (LHD)",
+    "europe (rhd)": "Europe (RHD)",
+    "lhd": "Europe (LHD)",
+    "rhd": "Europe (RHD)",
     "ближний восток": "Middle East",
     "азия": "Asia",
     "африка": "Africa",
@@ -169,6 +173,12 @@ def market_context(adapter_result, source_url, page_title=None):
         for key, value in decoded.items()
         if key.lower() in ("market", "region", "country", "sales_region", "catalog_region")
     ]
+    try:
+        selector_labels = json.loads(decoded.get("sts", "{}") or "{}")
+    except (TypeError, ValueError):
+        selector_labels = {}
+    if isinstance(selector_labels, dict) and selector_labels.get("20"):
+        filter_candidates.append(str(selector_labels["20"]).strip().lower())
     market_id = str(decoded.get("marketId", "")).strip()
     if market_id in SUZUKI_MARKET_ID_LABELS:
         return {
@@ -469,34 +479,38 @@ def write_json(path, value):
 
 
 def catalog_navigation_reason(make, url, html, links):
-    """Recognize CatCar selector pages before a detail adapter can misread them."""
+    """Recognize CatCar market/year/model selectors before detail parsing."""
+    make = make.lower()
     parts = urlsplit(url)
     query = parse_qs(parts.query)
-    if parts.path.rstrip("/") == "/" + make.lower() and not query.get("l") and links:
-        parsed = parse_html(html)
-        if not parsed.images or not any(
-            image.get("image_kind") == "diagram" for image in parsed.images
-        ):
-            return "catalog_root_selector"
+    parsed = parse_html(html)
+    has_diagram = any(image.get("image_kind") == "diagram" for image in parsed.images)
+    if has_diagram:
+        return None
 
-    if make.lower() == "nissan":
-        parsed = parse_html(html)
+    if parts.path.rstrip("/") == "/" + make and not query.get("l") and links:
+        return "catalog_root_selector"
+
+    filters = [decoded_filter(link.get("url", "")) for link in links]
+    # Model rows advance to stage 30; identifier names differ between makes.
+    if any(values.get("st") == "30" for values in filters):
+        return "model_selector"
+
+    # Honda first selects a production year (stage 20) before listing models.
+    if make == "honda" and any(values.get("year") for values in filters):
+        return "honda_year_selector"
+
+    if make == "nissan":
         header_sets = (
             {"модель", "дата производства", "серия"},
             {"model", "production date", "series"},
         )
         for row in parsed.rows:
-            cells = {re.sub(r"\\s+", " ", value.strip().lower())
+            cells = {" ".join(value.strip().lower().split())
                      for value in cell_texts(row)}
             if any(required.issubset(cells) for required in header_sets):
-                model_links = [
-                    link for link in links
-                    if decoded_filter(link.get("url", "")).get("mod_id")
-                ]
-                if model_links:
-                    return "nissan_model_selector"
+                return "nissan_model_selector"
     return None
-
 
 def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
           make="honda", resume_state=None):
