@@ -540,6 +540,8 @@ def catalog_navigation_reason(make, url, html, links):
             {"год", "модель", "дата начала производства", "кузов", "каталог"},
             {"year", "model", "production start date", "body", "catalog"},
             {"year", "model", "production date", "car line", "catalog"},
+            {"код", "номер", "название"},
+            {"code", "number", "name"},
         )
         for row in parsed.rows:
             cells = {" ".join(value.strip().lower().split())
