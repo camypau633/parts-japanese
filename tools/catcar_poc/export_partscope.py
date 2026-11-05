@@ -8,7 +8,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from urllib.parse import quote, urljoin, urlsplit, urlunsplit
 
-SUPPORTED_BRANDS = {"Toyota", "Nissan", "Honda"}
+SUPPORTED_BRANDS = {"Toyota", "Lexus", "Nissan", "Infiniti", "Honda", "Suzuki", "Mazda", "Mitsubishi", "Isuzu", "Subaru"}
 DEFAULT_MAX_SHARD_BYTES = 2 * 1024 * 1024
 DEFAULT_HOTSPOT_RADIUS = 28
 
@@ -446,7 +446,7 @@ def export_documents(input_paths, output_dir, max_shard_bytes=DEFAULT_MAX_SHARD_
             "No analogues or physical dimensions are inferred.",
             "Toyota, Nissan and Honda hotspots use source rectangle centres in natural image pixels after bounded image and resize-script verification." if geometry_index else "Hotspots are omitted without a verified geometry report.",
             "Multiple catalog-group records for one SKU remain separate PartScope candidates.",
-            "Preview conversion supports Japanese makes Toyota, Nissan and Honda; production publication remains separately gated.",
+            "Exports all supported Japanese makes; unavailable analogues and physical dimensions remain empty rather than inferred.",
         ],
     }
     (output_dir / "export-report.json").write_text(
@@ -457,13 +457,21 @@ def export_documents(input_paths, output_dir, max_shard_bytes=DEFAULT_MAX_SHARD_
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Export normalized Japanese catalogue JSON to PartScope shards")
-    parser.add_argument("--input", action="append", required=True)
+    parser.add_argument("--input", action="append", default=[], help="Normalized JSON file (repeatable)")
+    parser.add_argument("--input-dir", action="append", default=[], type=Path, help="Directory containing normalized JSON files (searched recursively)")
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--max-shard-bytes", type=int, default=DEFAULT_MAX_SHARD_BYTES)
     parser.add_argument("--geometry-report", type=Path, help="Verified CatCar diagram geometry report")
     args = parser.parse_args(argv)
     geometry_report = json.loads(args.geometry_report.read_text(encoding="utf-8")) if args.geometry_report else None
-    report = export_documents(args.input, args.output, args.max_shard_bytes, geometry_report=geometry_report)
+    input_paths = list(args.input)
+    for directory in args.input_dir:
+        input_paths.extend(str(path) for path in sorted(directory.rglob("*.json"))
+                           if path.name not in ("crawl-report.json", "export-report.json"))
+    input_paths = sorted(set(input_paths))
+    if not input_paths:
+        parser.error("provide at least one --input or --input-dir with normalized JSON files")
+    report = export_documents(input_paths, args.output, args.max_shard_bytes, geometry_report=geometry_report)
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0
 
