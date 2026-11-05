@@ -367,18 +367,19 @@ def discover_links(html, page_url, make):
 
 
 def fetch_page(url, timeout):
-    request = urllib.request.Request(url, headers={
-        "User-Agent": USER_AGENT,
-        "Accept": "text/html,application/xhtml+xml",
-    })
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        body = response.read(MAX_PAGE_BYTES + 1)
-        if len(body) > MAX_PAGE_BYTES:
-            raise ValueError("page_exceeds_4_mib_limit")
-        content_type = response.headers.get("Content-Type", "")
-        if "html" not in content_type.lower():
-            raise ValueError("unexpected_content_type:" + content_type)
-        return response.status, response.geturl(), body.decode("utf-8", "replace")
+    """Fetch a catalog page with bounded retries for transient CatCar failures."""
+    return fetch_html(
+        url,
+        timeout,
+        headers={
+            "User-Agent": USER_AGENT,
+            "Accept": "text/html,application/xhtml+xml",
+        },
+        max_bytes=MAX_PAGE_BYTES,
+        attempts=4,
+        base_delay=2.0,
+        max_delay=30.0,
+    )
 
 
 def build_toyota_ajax_url(token, make="toyota"):
