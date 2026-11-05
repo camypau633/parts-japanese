@@ -520,6 +520,20 @@ def catalog_navigation_reason(make, url, html, links):
                      for value in cell_texts(row)}
             if any(required.issubset(cells) for required in header_sets):
                 return "nissan_model_selector"
+
+    # Mazda's market pages expose model rows at stage 60, not stage 30.
+    # Identify the selector by its observed table headings so it is never
+    # passed to the Mazda parts-table adapter as if it were a detail page.
+    if make == "mazda":
+        header_sets = (
+            {"год", "модель", "дата начала производства", "кузов", "каталог"},
+            {"year", "model", "production start date", "body", "catalog"},
+        )
+        for row in parsed.rows:
+            cells = {" ".join(value.strip().lower().split())
+                     for value in cell_texts(row)}
+            if any(required.issubset(cells) for required in header_sets):
+                return "mazda_model_selector"
     return None
 
 def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
