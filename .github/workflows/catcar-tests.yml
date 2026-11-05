@@ -38,6 +38,10 @@ jobs:
       - name: Run CatCar test suite
         run: python -m unittest discover -s tools/catcar_poc/tests -v
 
+      - name: Install Playwright browser for Toyota pagination probe
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
       - name: Probe Toyota pagination on one known CatCar group
         run: |
           python -m tools.catcar_poc.probe_toyota_pagination \
