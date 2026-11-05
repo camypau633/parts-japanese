@@ -61,9 +61,9 @@ def main():
         joined = " ".join([full_text] + list(crops.values())).lower()
         indicators = []
         for pattern, name in [
-            (r"cat\\s*car|catcar\\.info", "catcar_text"),
+            (r"cat\s*car|catcar\.info", "catcar_text"),
             (r"copyright|all rights reserved", "copyright_text"),
-            (r"www\\.[a-z0-9.-]+", "website_text"),
+            (r"www\.[a-z0-9.-]+", "website_text"),
             (r"watermark|sample|demo", "watermark_or_sample_text"),
         ]:
             if re.search(pattern, joined, re.I):
@@ -96,7 +96,7 @@ def main():
         "conclusion": "OCR is only a screening signal; manually inspect saved PNGs/contact sheet for logos and translucent marks.",
     }
     (output / "watermark-report.json").write_text(
-        json.dumps(report, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8"
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
