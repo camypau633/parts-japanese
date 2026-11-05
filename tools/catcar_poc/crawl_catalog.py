@@ -198,58 +198,43 @@ def market_context(adapter_result, source_url, page_title=None):
         str(selector_labels.get("20", "")).strip().lower()
         if isinstance(selector_labels, dict) else ""
     )
-    filter_candidates = [
+    filter_codes = [
         str(value).strip().lower()
         for key, value in decoded.items()
         if key.lower() in ("market", "region", "country", "sales_region", "catalog_region")
     ]
-    if selector_market:
-        # The visible CatCar selector label is more specific than a shared
-        # opaque code (e.g. "usa" means North America in Mitsubishi).
-        filter_candidates.insert(0, selector_market)
+    market_candidates = ([selector_market] if selector_market else []) + filter_codes
     market_id = str(decoded.get("marketId", "")).strip()
     if market_id in SUZUKI_MARKET_ID_LABELS:
-        return {
-            "market_region": SUZUKI_MARKET_ID_LABELS[market_id],
-            "market_code_raw": "marketId=" + market_id,
-        }
+        return {"market_region": SUZUKI_MARKET_ID_LABELS[market_id],
+                "market_code_raw": "marketId=" + market_id}
 
     path_candidates = []
     urls = [source_url]
-    urls.extend(
-        image.get("src", "")
-        for image in adapter_result.get("images", [])
-        if image.get("src")
-    )
+    urls.extend(image.get("src", "") for image in adapter_result.get("images", [])
+                if image.get("src"))
     for candidate_url in urls:
-        segments = [
-            segment.lower()
-            for segment in urlsplit(candidate_url).path.split("/")
-            if segment
-        ]
+        segments = [segment.lower() for segment in urlsplit(candidate_url).path.split("/")
+                    if segment]
         if len(segments) >= 2:
             path_candidates.append(segments[1])
 
-    for candidate in filter_candidates + path_candidates:
+    for candidate in market_candidates + path_candidates:
         if candidate in MARKET_LABELS:
-            raw_code = next((value for value in filter_candidates if value), candidate)
-            return {
-                "market_region": MARKET_LABELS[candidate],
-                "market_code_raw": raw_code,
-            }
+            raw_code = filter_codes[0] if filter_codes else candidate
+            return {"market_region": MARKET_LABELS[candidate],
+                    "market_code_raw": raw_code}
 
-    title_key = re.sub(r"\\s+", " ", (page_title or "").strip().lower())
-    title_key = re.sub(r"\\s+-\\s*catcar\\.info$", "", title_key)
+    title_key = " ".join((page_title or "").strip().lower().split())
+    suffix = " - catcar.info"
+    if title_key.endswith(suffix):
+        title_key = title_key[:-len(suffix)]
     if title_key in MARKET_LABELS:
-        raw_code = next((value for value in filter_candidates if value), title_key)
-        return {
-            "market_region": MARKET_LABELS[title_key],
-            "market_code_raw": raw_code,
-        }
+        raw_code = filter_codes[0] if filter_codes else title_key
+        return {"market_region": MARKET_LABELS[title_key],
+                "market_code_raw": raw_code}
 
-    raw_code = next((value for value in filter_candidates if value), None)
-    if raw_code is None and path_candidates:
-        raw_code = path_candidates[0]
+    raw_code = filter_codes[0] if filter_codes else (path_candidates[0] if path_candidates else None)
     return {"market_region": None, "market_code_raw": raw_code}
 
 def toyota_variant_context(filter_values, resolved_brand=None):
