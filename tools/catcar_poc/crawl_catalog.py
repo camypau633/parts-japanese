@@ -23,6 +23,7 @@ from .adapters import DiscoveryOnlyAdapter, HondaAdapter, IsuzuAdapter, MazdaAda
 from .catalog_registry import CATCAR_JAPANESE_CATALOGS, catalog_config
 from .normalize import normalize_page
 from .parser import parse_html, cell_texts
+from .network import fetch_html
 
 
 USER_AGENT = "PartScope-Japanese-Catalog-Importer/0.1 (+catalog research)"
