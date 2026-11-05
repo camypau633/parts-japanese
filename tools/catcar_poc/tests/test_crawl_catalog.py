@@ -164,7 +164,7 @@ class CrawlCatalogTests(unittest.TestCase):
 
     def test_discovery_only_catalog_retains_page_without_fabricating_records(self):
         html = "<html><head><title>Isuzu catalog</title></head><body><a href='/isuzu/?l=next'>Next</a></body></html>"
-        url = "https://www.catcar.info/isuzu/"
+        url = "https://www.catcar.info/isuzu/?l=selected"
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp) / "out"
             with patch(
