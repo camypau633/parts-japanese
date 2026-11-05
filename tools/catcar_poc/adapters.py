@@ -129,23 +129,25 @@ class MitsubishiAdapter(ToyotaAdapter):
             result["page_warnings"] = ["no_mitsubishi_ajax_rows"]
         return result
     @staticmethod
+    @staticmethod
     def parse_ajax_records(html, source_row_id=None):
-        """Mitsubishi st=81 exposes OEM, period and applicability after empty-cell normalization."""
+        """Mitsubishi st=81 rows: OEM, optional blank fields, period, applicability."""
         parsed = parse_html(html)
         records = []
         for row in parsed.rows:
-            values = cell_texts(row)
-            if len(values) < 4:
+            raw_values = cell_texts(row)
+            values = [value.strip() for value in raw_values if value.strip()]
+            if len(values) < 3:
                 continue
-            oem = values[0].strip()
-            if not oem or oem.lower() in ("oem", "номер детали", "номер запчасти"):
+            oem = values[0]
+            if oem.lower() in ("oem", "номер детали", "номер запчасти"):
                 continue
             records.append({
                 "source_row_id": source_row_id,
                 "oem_number_raw": oem,
-                "production_period_raw": values[1].strip() or None,
-                "applicability_raw": values[2].strip() or None,
-                "additional_source_fields": {"raw_cells": list(values)},
+                "production_period_raw": values[1] or None,
+                "applicability_raw": values[2] or None,
+                "additional_source_fields": {"raw_cells": raw_values},
                 "source_status": "available",
             })
         if not records and "no applicable data" in (html or "").lower():
