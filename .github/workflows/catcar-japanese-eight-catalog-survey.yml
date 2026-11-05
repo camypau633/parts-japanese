@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/catcar-japanese-eight-catalog-survey.yml"
       - "tools/catcar_poc/**"
+      - "!tools/catcar_poc/tests/**"
       - "schemas/catcar-extraction-v0.1.schema.json"
   workflow_dispatch:
     inputs:
