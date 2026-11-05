@@ -39,7 +39,7 @@ CATCAR_JAPANESE_CATALOGS = {
     "isuzu": {
         "url": "https://www.catcar.info/isuzu/",
         "brands": ["Isuzu"],
-        "detail_adapter": None,
+        "detail_adapter": "isuzu",
     },
     "subaru": {
         "url": "https://www.catcar.info/subaru/",
