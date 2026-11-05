@@ -18,8 +18,15 @@ concurrency:
 
 jobs:
   survey:
+    name: Survey ${{ matrix.make }}
     runs-on: ubuntu-latest
     timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      # Run independent catalogs concurrently, but cap pressure on CatCar.
+      max-parallel: 2
+      matrix:
+        make: [toyota, nissan, honda, suzuki, mazda, mitsubishi, isuzu, subaru]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -27,7 +34,7 @@ jobs:
           python-version: "3.12"
       - name: Install schema validation dependency
         run: python -m pip install -r requirements-dev.txt
-      - name: Survey all eight Japanese CatCar catalog roots sequentially
+      - name: Validate survey limit
         env:
           MAX_PAGES: ${{ inputs.max_pages_per_catalog }}
         run: |
@@ -36,78 +43,24 @@ jobs:
             echo "max_pages_per_catalog must be between 1 and 100"
             exit 2
           fi
-
-          makes=(toyota nissan honda suzuki mazda mitsubishi isuzu subaru)
-          first=true
-          for make in "${makes[@]}"; do
-            if [ "$first" = false ]; then
-              # Keep a minimum gap between requests even across crawler processes.
-              sleep 10
-            fi
-            first=false
-            echo "::group::CatCar survey: $make"
-            python -m tools.catcar_poc.crawl_catalog \
-              --make "$make" \
-              --start-url "https://www.catcar.info/$make/" \
-              --max-pages "$MAX_PAGES" \
-              --delay 10 \
-              --timeout 30 \
-              --output "out/catcar-$make"
-            echo "::endgroup::"
-          done
-      - name: Upload toyota survey checkpoint
+      - name: Survey selected Japanese CatCar catalog
+        env:
+          MAX_PAGES: ${{ inputs.max_pages_per_catalog }}
+          MAKE: ${{ matrix.make }}
+        run: |
+          set -euo pipefail
+          python -m tools.catcar_poc.crawl_catalog \
+            --make "$MAKE" \
+            --start-url "https://www.catcar.info/$MAKE/" \
+            --max-pages "$MAX_PAGES" \
+            --delay 10 \
+            --timeout 30 \
+            --output "out/catcar-$MAKE"
+      - name: Upload catalog checkpoint
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: catcar-toyota-crawl-${{ github.run_id }}
-          path: out/catcar-toyota/
-          if-no-files-found: error
-          retention-days: 14
-      - name: Upload nissan survey checkpoint
-        uses: actions/upload-artifact@v4
-        with:
-          name: catcar-nissan-crawl-${{ github.run_id }}
-          path: out/catcar-nissan/
-          if-no-files-found: error
-          retention-days: 14
-      - name: Upload honda survey checkpoint
-        uses: actions/upload-artifact@v4
-        with:
-          name: catcar-honda-crawl-${{ github.run_id }}
-          path: out/catcar-honda/
-          if-no-files-found: error
-          retention-days: 14
-      - name: Upload suzuki survey checkpoint
-        uses: actions/upload-artifact@v4
-        with:
-          name: catcar-suzuki-crawl-${{ github.run_id }}
-          path: out/catcar-suzuki/
-          if-no-files-found: error
-          retention-days: 14
-      - name: Upload mazda survey checkpoint
-        uses: actions/upload-artifact@v4
-        with:
-          name: catcar-mazda-crawl-${{ github.run_id }}
-          path: out/catcar-mazda/
-          if-no-files-found: error
-          retention-days: 14
-      - name: Upload mitsubishi survey checkpoint
-        uses: actions/upload-artifact@v4
-        with:
-          name: catcar-mitsubishi-crawl-${{ github.run_id }}
-          path: out/catcar-mitsubishi/
-          if-no-files-found: error
-          retention-days: 14
-      - name: Upload isuzu survey checkpoint
-        uses: actions/upload-artifact@v4
-        with:
-          name: catcar-isuzu-crawl-${{ github.run_id }}
-          path: out/catcar-isuzu/
-          if-no-files-found: error
-          retention-days: 14
-      - name: Upload subaru survey checkpoint
-        uses: actions/upload-artifact@v4
-        with:
-          name: catcar-subaru-crawl-${{ github.run_id }}
-          path: out/catcar-subaru/
-          if-no-files-found: error
+          name: catcar-${{ matrix.make }}-crawl-${{ github.run_id }}
+          path: out/catcar-${{ matrix.make }}/
+          if-no-files-found: warn
           retention-days: 14
