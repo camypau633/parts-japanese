@@ -106,6 +106,17 @@ def decoded_filter(url):
     return result
 
 
+def navigation_stage(url):
+    """Return CatCar's explicit stage number for depth-first selector traversal."""
+    stage = decoded_filter(url).get("st")
+    if stage is None:
+        stage = parse_qs(urlsplit(url).query).get("st", [""])[0]
+    try:
+        return int(stage)
+    except (TypeError, ValueError):
+        return -1
+
+
 MARKET_LABELS = {
     "euro": "Europe",
     "europe": "Europe",
@@ -573,6 +584,9 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
         failed_urls = []
         details = 0
         previous_errors = 0
+    # Prefer deeper CatCar selector stages over hundreds of sibling model links.
+    # Stable sorting preserves source order within the same stage.
+    queue = deque(sorted(queue, key=lambda item: navigation_stage(item["url"]), reverse=True))
     queued = {item["url"] for item in queue} | visited
     errors = []
     page_log = output_dir / "pages.jsonl"
@@ -630,6 +644,12 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                 if link["url"] not in queued and link["url"] not in visited:
                     queue.append(link)
                     queued.add(link["url"])
+            if links:
+                queue = deque(sorted(
+                    queue,
+                    key=lambda queued_item: navigation_stage(queued_item["url"]),
+                    reverse=True,
+                ))
 
             try:
                 navigation_reason = catalog_navigation_reason(make, final_url, html, links)
