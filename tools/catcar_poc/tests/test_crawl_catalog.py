@@ -367,6 +367,7 @@ class CrawlCatalogTests(unittest.TestCase):
             )
 
     def test_toyota_ajax_cache_is_scoped_to_full_group_url_not_reused_group_id(self):
+        from tools.catcar_poc.adapters import ToyotaAdapter
         html = """
           <table><tr name="ROW-1" onclick="getArticles(this, 'TOKEN-1', 80, '/toyota/');">
           <td>ROW-1</td><td>PART ONE</td></tr></table>
