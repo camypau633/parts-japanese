@@ -14,48 +14,31 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Request observed Mitsubishi part expansion
+      - name: Capture Mitsubishi OEM expansion and follow-up
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p probe
-          L='bWFya2V0PT1ldXJvfHxzdD09ODB8fHN0cz09eyIxMCI6Ilx1MDQyMFx1MDQ0Ylx1MDQzZFx1MDQzZVx1MDQzYSIsIjIwIjoiXHUwNDE1XHUwNDEyXHUwNDIwXHUwNDFlXHUwNDFmXHUwNDEwIiwiMzAiOiIzMDAwR1QoRVVSKSIsIjQwIjoiWjExQSIsIjUwIjoiXHUwNDFlXHUwNDMxXHUwNDQ5XHUwNDMwXHUwNDRmIiwiNjAiOiIxMSBFTkdJTkUiLCI3MCI6IjExLTExMCBST0NLRVIgQ09WRVIiLCI4MCI6IjAxMTAwQVIgQ09WRVIgQVNTWSxST0NLRVIsUkgifXx8Q2F0YWxvZ05vPT1CNjA4SzQwOUF8fENhdFN0YXJ0RGF0ZT09MTk5MDA0MXx8Q2F0RW5kRGF0ZT09MjAwMDA2M3x8TW9kZWw9PVoxMUF8fGNjPT0wfHxNYWluR3JvdXA9PTExfHxTdWJHcm91cD09MTEwfHxwYWdlNzA9PTB8fFBOQz09MDExMDBBUnx8UGFydE1vZGVsPT1aMTFB'
-          curl --get --location --fail-with-body \
-            --max-time 45 --connect-timeout 15 \
+          L='bWFya2V0PT1ldXJvfHxzdD09OTB8fHN0cz09eyIxMCI6Ilx1MDQyMFx1MDQ0Ylx1MDQzZFx1MDQzZVx1MDQzYSIsIjIwIjoiXHUwNDE1XHUwNDEyXHUwNDIwXHUwNDFlXHUwNDFmXHUwNDEwIiwiMzAiOiIzMDAwR1QoRVVSKSIsIjQwIjoiWjExQSIsIjUwIjoiXHUwNDFlXHUwNDMxXHUwNDQ5XHUwNDMwXHUwNDRmIiwiNjAiOiIxMSBFTkdJTkUiLCI3MCI6IjExLTExMCBST0NLRVIgQ09WRVIiLCI4MCI6IjAxMTAwQVIgQ09WRVIgQVNTWSxST0NLRVIsUkgiLCI5MCI6Ik1EMTU1NDUxIn18fENhdGFsb2dObz09QjYwOEs0MDlBfHxDYXRTdGFydERhdGU9PTE5OTAwNDF8fENhdEVuZERhdGU9PTIwMDAwNjN8fE1vZGVsPT1aMTFBfHxjYz09MHx8TWFpbkdyb3VwPT0xMXx8U3ViR3JvdXA9PTExMHx8cGFnZTcwPT0wfHxQTkM9PTAxMTAwQVJ8fFBhcnRNb2RlbD09WjExQXx8U1BOPT1NOTAxNTE='
+          curl --get --location --fail-with-body --max-time 45 --connect-timeout 15 \
             --user-agent "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/128.0.0.0 Safari/537.36" \
-            --dump-header probe/response.headers \
-            --output probe/response.html \
+            --dump-header probe/response.headers --output probe/response.html \
             --write-out "http_code=%{http_code}\ncontent_type=%{content_type}\nsize_download=%{size_download}\ntime_total=%{time_total}\n" \
-            --data-urlencode "l=$L" \
-            --data-urlencode "st=81" \
-            "https://www.catcar.info/mitsubishi/" | tee probe/result.txt
-          echo "response_bytes=$(wc -c < probe/response.html)"
-          echo "=== response table preview ==="
-          sed -n '1,100p' probe/response.html | sed -E 's/(<script[^>]*>).*$/\1[script omitted]/I'
-          echo "=== candidate OEM and metadata values ==="
-          grep -Eoi '01100AR|B608K409A|[0-9A-Z]{5,}[- ][0-9A-Z-]+|part number|номер детали|production|period|model|applicab|date' probe/response.html | sort | uniq -c | head -80 || true
-      - name: Save response evidence
+            --data-urlencode "l=$L" "https://www.catcar.info/mitsubishi/" | tee probe/result.txt
+          echo "=== OEM response ==="
+          sed -n '1,120p' probe/response.html
+          curl --get --location --fail-with-body --max-time 45 --connect-timeout 15 \
+            --user-agent "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/128.0.0.0 Safari/537.36" \
+            --dump-header probe/oem-detail.headers --output probe/oem-detail.html \
+            --write-out "http_code=%{http_code}\ncontent_type=%{content_type}\nsize_download=%{size_download}\ntime_total=%{time_total}\n" \
+            --data-urlencode "l=$L" "https://www.catcar.info/mitsubishi/" | tee probe/oem-detail-result.txt
+          echo "=== OEM follow-up response ==="
+          sed -n '1,160p' probe/oem-detail.html
+          echo "=== diagram and coordinate markers ==="
+          grep -Eoi 'img[^>]+|coord[^>]+|srcNum|srcTop|srcLeft|srcWidth|srcHeight|MD155451|period|production|number|name' probe/oem-detail.html | head -120 || true
+      - name: Save both response bodies and headers
         uses: actions/upload-artifact@v4
         with:
           name: catcar-mitsubishi-ajax-detail
           path: probe/
           retention-days: 14
-
-      - name: Follow Mitsubishi OEM record to next detail stage
-        shell: bash
-        run: |
-          set -euo pipefail
-          L='bWFya2V0PT1ldXJvfHxzdD09OTB8fHN0cz09eyIxMCI6Ilx1MDQyMFx1MDQ0Ylx1MDQzZFx1MDQzZVx1MDQzYSIsIjIwIjoiXHUwNDE1XHUwNDEyXHUwNDIwXHUwNDEwIiwiMzAiOiIzMDAwR1QoRVVSKSIsIjQwIjoiWjExQSIsIjUwIjoiXHUwNDFlXHUwNDMxXHUwNDQ5XHUwNDMwXHUwNDRmIiwiNjAiOiIxMSBFTkdJTkUiLCI3MCI6IjExLTExMCBST0NLRVIgQ09WRVIiLCI4MCI6IjAxMTAwQVIgQ09WRVIgQVNTWSxST0NLRVIsUkgiLCI5MCI6Ik1EMTU1NDUxIn18fENhdGFsb2dObz09QjYwOEs0MDlBfHxDYXRTdGFydERhdGU9PTE5OTAwNDF8fENhdEVuZERhdGU9PTIwMDAwNjN8fE1vZGVsPT1aMTFBfHxjYz09MHx8TWFpbkdyb3VwPT0xMXx8U3ViR3JvdXA9PTExMHx8cGFnZTcwPT0wfHxQTkM9PTAxMTAwQVJ8fFBhcnRNb2RlbD09WjExQXx8U1BOPT1NOTAxNTE='
-          curl --get --location --fail-with-body \
-            --max-time 45 --connect-timeout 15 \
-            --user-agent "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/128.0.0.0 Safari/537.36" \
-            --dump-header probe/oem-detail.headers \
-            --output probe/oem-detail.html \
-            --write-out "http_code=%{http_code}\ncontent_type=%{content_type}\nsize_download=%{size_download}\ntime_total=%{time_total}\n" \
-            --data-urlencode "l=$L" \
-            "https://www.catcar.info/mitsubishi/" | tee probe/oem-detail-result.txt
-          echo "response_bytes=$(wc -c < probe/oem-detail.html)"
-          echo "=== next-stage preview ==="
-          sed -n '1,120p' probe/oem-detail.html | sed -E 's/(<script[^>]*>).*$/\1[script omitted]/I'
-          echo "=== diagram/part metadata markers ==="
-          grep -Eoi 'img[^>]+|coord[^>]+|srcNum|srcTop|srcLeft|srcWidth|srcHeight|MD155451|period|production|number|name' probe/oem-detail.html | head -100 || true
