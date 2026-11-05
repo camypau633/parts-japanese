@@ -395,5 +395,61 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(rows[-1]["oem_number_raw"], "04111-36302")
 
 
+    def test_mazda_real_russian_parts_header_and_note(self):
+        html = """
+        <table>
+          <tr><th>Код</th><th>Номер запчасти</th><th>Название</th><th>Примечание</th></tr>
+          <tr><td>55220</td><td>BL4C-55-21X 25</td><td>PANEL,CENTER, BN3 BEIGE METALLIC</td><td>CENTER PANEL-STD W/O ROOF RAIL</td></tr>
+          <tr><td>55280J</td><td>B456-60-223</td><td>BULB</td><td>14V 1.4W</td></tr>
+        </table>
+        <img class="resize" src="https://ci.catcar.info/mazda/gen/323/IMGE/diagram.png">
+        <div class="coord" srcNum="55220" srcTop="10" srcLeft="20" srcWidth="30" srcHeight="40"></div>
+        """
+        result = MazdaAdapter().parse(html)
+        self.assertEqual(len(result["parts"]), 2)
+        self.assertEqual(result["parts"][0]["part_number_raw"], "BL4C-55-21X 25")
+        self.assertEqual(result["parts"][0]["description_raw"], "PANEL,CENTER, BN3 BEIGE METALLIC")
+        self.assertEqual(result["parts"][0]["additional_source_fields"]["note_raw"], "CENTER PANEL-STD W/O ROOF RAIL")
+        self.assertEqual(result["hotspot_matching"]["matched"], ["55220"])
+
+    def test_suzuki_real_russian_parts_header(self):
+        html = """
+        <table>
+          <tr><th>Код</th><th>Номер детали</th><th>Наименование</th><th>Дополнительная информация</th><th>Qty</th><th></th></tr>
+          <tr><td>1</td><td>11200-65G40</td><td>BLOCK ASSY, CYLINDER</td><td></td><td>1</td><td></td></tr>
+          <tr><td>2</td><td>11216-77E00</td><td>GASKET</td><td>Japan spec</td><td>2</td><td></td></tr>
+        </table>
+        <img class="resize" src="https://ci.catcar.info/suzuki/asia/ABC123/IMGE/diagram.png">
+        <div class="coord" srcNum="1" srcTop="10" srcLeft="20" srcWidth="30" srcHeight="40"></div>
+        """
+        result = SuzukiAdapter().parse(html)
+        self.assertEqual(len(result["parts"]), 2)
+        self.assertEqual(result["parts"][0]["part_number_raw"], "11200-65G40")
+        self.assertEqual(result["parts"][0]["description_raw"], "BLOCK ASSY, CYLINDER")
+        self.assertEqual(result["parts"][1]["quantity_raw"], "2")
+        self.assertEqual(result["parts"][1]["additional_source_fields"]["additional_information_raw"], "Japan spec")
+        self.assertEqual(result["hotspot_matching"]["matched"], ["1"])
+
+    def test_subaru_real_russian_parts_header_preserves_source_columns(self):
+        html = """
+        <table>
+          <tr><th>№</th><th>Номер детали</th><th>Параметы запчасти</th><th>Параметы модели</th><th>Дата производства</th><th>Примечание/ Destination Code</th><th>Дополнительно</th><th></th></tr>
+          <tr><td>10006</td><td>10006AA010</td><td>HANGER-ENGINE</td><td>XT</td><td>01/06/1985-01/06/1991</td><td>/</td><td></td><td></td></tr>
+          <tr><td>11410</td><td>11410AA010</td><td>HOUSING ASSEMBLY-FLYWHEEL</td><td>3C.(DL+GL)</td><td>01/06/1985-01/06/1988</td><td>-82 1300&1600/</td><td>sample note</td><td></td></tr>
+        </table>
+        <img class="resize" src="https://ci.catcar.info/subaru/euro/diagram.png">
+        <div class="coord" srcNum="10006" srcTop="10" srcLeft="20" srcWidth="30" srcHeight="40"></div>
+        """
+        result = SubaruAdapter().parse(html)
+        self.assertEqual(len(result["parts"]), 2)
+        self.assertEqual(result["parts"][0]["part_number_raw"], "10006AA010")
+        self.assertEqual(result["parts"][0]["description_raw"], "HANGER-ENGINE")
+        self.assertEqual(result["parts"][0]["production_period_raw"], "01/06/1985-01/06/1991")
+        self.assertEqual(result["parts"][0]["additional_source_fields"]["applicable_models_raw"], "XT")
+        self.assertEqual(result["parts"][1]["additional_source_fields"]["note_destination_code_raw"], "-82 1300&1600/")
+        self.assertEqual(result["parts"][1]["additional_source_fields"]["comment_raw"], "sample note")
+        self.assertEqual(result["hotspot_matching"]["matched"], ["10006"])
+
+
 if __name__ == "__main__":
     unittest.main()
