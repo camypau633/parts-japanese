@@ -22,7 +22,7 @@ import base64
 from .adapters import DiscoveryOnlyAdapter, HondaAdapter, MazdaAdapter, NissanAdapter, SubaruAdapter, SuzukiAdapter, ToyotaAdapter, detail_page_validation
 from .catalog_registry import CATCAR_JAPANESE_CATALOGS, catalog_config
 from .normalize import normalize_page
-from .parser import parse_html
+from .parser import parse_html, cell_texts
 
 
 USER_AGENT = "PartScope-Japanese-Catalog-Importer/0.1 (+catalog research)"
