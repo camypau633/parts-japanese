@@ -539,6 +539,7 @@ def catalog_navigation_reason(make, url, html, links):
         header_sets = (
             {"год", "модель", "дата начала производства", "кузов", "каталог"},
             {"year", "model", "production start date", "body", "catalog"},
+            {"year", "model", "production date", "car line", "catalog"},
         )
         for row in parsed.rows:
             cells = {" ".join(value.strip().lower().split())
