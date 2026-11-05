@@ -86,6 +86,13 @@ def toyota_group_document(group_id, position, image_path):
 
 
 class PartScopeExportTests(unittest.TestCase):
+    def test_all_japanese_catalog_brands_are_exportable(self):
+        for brand in ("Toyota", "Lexus", "Nissan", "Infiniti", "Honda",
+                      "Suzuki", "Mazda", "Mitsubishi", "Isuzu", "Subaru"):
+            with self.subTest(brand=brand):
+                records = document_to_records(sample(brand))
+                self.assertEqual(records["120004A00A"]["brand"], brand)
+
     def test_static_nissan_row_maps_to_factory_parts(self):
         records = document_to_records(sample())
         record = records["120004A00A"]
