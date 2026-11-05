@@ -1,7 +1,7 @@
 import unittest
 
 from tools.catcar_poc.adapters import (
-    ToyotaAdapter, NissanAdapter, HondaAdapter, MazdaAdapter, SuzukiAdapter, SubaruAdapter, FordAdapter, VagAdapter
+    ToyotaAdapter, NissanAdapter, HondaAdapter, IsuzuAdapter, MazdaAdapter, SuzukiAdapter, SubaruAdapter, FordAdapter, VagAdapter
 )
 
 
@@ -232,6 +232,31 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(len(result["parts"]), 1)
         self.assertEqual(result["page_status"], "complete")
         self.assertEqual(result["page_warnings"], [])
+
+
+    def test_isuzu_real_russian_table_preserves_fitment_and_related_groups(self):
+        html = """
+        <table>
+          <tr><th>Код</th><th>Номер детали</th><th>Наименование</th><th>Сторона установки</th><th>Дата производства</th><th>Применяемость</th><th>Дополнительная информация</th><th>Qty</th><th>Связанные подгруппы</th><th></th></tr>
+          <tr><td>1</td><td>5-11360-377-1</td><td>PAN ASM; OIL</td><td></td><td>01.1991 - 04.1995</td><td>ABC</td><td></td><td>01</td><td></td><td></td></tr>
+          <tr><td>1</td><td>8-94395-608-0</td><td>PAN ASM; OIL</td><td></td><td>05.1995 - 12.1995</td><td>D</td><td>EMISSION SYSTEM FEDERAL REQUIREMENT</td><td>01</td><td>SUBGROUP-42</td><td></td></tr>
+        </table>
+        <img class="resize" src="https://ci.catcar.info/isuzu_2017_01/data/211/37161.png">
+        <div class="coord" srcNum="1" srcTop="10" srcLeft="20" srcWidth="30" srcHeight="40"></div>
+        """
+        result = IsuzuAdapter().parse(html)
+        self.assertEqual(len(result["parts"]), 2)
+        first = result["parts"][0]
+        self.assertEqual(first["part_number_raw"], "5-11360-377-1")
+        self.assertEqual(first["production_period_raw"], "01.1991 - 04.1995")
+        self.assertEqual(first["additional_source_fields"]["applicability_raw"], "ABC")
+        self.assertEqual(result["parts"][1]["additional_source_fields"]["additional_information_raw"],
+                         "EMISSION SYSTEM FEDERAL REQUIREMENT")
+        self.assertEqual(result["parts"][1]["additional_source_fields"]["related_subgroups_raw"],
+                         "SUBGROUP-42")
+        self.assertEqual(result["hotspot_matching"]["matched"], ["1"])
+        self.assertEqual(result["page_status"], "complete")
+
 
     def test_ford_static_table_code_mapping(self):
         html = """
