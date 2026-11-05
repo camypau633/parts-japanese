@@ -37,3 +37,17 @@ jobs:
         run: python -m pip install -r requirements-dev.txt
       - name: Run CatCar test suite
         run: python -m unittest discover -s tools/catcar_poc/tests -v
+
+      - name: Probe Toyota pagination on one known CatCar group
+        run: |
+          python -m tools.catcar_poc.probe_toyota_pagination \
+            --output out/toyota-pagination-probe \
+            --delay 10 --timeout 30
+      - name: Upload Toyota pagination evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: toyota-pagination-probe-${{ github.run_id }}
+          path: out/toyota-pagination-probe/
+          if-no-files-found: warn
+          retention-days: 14
