@@ -91,6 +91,33 @@ class CrawlCatalogTests(unittest.TestCase):
         self.assertIs(ADAPTERS["mazda"], MazdaAdapter)
         self.assertIs(ADAPTERS["subaru"], SubaruAdapter)
 
+    def test_nissan_model_selector_is_not_misparsed_as_part_numbers(self):
+        encoded = base64.b64encode(
+            b"region==ca||st==20||sts=={}||mod_id==51||start==1994-02-01"
+        ).decode("ascii")
+        html = """
+        <h1>Модель</h1>
+        <table><tr><th>Модель</th><th>Дата производства</th><th>Серия</th></tr>
+        <tr><td><a href="/nissan/?l=MODEL">240SX</a></td>
+        <td>02/1994-06/1998</td><td>S14</td></tr></table>
+        """
+        links = [{"url": "https://www.catcar.info/nissan/?l=" + encoded,
+                  "label": "240SX"}]
+        reason = catalog_navigation_reason(
+            "nissan", "https://www.catcar.info/nissan/?l=REGION", html, links
+        )
+        self.assertEqual(reason, "nissan_model_selector")
+
+    def test_catalog_root_without_filter_is_classified_as_selector(self):
+        html = "<html><body><a href='/toyota/?l=MARKET'>Europe</a></body></html>"
+        links = [{"url": "https://www.catcar.info/toyota/?l=MARKET",
+                  "label": "Europe"}]
+        self.assertEqual(
+            catalog_navigation_reason("toyota", "https://www.catcar.info/toyota/",
+                                      html, links),
+            "catalog_root_selector",
+        )
+
     def test_discovery_only_adapter_does_not_fabricate_part_records(self):
         with self.assertRaisesRegex(ValueError, "detail_adapter_not_implemented"):
             DiscoveryOnlyAdapter().parse("<html><body>unknown layout</body></html>")
