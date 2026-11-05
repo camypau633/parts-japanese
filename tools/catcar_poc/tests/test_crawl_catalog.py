@@ -295,6 +295,56 @@ class CrawlCatalogTests(unittest.TestCase):
             market_context(japan, "https://www.catcar.info/mazda/")[ "market_region" ],
         )
 
+    def test_mitsubishi_ajax_rows_resolve_live_oem_variants_and_diagram(self):
+        html = """
+        <table><tr name="01100AR" onclick="getArticles(this, 'TOKEN-MITSU', 80, '/mitsubishi/');">
+          <td>01100AR</td><td>COVER ASSY,ROCKER,RH</td>
+        </tr></table>
+        <img class="resize" src="https://ci.catcar.info/mitsubishi_2017_05/euro/diagram.png">
+        <div class="coord" srcNum="01100AR" srcTop="10" srcLeft="20" srcWidth="30" srcHeight="40"></div>
+        """
+        ajax = """
+        <table class="table inner-part">
+          <tr><td>MD155451</td><td></td><td>01.04.1990-03.10.1990</td><td>Все</td></tr>
+          <tr><td>MD173818</td><td></td><td>01.11.1990-03.05.1993</td><td>Все</td></tr>
+        </table>
+        """
+        url = "https://www.catcar.info/mitsubishi/?l=group"
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "out"
+            with patch(
+                "tools.catcar_poc.crawl_catalog.fetch_page",
+                return_value=(200, url, html),
+            ), patch(
+                "tools.catcar_poc.crawl_catalog.fetch_toyota_ajax_page",
+                return_value=(200, "https://www.catcar.info/mitsubishi/?l=TOKEN-MITSU&st=81", ajax),
+            ) as ajax_fetch, patch(
+                "tools.catcar_poc.crawl_catalog.time.sleep",
+            ):
+                report = crawl(url, output, max_pages=1, delay=10, make="mitsubishi")
+            ajax_fetch.assert_called_once_with(
+                "https://www.catcar.info/mitsubishi/?l=TOKEN-MITSU&st=81",
+                30,
+                make="mitsubishi",
+            )
+            self.assertTrue(report["complete"])
+            self.assertEqual(report["detail_pages_normalized"], 1)
+            document_path = list((output / "normalized").glob("*.json"))[0]
+            document = json.loads(document_path.read_text(encoding="utf-8"))
+            self.assertEqual(document["validation"]["page_status"], "complete")
+            self.assertEqual(len(document["oem_records"]), 2)
+            self.assertEqual(
+                [item["oem_number_raw"] for item in document["oem_records"]],
+                ["MD155451", "MD173818"],
+            )
+            self.assertEqual(
+                [item["production_period_raw"] for item in document["oem_records"]],
+                ["01.04.1990-03.10.1990", "01.11.1990-03.05.1993"],
+            )
+            self.assertEqual(document["parts"][0]["source_row_id"], "01100AR")
+            self.assertEqual(document["hotspots"][0]["source_row_id"], "01100AR")
+            self.assertEqual(len(list((output / "ajax_raw").glob("*.html"))), 1)
+
     def test_mitsubishi_ajax_adapter_is_registered_without_fabricating_records(self):
         from tools.catcar_poc.crawl_catalog import ADAPTERS
         from tools.catcar_poc.adapters import MitsubishiAdapter
