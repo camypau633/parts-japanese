@@ -41,7 +41,7 @@ jobs:
         run: python -m pip install -r requirements-dev.txt
       - name: Validate survey limit
         env:
-          MAX_PAGES: ${{ inputs.max_pages_per_catalog || '3' }}
+          MAX_PAGES: ${{ inputs.max_pages_per_catalog || '20' }}
         run: |
           set -euo pipefail
           if ! [[ "$MAX_PAGES" =~ ^[0-9]+$ ]] || (( MAX_PAGES < 1 || MAX_PAGES > 100 )); then
@@ -50,7 +50,7 @@ jobs:
           fi
       - name: Survey selected Japanese CatCar catalog
         env:
-          MAX_PAGES: ${{ inputs.max_pages_per_catalog || '3' }}
+          MAX_PAGES: ${{ inputs.max_pages_per_catalog || '20' }}
           MAKE: ${{ matrix.make }}
         run: |
           set -euo pipefail
