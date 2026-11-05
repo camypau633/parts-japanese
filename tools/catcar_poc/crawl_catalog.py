@@ -191,6 +191,54 @@ def market_context(adapter_result, source_url):
         "market_code_raw": raw_code[0] if raw_code else None,
     }
 
+def explicit_brand_context(make, filter_values):
+    """Resolve shared-root brands only from an explicit CatCar brand/model label."""
+    candidates = catalog_config(make)["brands"]
+    if len(candidates) == 1:
+        return {"brand": candidates[0], "brand_candidates": candidates}
+
+    matches = []
+    evidence = []
+    explicit_keys = ("brand", "brand_name", "make", "manufacturer", "marque")
+    for key in explicit_keys:
+        value = str(filter_values.get(key, "") or "").strip()
+        if not value:
+            continue
+        folded = value.casefold()
+        for brand in candidates:
+            prefix = brand.casefold()
+            if folded == prefix or folded.startswith(prefix + " "):
+                matches.append(brand)
+                evidence.append((key, value))
+
+    # CatCar's model selector is carried as JSON in the explicit "sts" filter.
+    # Only a model label beginning with a complete brand name is authoritative;
+    # combined labels such as "TOYOTA/LEXUS" remain unresolved.
+    try:
+        selector = json.loads(filter_values.get("sts", "{}") or "{}")
+    except (TypeError, ValueError):
+        selector = {}
+    if isinstance(selector, dict):
+        for key, raw_value in selector.items():
+            value = str(raw_value or "").strip()
+            folded = value.casefold()
+            for brand in candidates:
+                prefix = brand.casefold()
+                if folded == prefix or folded.startswith(prefix + " "):
+                    matches.append(brand)
+                    evidence.append(("sts." + str(key), value))
+
+    unique = sorted(set(matches))
+    if len(unique) == 1:
+        field, value = evidence[0]
+        return {
+            "brand": unique[0],
+            "brand_candidates": candidates,
+            "brand_source_field": field,
+            "brand_source_value": value,
+        }
+    return {"brand": None, "brand_candidates": candidates}
+
 def discover_links(html, page_url, make):
     parser = LinkCollector()
     parser.feed(html)
@@ -464,13 +512,12 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                     html, encoding="utf-8"
                 )
             else:
-                brand_candidates = catalog_config(make)["brands"]
+                filter_values = decoded_filter(final_url)
                 context = {
-                    "brand": brand_candidates[0] if len(brand_candidates) == 1 else None,
-                    "brand_candidates": brand_candidates,
+                    **explicit_brand_context(make, filter_values),
                     "manufacturer_country": "Japan",
                     **page_market,
-                    "catalog_filter_raw": decoded_filter(final_url),
+                    "catalog_filter_raw": filter_values,
                     "source_page_label": item.get("label", ""),
                     "source_page_title": title,
                 }
