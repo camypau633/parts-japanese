@@ -141,6 +141,26 @@ class CrawlCatalogTests(unittest.TestCase):
             "mazda_model_selector",
         )
 
+    def test_mazda_stage_70_modification_table_is_classified_as_navigation(self):
+        raw = "market==gen||st==70||sts=={}||mod==323"
+        encoded = base64.b64encode(raw.encode("utf-8")).decode("ascii")
+        html = """
+        <table class="table" id="mazda_model">
+          <tr><th>Year</th><th>Model</th><th>Production date</th>
+              <th>Car line</th><th>Catalog</th></tr>
+          <tr><td>2000</td><td><a href="/mazda/?l=NEXT">323</a></td>
+              <td>12/2000-</td><td>BJ</td><td>ALBA10</td></tr>
+        </table>
+        """
+        links = [{"url": "https://www.catcar.info/mazda/?l=" + encoded,
+                  "label": "323"}]
+        self.assertEqual(
+            catalog_navigation_reason(
+                "mazda", "https://www.catcar.info/mazda/?l=MODEL", html, links
+            ),
+            "mazda_model_selector",
+        )
+
     def test_catalog_root_without_filter_is_classified_as_selector(self):
         html = "<html><body><a href='/toyota/?l=MARKET'>Europe</a></body></html>"
         links = [{"url": "https://www.catcar.info/toyota/?l=MARKET",
