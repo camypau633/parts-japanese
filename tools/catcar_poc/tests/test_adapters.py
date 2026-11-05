@@ -73,7 +73,7 @@ class AdapterTests(unittest.TestCase):
 
         ajax = """
         <table class="table inner-part">
-          <tr><td>MD155451</td><td></td><td>01.04.1990-03.10.1990</td><td>Все</td></tr>
+          <tr><td><a href="http://www.auto-vision.ru/search.html?article=MD155451">MD155451</a></td><td></td><td>01.04.1990-03.10.1990</td><td>Все</td><td><a href="http://www.catcar.info/mitsubishi/?l=DETAIL-TOKEN">open</a></td></tr>
           <tr><td>MD173818</td><td></td><td>01.11.1990-03.05.1993</td><td>Все</td></tr>
         </table>
         """
@@ -81,6 +81,8 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual([r["oem_number_raw"] for r in records], ["MD155451", "MD173818"])
         self.assertEqual(records[0]["production_period_raw"], "01.04.1990-03.10.1990")
         self.assertEqual(records[1]["applicability_raw"], "Все")
+        self.assertEqual(records[0]["source_detail_url"], "http://www.catcar.info/mitsubishi/?l=DETAIL-TOKEN")
+        self.assertIsNone(records[1]["source_detail_url"])
         self.assertTrue(all(r["source_status"] == "available" for r in records))
 
     def test_nissan_static_table_and_srcnum(self):
