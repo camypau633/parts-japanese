@@ -141,6 +141,28 @@ MARKET_LABELS = {
     "europe (rhd)": "Europe (RHD)",
     "lhd": "Europe (LHD)",
     "rhd": "Europe (RHD)",
+    "general": "Middle East",
+    "gen": "Middle East",
+    "el": "Europe (LHD)",
+    "er": "Europe (RHD)",
+    "gl": "Asia (LHD)",
+    "gr": "Asia (RHD)",
+    "jp": "Japan",
+    "us": "United States",
+    "cainf": "Canada",
+    "elinf": "Europe (LHD)",
+    "erinf": "Europe (RHD)",
+    "usinf": "United States",
+    "европа леворульные": "Europe (LHD)",
+    "европа праворульные": "Europe (RHD)",
+    "азия леворульные": "Asia (LHD)",
+    "азия праворульные": "Asia (RHD)",
+    "europe lhd": "Europe (LHD)",
+    "europe rhd": "Europe (RHD)",
+    "asia lhd": "Asia (LHD)",
+    "asia rhd": "Asia (RHD)",
+    "северная америка": "North America",
+    "north america": "North America",
     "ближний восток": "Middle East",
     "азия": "Asia",
     "африка": "Africa",
@@ -168,17 +190,23 @@ SUZUKI_MARKET_ID_LABELS = {
 def market_context(adapter_result, source_url, page_title=None):
     """Extract only explicit market markers; never infer a market from model names."""
     decoded = decoded_filter(source_url)
+    try:
+        selector_labels = json.loads(decoded.get("sts", "{}") or "{}")
+    except (TypeError, ValueError):
+        selector_labels = {}
+    selector_market = (
+        str(selector_labels.get("20", "")).strip().lower()
+        if isinstance(selector_labels, dict) else ""
+    )
     filter_candidates = [
         str(value).strip().lower()
         for key, value in decoded.items()
         if key.lower() in ("market", "region", "country", "sales_region", "catalog_region")
     ]
-    try:
-        selector_labels = json.loads(decoded.get("sts", "{}") or "{}")
-    except (TypeError, ValueError):
-        selector_labels = {}
-    if isinstance(selector_labels, dict) and selector_labels.get("20"):
-        filter_candidates.append(str(selector_labels["20"]).strip().lower())
+    if selector_market:
+        # The visible CatCar selector label is more specific than a shared
+        # opaque code (e.g. "usa" means North America in Mitsubishi).
+        filter_candidates.insert(0, selector_market)
     market_id = str(decoded.get("marketId", "")).strip()
     if market_id in SUZUKI_MARKET_ID_LABELS:
         return {
@@ -199,33 +227,30 @@ def market_context(adapter_result, source_url, page_title=None):
             for segment in urlsplit(candidate_url).path.split("/")
             if segment
         ]
-        # CatCar image paths use /<make>/<market>/...; retain that raw code.
         if len(segments) >= 2:
             path_candidates.append(segments[1])
 
     for candidate in filter_candidates + path_candidates:
         if candidate in MARKET_LABELS:
+            raw_code = next((value for value in filter_candidates if value), candidate)
             return {
                 "market_region": MARKET_LABELS[candidate],
-                "market_code_raw": candidate,
+                "market_code_raw": raw_code,
             }
 
-    # CatCar sometimes stores only an opaque selector value while the page
-    # title/breadcrumb explicitly names the region.
-    title_key = re.sub(r"\s+", " ", (page_title or "").strip().lower())
-    title_key = re.sub(r"\s+-\s*catcar\.info$", "", title_key)
+    title_key = re.sub(r"\\s+", " ", (page_title or "").strip().lower())
+    title_key = re.sub(r"\\s+-\\s*catcar\\.info$", "", title_key)
     if title_key in MARKET_LABELS:
-        raw_code = (filter_candidates + path_candidates)
+        raw_code = next((value for value in filter_candidates if value), title_key)
         return {
             "market_region": MARKET_LABELS[title_key],
-            "market_code_raw": raw_code[0] if raw_code else title_key,
+            "market_code_raw": raw_code,
         }
 
-    raw_code = (filter_candidates + path_candidates)
-    return {
-        "market_region": None,
-        "market_code_raw": raw_code[0] if raw_code else None,
-    }
+    raw_code = next((value for value in filter_candidates if value), None)
+    if raw_code is None and path_candidates:
+        raw_code = path_candidates[0]
+    return {"market_region": None, "market_code_raw": raw_code}
 
 def toyota_variant_context(filter_values, resolved_brand=None):
     """Preserve Toyota/Lexus model and variant selectors exactly as CatCar exposes them."""
