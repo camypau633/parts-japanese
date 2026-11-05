@@ -142,11 +142,18 @@ class CrawlCatalogTests(unittest.TestCase):
 
     def test_subaru_lhd_and_rhd_are_preserved_as_distinct_markets(self):
         def url_for(region):
-            raw = 'region==' + region + '||st==30||sts=={"20":"Europe"}'
+            raw = 'region==' + region + '||st==30||sts=={"20":"ЕВРОПА"}'
             encoded = base64.b64encode(raw.encode("utf-8")).decode("ascii")
             return "https://www.catcar.info/subaru/?l=" + encoded
         self.assertEqual(market_context({}, url_for("lhd"))["market_region"], "Europe (LHD)")
         self.assertEqual(market_context({}, url_for("rhd"))["market_region"], "Europe (RHD)")
+
+    def test_mitsubishi_usa_code_keeps_explicit_north_america_label(self):
+        raw = 'market==usa||st==30||sts=={"20":"Северная Америка"}'
+        encoded = base64.b64encode(raw.encode("utf-8")).decode("ascii")
+        context = market_context({}, "https://www.catcar.info/mitsubishi/?l=" + encoded)
+        self.assertEqual(context["market_region"], "North America")
+        self.assertEqual(context["market_code_raw"], "usa")
 
     def test_market_context_reads_explicit_market_label_from_selector_path(self):
         raw = 'st==30||sts=={"20":"Европа","30":"2012 ACCORD"}||modname==ACCORD'
