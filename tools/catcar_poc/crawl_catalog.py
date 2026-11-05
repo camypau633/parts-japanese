@@ -19,7 +19,7 @@ import jsonschema
 from urllib.parse import parse_qs, quote, urljoin, urlsplit, urlunsplit
 import base64
 
-from .adapters import DiscoveryOnlyAdapter, HondaAdapter, IsuzuAdapter, MazdaAdapter, NissanAdapter, SubaruAdapter, SuzukiAdapter, ToyotaAdapter, detail_page_validation
+from .adapters import DiscoveryOnlyAdapter, HondaAdapter, IsuzuAdapter, MazdaAdapter, MitsubishiAdapter, NissanAdapter, SubaruAdapter, SuzukiAdapter, ToyotaAdapter, detail_page_validation
 from .catalog_registry import CATCAR_JAPANESE_CATALOGS, catalog_config
 from .normalize import normalize_page
 from .parser import parse_html, cell_texts
@@ -31,6 +31,7 @@ ADAPTER_IMPLEMENTATIONS = {
     "honda": HondaAdapter,
     "isuzu": IsuzuAdapter,
     "mazda": MazdaAdapter,
+    "mitsubishi": MitsubishiAdapter,
     "nissan": NissanAdapter,
     "toyota": ToyotaAdapter,
     "subaru": SubaruAdapter,
@@ -379,20 +380,20 @@ def fetch_page(url, timeout):
         return response.status, response.geturl(), body.decode("utf-8", "replace")
 
 
-def build_toyota_ajax_url(token):
+def build_toyota_ajax_url(token, make="toyota"):
     """Build the exact GET URL used by CatCar's observed getArticles() function."""
     # getArticles() concatenates the already URL-encoded token directly
     # into the query string. CatCar tokens commonly end in %3D; quoting them
     # again would turn %3D into %253D and change the lookup key.
     if not token or not re.fullmatch(r"(?:[A-Za-z0-9_+/=-]|%[0-9A-Fa-f]{2})+", token):
         raise ValueError("invalid_toyota_ajax_token")
-    return "https://www.catcar.info/toyota/?l={}&st=81".format(token)
+    return "https://www.catcar.info/{}/?l={}&st=81".format(make, token)
 
 
-def fetch_toyota_ajax_page(url, timeout):
+def fetch_toyota_ajax_page(url, timeout, make="toyota"):
     """Fetch one Toyota row expansion; CatCar returns an HTML table fragment."""
-    if not allowed_catalog_url(url, "toyota"):
-        raise ValueError("toyota_ajax_url_outside_catalog_path")
+    if not allowed_catalog_url(url, make):
+        raise ValueError(make + "_ajax_url_outside_catalog_path")
     request = urllib.request.Request(url, headers={
         "User-Agent": USER_AGENT,
         "Accept": "text/html, */*; q=0.01",
@@ -422,7 +423,7 @@ def fetch_toyota_ajax_page(url, timeout):
 
 
 def resolve_toyota_ajax_rows(parsed, group_url, output_dir, timeout,
-                             request_delay=1.0):
+                             request_delay=1.0, make="toyota"):
     """Resolve each Toyota getArticles row and retain the exact OEM source response."""
     ajax_rows = parsed.get("ajax_rows") or []
     if not ajax_rows:
@@ -437,7 +438,7 @@ def resolve_toyota_ajax_rows(parsed, group_url, output_dir, timeout,
     for index, part in enumerate(ajax_rows):
         token = part.get("ajax_token", "")
         try:
-            ajax_url = build_toyota_ajax_url(token)
+            ajax_url = build_toyota_ajax_url(token, make=make)
             # Group IDs such as 1103 repeat across different Toyota models,
             # markets and modifications. Cache identity must include the full
             # source URL, not only the local group ID.
@@ -451,7 +452,7 @@ def resolve_toyota_ajax_rows(parsed, group_url, output_dir, timeout,
             else:
                 if requests_made:
                     time.sleep(request_delay)
-                status, final_url, body = fetch_toyota_ajax_page(ajax_url, timeout)
+                status, final_url, body = fetch_toyota_ajax_page(ajax_url, timeout, make=make)
                 requests_made += 1
                 if status != 200:
                     raise ValueError("toyota_ajax_http_status:%s" % status)
@@ -662,17 +663,17 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                 parsed = adapter.parse(html)
                 oem_records = []
                 ajax_errors = []
-                if make == "toyota" and parsed.get("ajax_rows"):
+                if make in ("toyota", "mitsubishi") and parsed.get("ajax_rows"):
                     oem_records, ajax_errors = resolve_toyota_ajax_rows(
-                        parsed, final_url, output_dir, timeout
+                        parsed, final_url, output_dir, timeout, make=make
                     )
                     if ajax_errors:
                         failed_urls.append(url)
-                        errors.append({"url": url, "error": "toyota_ajax_request_failed"})
+                        errors.append({"url": url, "error": make + "_ajax_request_failed"})
                     validation = detail_page_validation(parse_html(html), parsed.get("parts", []))
                     warnings = list(validation.get("page_warnings", []))
                     if ajax_errors:
-                        warnings.append("toyota_ajax_request_failed")
+                        warnings.append(make + "_ajax_request_failed")
                     parsed["page_status"] = (
                         "complete" if validation["page_status"] == "complete" and not ajax_errors
                         else "incomplete"
