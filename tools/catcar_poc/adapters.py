@@ -281,7 +281,7 @@ class MazdaAdapter(StaticTableAdapter):
     def parse(self, html):
         parsed = parse_html(html)
         header_index, _ = find_header_row(
-            parsed.rows, ("code", "part number", "name")
+            parsed.rows, ("code", "part number", "name", "код", "номер запчасти", "номер детали", "название")
         )
         if header_index is None:
             raise ValueError("Mazda parts table header not found")
@@ -294,10 +294,10 @@ class MazdaAdapter(StaticTableAdapter):
                     return headers.index(name)
             return None
 
-        position_index = column("code", "№", "no.")
-        part_number_index = column("part number")
-        description_index = column("name", "description")
-        note_index = column("note", "additional information")
+        position_index = column("code", "код", "№", "no.")
+        part_number_index = column("part number", "номер запчасти", "номер детали")
+        description_index = column("name", "название", "наименование", "description")
+        note_index = column("note", "примечание", "additional information")
 
         if position_index is None or part_number_index is None:
             raise ValueError("Mazda parts table required columns are missing")
@@ -364,10 +364,10 @@ class SuzukiAdapter(StaticTableAdapter):
                     return headers.index(name)
             return None
 
-        position_index = column("code", "№", "no.")
-        part_number_index = column("part number")
-        description_index = column("name", "description")
-        additional_index = column("additional information", "additional info")
+        position_index = column("code", "код", "№", "no.")
+        part_number_index = column("part number", "номер детали", "номер запчасти")
+        description_index = column("name", "наименование", "название", "description")
+        additional_index = column("additional information", "additional info", "дополнительная информация")
         quantity_index = column("qty", "quantity")
 
         if position_index is None or part_number_index is None:
@@ -426,7 +426,7 @@ class SubaruAdapter(StaticTableAdapter):
     def parse(self, html):
         parsed = parse_html(html)
         header_index, headers = find_header_row(
-            parsed.rows, ("part number", "options", "applicable models")
+            parsed.rows, ("part number", "options", "applicable models", "номер детали")
         )
         if header_index is None:
             raise ValueError("Subaru parts table header not found")
@@ -440,12 +440,12 @@ class SubaruAdapter(StaticTableAdapter):
             return None
 
         position_index = column("№", "no.", "no")
-        part_number_index = column("part number")
-        description_index = column("options", "description")
-        applicable_index = column("applicable models")
-        period_index = column("production date", "production period")
-        destination_index = column("note/destination code", "destination code", "note")
-        comment_index = column("comment")
+        part_number_index = column("part number", "номер детали")
+        description_index = column("options", "description", "параметы запчасти", "параметры запчасти")
+        applicable_index = column("applicable models", "параметы модели", "параметры модели")
+        period_index = column("production date", "production period", "дата производства")
+        destination_index = column("note/destination code", "примечание/ destination code", "destination code", "note")
+        comment_index = column("comment", "дополнительно")
 
         if position_index is None or part_number_index is None:
             raise ValueError("Subaru parts table required columns are missing")
