@@ -128,6 +128,36 @@ class MitsubishiAdapter(ToyotaAdapter):
         else:
             result["page_warnings"] = ["no_mitsubishi_ajax_rows"]
         return result
+    @staticmethod
+    def parse_ajax_records(html, source_row_id=None):
+        """Mitsubishi st=81 columns are OEM, blank, period, applicability."""
+        parsed = parse_html(html)
+        records = []
+        for row in parsed.rows:
+            values = cell_texts(row)
+            if len(values) < 4:
+                continue
+            oem = values[0].strip()
+            if not oem or oem.lower() in ("oem", "номер детали", "номер запчасти"):
+                continue
+            records.append({
+                "source_row_id": source_row_id,
+                "oem_number_raw": oem,
+                "production_period_raw": values[2].strip() or None,
+                "applicability_raw": values[3].strip() or None,
+                "additional_source_fields": {"raw_cells": list(values)},
+                "source_status": "available",
+            })
+        if not records and "no applicable data" in (html or "").lower():
+            return [{
+                "source_row_id": source_row_id,
+                "oem_number_raw": None,
+                "production_period_raw": None,
+                "applicability_raw": None,
+                "source_status": "no_applicable_data",
+            }]
+        return records
+
 
 
 def detail_page_validation(parsed, parts):
