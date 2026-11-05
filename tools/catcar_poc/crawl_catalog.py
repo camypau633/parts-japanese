@@ -330,8 +330,11 @@ def resolve_toyota_ajax_rows(parsed, group_url, output_dir, timeout,
         token = part.get("ajax_token", "")
         try:
             ajax_url = build_toyota_ajax_url(token)
+            # Group IDs such as 1103 repeat across different Toyota models,
+            # markets and modifications. Cache identity must include the full
+            # source URL, not only the local group ID.
             digest = hashlib.sha256(
-                (str(group_id or group_url) + "|" + str(part.get("source_row_id") or "")).encode("utf-8")
+                (canonical_url(group_url) + "|" + str(part.get("source_row_id") or "")).encode("utf-8")
             ).hexdigest()[:16]
             raw_path = raw_dir / (digest + ".html")
             if raw_path.is_file():
