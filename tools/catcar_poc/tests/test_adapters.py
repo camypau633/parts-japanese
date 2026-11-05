@@ -1,7 +1,7 @@
 import unittest
 
 from tools.catcar_poc.adapters import (
-    ToyotaAdapter, NissanAdapter, HondaAdapter, IsuzuAdapter, MazdaAdapter, SuzukiAdapter, SubaruAdapter, FordAdapter, VagAdapter
+    ToyotaAdapter, MitsubishiAdapter, NissanAdapter, HondaAdapter, IsuzuAdapter, MazdaAdapter, SuzukiAdapter, SubaruAdapter, FordAdapter, VagAdapter
 )
 
 
@@ -52,6 +52,36 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(records[0]["source_row_id"], "12321A")
         self.assertEqual(records[0]["source_status"], "no_applicable_data")
         self.assertIsNone(records[0]["oem_number_raw"])
+
+    def test_mitsubishi_live_ajax_table_and_oem_response(self):
+        html = """
+        <table>
+          <tr name="01100AR" class="pointer" onclick="getArticles(this, 'MITSUBISHI-TOKEN', 80, '/mitsubishi/')">
+            <td>01100AR</td><td>COVER ASSY,ROCKER,RH</td>
+          </tr>
+        </table>
+        <img class="resize" src="https://ci.catcar.info/mitsubishi_2017_05/euro/diagram.png">
+        <div class="coord" srcNum="01100AR" srcTop="273" srcLeft="510" srcWidth="116" srcHeight="17"></div>
+        """
+        result = MitsubishiAdapter().parse(html)
+        self.assertEqual(result["adapter"], "mitsubishi_ajax")
+        self.assertEqual(result["ajax_rows"][0]["ajax_token"], "MITSUBISHI-TOKEN")
+        self.assertEqual(result["parts"][0]["source_row_id"], "01100AR")
+        self.assertEqual(result["parts"][0]["description_raw"], "COVER ASSY,ROCKER,RH")
+        self.assertEqual(result["hotspot_matching"]["matched"], ["01100AR"])
+        self.assertIn("mitsubishi_ajax_lookup_pending", result["page_warnings"])
+
+        ajax = """
+        <table class="table inner-part">
+          <tr><td>MD155451</td><td></td><td>01.04.1990-03.10.1990</td><td>Все</td></tr>
+          <tr><td>MD173818</td><td></td><td>01.11.1990-03.05.1993</td><td>Все</td></tr>
+        </table>
+        """
+        records = ToyotaAdapter.parse_ajax_records(ajax, source_row_id="01100AR")
+        self.assertEqual([r["oem_number_raw"] for r in records], ["MD155451", "MD173818"])
+        self.assertEqual(records[0]["production_period_raw"], "01.04.1990-03.10.1990")
+        self.assertEqual(records[1]["applicability_raw"], "Все")
+        self.assertTrue(all(r["source_status"] == "available" for r in records))
 
     def test_nissan_static_table_and_srcnum(self):
         html = """
