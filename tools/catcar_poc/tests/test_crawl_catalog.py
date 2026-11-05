@@ -295,9 +295,9 @@ class CrawlCatalogTests(unittest.TestCase):
             market_context(japan, "https://www.catcar.info/mazda/")[ "market_region" ],
         )
 
-    def test_discovery_only_catalog_retains_page_without_fabricating_records(self):
-        html = "<html><head><title>Isuzu catalog</title></head><body><a href='/isuzu/?l=next'>Next</a></body></html>"
-        url = "https://www.catcar.info/isuzu/?l=selected"
+    def test_mitsubishi_discovery_only_catalog_retains_page_without_fabricating_records(self):
+        html = "<html><head><title>Mitsubishi catalog</title></head><body><a href='/mitsubishi/?l=next'>Next</a></body></html>"
+        url = "https://www.catcar.info/mitsubishi/?l=selected"
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp) / "out"
             with patch(
@@ -305,7 +305,7 @@ class CrawlCatalogTests(unittest.TestCase):
                 return_value=(200, url, html),
             ):
                 report = crawl(
-                    url, output, max_pages=1, delay=10, make="isuzu"
+                    url, output, max_pages=1, delay=10, make="mitsubishi"
                 )
             self.assertFalse(report["complete"])
             self.assertEqual(report["queue_remaining"], 1)
