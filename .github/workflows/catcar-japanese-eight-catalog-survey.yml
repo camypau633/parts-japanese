@@ -50,7 +50,7 @@ jobs:
           fi
       - name: Survey selected Japanese CatCar catalog
         env:
-          MAX_PAGES: ${{ inputs.max_pages_per_catalog }}
+          MAX_PAGES: ${{ inputs.max_pages_per_catalog || '3' }}
           MAKE: ${{ matrix.make }}
         run: |
           set -euo pipefail
