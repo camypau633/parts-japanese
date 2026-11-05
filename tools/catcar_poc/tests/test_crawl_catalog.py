@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from tools.catcar_poc.crawl_catalog import (
     ADAPTERS, allowed_catalog_url, decoded_filter,
-    discover_links, market_context, crawl,
+    discover_links, market_context, explicit_brand_context, crawl,
     build_toyota_ajax_url, resolve_toyota_ajax_rows,
 )
 from tools.catcar_poc.catalog_registry import CATCAR_JAPANESE_CATALOGS, catalog_config
@@ -16,6 +16,31 @@ from tools.catcar_poc.adapters import DiscoveryOnlyAdapter, MazdaAdapter, Subaru
 
 
 class CrawlCatalogTests(unittest.TestCase):
+    def test_shared_toyota_lexus_root_uses_only_explicit_model_brand_labels(self):
+        lexus = explicit_brand_context(
+            "toyota", {"sts": '{"30":"LEXUS NX300H/200T200"}'}
+        )
+        unresolved_toyota = explicit_brand_context(
+            "toyota", {"sts": '{"30":"CAMRY 284170"}'}
+        )
+        ambiguous = explicit_brand_context(
+            "toyota", {"brand": "TOYOTA/LEXUS"}
+        )
+        self.assertEqual(lexus["brand"], "Lexus")
+        self.assertEqual(lexus["brand_source_field"], "sts.30")
+        self.assertEqual(lexus["brand_candidates"], ["Toyota", "Lexus"])
+        self.assertIsNone(unresolved_toyota["brand"])
+        self.assertEqual(unresolved_toyota["brand_candidates"], ["Toyota", "Lexus"])
+        self.assertIsNone(ambiguous["brand"])
+
+    def test_shared_nissan_infiniti_root_resolves_explicit_infiniti_model_label(self):
+        context = explicit_brand_context(
+            "nissan", {"sts": '{"30":"INFINITI QX50"}'}
+        )
+        self.assertEqual(context["brand"], "Infiniti")
+        self.assertEqual(context["brand_source_field"], "sts.30")
+        self.assertEqual(context["brand_candidates"], ["Nissan", "Infiniti"])
+
     def test_registry_covers_all_eight_catcar_japanese_catalog_roots(self):
         expected = {
             "toyota", "nissan", "honda", "suzuki",
