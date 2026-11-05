@@ -156,6 +156,75 @@ jobs:
           print("OEM records:", len(document["oem_records"]))
           print("Saved raw AJAX responses:", len(list((output / "ajax_raw").glob("*.html"))))
           PY
+      - name: Live replay all eight captured Toyota groups
+        env:
+          PYTHONPATH: .
+        run: |
+          python - <<'PY'
+          import collections
+          import json
+          import subprocess
+          import sys
+          import time
+          from pathlib import Path
+
+          sample = json.loads(Path(".catcar-fixtures/camry/oem_variation_sample.json").read_text(encoding="utf-8"))
+          root = Path("out/toyota-eight-group-live")
+          root.mkdir(parents=True, exist_ok=True)
+          total_parts = 0
+          total_oem = 0
+
+          for index, group in enumerate(sample.get("sampled_groups", [])):
+              group_id = str(group["group_id"])
+              output = root / group_id
+              subprocess.run([
+                  sys.executable, "-m", "tools.catcar_poc.crawl_catalog",
+                  "--make", "toyota", "--start-url", group["url"],
+                  "--output", str(output), "--max-pages", "1",
+                  "--delay", "10", "--timeout", "30",
+              ], check=True)
+
+              report = json.loads((output / "crawl-report.json").read_text(encoding="utf-8"))
+              documents = sorted((output / "normalized").glob("*.json"))
+              if report["fetch_errors"] or report["incomplete_detail_pages"] or report["retry_urls_pending"]:
+                  raise SystemExit("Toyota group %s has fetch/incomplete/retry errors: %r" % (group_id, report))
+              if report["detail_pages_normalized"] != 1 or len(documents) != 1:
+                  raise SystemExit("Toyota group %s did not normalize exactly one detail page: %r" % (group_id, report))
+
+              document = json.loads(documents[0].read_text(encoding="utf-8"))
+              if document["validation"]["page_status"] != "complete":
+                  raise SystemExit("Toyota group %s is not complete: %r" % (group_id, document["validation"]))
+
+              expected = collections.Counter()
+              for part in group.get("parts", []):
+                  if part.get("source_status") == "available":
+                      for record in part.get("records", []):
+                          expected[(part["part_number"], record.get("oem") or "", record.get("period") or "", record.get("applicability") or "")] += 1
+
+              actual = collections.Counter(
+                  (record.get("source_row_id") or "", record.get("oem_number_raw") or "",
+                   record.get("production_period_raw") or "", record.get("applicability_raw") or "")
+                  for record in document.get("oem_records", [])
+                  if record.get("source_status") == "available"
+              )
+              if actual != expected:
+                  raise SystemExit("Toyota group %s live OEM rows differ from captured source: expected=%r actual=%r" % (group_id, expected, actual))
+
+              for part in document.get("parts", []):
+                  status = part.get("additional_source_fields", {}).get("ajax_resolution_status")
+                  if status not in ("available", "no_applicable_data"):
+                      raise SystemExit("Toyota group %s has unresolved part row: %r" % (group_id, part))
+              total_parts += len(document["parts"])
+              total_oem += len(document.get("oem_records", []))
+              print("Verified Toyota group", group_id, "part rows:", len(document["parts"]),
+                    "OEM records:", len(document.get("oem_records", [])))
+              if index + 1 < len(sample.get("sampled_groups", [])):
+                  time.sleep(10)
+
+          if len(sample.get("sampled_groups", [])) != 8:
+              raise SystemExit("Expected exactly eight captured Toyota groups")
+          print("Verified eight live Toyota groups; part rows:", total_parts, "OEM records:", total_oem)
+          PY
       - name: Parse captured Toyota and Nissan HTML fixtures
         run: |
           python -m tools.catcar_poc.validate_real_artifacts \
