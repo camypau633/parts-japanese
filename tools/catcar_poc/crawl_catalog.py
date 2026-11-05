@@ -131,6 +131,19 @@ MARKET_LABELS = {
     "us": "United States",
     "america": "United States",
     "united-states": "United States",
+    "канада": "Canada",
+    "сша": "United States",
+    "япония": "Japan",
+    "европа": "Europe",
+    "европа (левый руль)": "Europe",
+    "европа (правый руль)": "Europe",
+    "ближний восток": "Middle East",
+    "азия": "Asia",
+    "африка": "Africa",
+    "россия": "Russia",
+    "латинская америка": "Latin America",
+    "карибы": "Caribbean",
+    "тихий океан": "Pacific",
 }
 # Suzuki exposes numeric marketId values in its own region selector. These
 # mappings are based on the labels linked from the CatCar Suzuki root page.
@@ -148,7 +161,7 @@ SUZUKI_MARKET_ID_LABELS = {
 }
 
 
-def market_context(adapter_result, source_url):
+def market_context(adapter_result, source_url, page_title=None):
     """Extract only explicit market markers; never infer a market from model names."""
     decoded = decoded_filter(source_url)
     filter_candidates = [
@@ -186,6 +199,18 @@ def market_context(adapter_result, source_url):
                 "market_region": MARKET_LABELS[candidate],
                 "market_code_raw": candidate,
             }
+
+    # CatCar sometimes stores only an opaque selector value while the page
+    # title/breadcrumb explicitly names the region.
+    title_key = re.sub(r"\s+", " ", (page_title or "").strip().lower())
+    title_key = re.sub(r"\s+-\s*catcar\.info$", "", title_key)
+    if title_key in MARKET_LABELS:
+        raw_code = (filter_candidates + path_candidates)
+        return {
+            "market_region": MARKET_LABELS[title_key],
+            "market_code_raw": raw_code[0] if raw_code else title_key,
+        }
+
     raw_code = (filter_candidates + path_candidates)
     return {
         "market_region": None,
@@ -553,7 +578,7 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                 raise ValueError("redirect_left_selected_make_path")
             title, links = discover_links(html, final_url, make)
             page_market = market_context(
-                {"images": parse_html(html).images}, final_url
+                {"images": parse_html(html).images}, final_url, page_title=title
             )
             record.update({
                 "http_status": status,
