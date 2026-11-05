@@ -108,6 +108,26 @@ class CrawlCatalogTests(unittest.TestCase):
         )
         self.assertEqual(reason, "nissan_model_selector")
 
+    def test_mazda_stage_60_model_table_is_classified_as_navigation(self):
+        raw = "market==euro||st==60"
+        encoded = base64.b64encode(raw.encode("utf-8")).decode("ascii")
+        html = """
+        <table>
+          <tr><th>Год</th><th>Модель</th><th>Дата начала производства</th>
+              <th>Кузов</th><th>Каталог</th></tr>
+          <tr><td>2018</td><td><a href="/mazda/?l=MODEL">CX-5</a></td>
+              <td>2017-02</td><td>KE</td><td>ABC</td></tr>
+        </table>
+        """
+        links = [{"url": "https://www.catcar.info/mazda/?l=" + encoded,
+                  "label": "CX-5"}]
+        self.assertEqual(
+            catalog_navigation_reason(
+                "mazda", "https://www.catcar.info/mazda/?l=MARKET", html, links
+            ),
+            "mazda_model_selector",
+        )
+
     def test_catalog_root_without_filter_is_classified_as_selector(self):
         html = "<html><body><a href='/toyota/?l=MARKET'>Europe</a></body></html>"
         links = [{"url": "https://www.catcar.info/toyota/?l=MARKET",
