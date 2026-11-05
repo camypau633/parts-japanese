@@ -58,18 +58,20 @@ jobs:
           fi
       - name: Survey selected Japanese CatCar catalog
         env:
-          MAX_PAGES: ${{ inputs.max_pages_per_catalog || '20' }}
+          MAX_PAGES: ${{ inputs.max_pages_per_catalog || '100' }}
           MAKE: ${{ matrix.make }}
         run: |
           set -euo pipefail
-          python -m tools.catcar_poc.crawl_catalog \
-            --make "$MAKE" \
+          args=(--make "$MAKE" \
             --start-url "https://www.catcar.info/$MAKE/" \
             --max-pages "$MAX_PAGES" \
             --delay 10 \
             --timeout 30 \
-            --output "out/catcar-$MAKE" \
-            --resume-state "out/catcar-$MAKE/crawl-state.json"
+            --output "out/catcar-$MAKE")
+          if [[ -f "out/catcar-$MAKE/crawl-state.json" ]]; then
+            args+=(--resume-state "out/catcar-$MAKE/crawl-state.json")
+          fi
+          python -m tools.catcar_poc.crawl_catalog "${args[@]}"
       - name: Save catalog checkpoint for next run
         if: always() && hashFiles('out/catcar-${{ matrix.make }}/crawl-state.json') != ''
         uses: actions/cache/save@v4
