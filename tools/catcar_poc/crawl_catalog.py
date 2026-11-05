@@ -366,6 +366,43 @@ def discover_links(html, page_url, make):
     return " ".join(" ".join(parser.title_parts).split()), found
 
 
+
+
+def classify_unrecognized_page(html, title="", links=None, adapter_message=""):
+    """Attach actionable structural hints to a page the current adapter rejected."""
+    parsed = parse_html(html)
+    text = " ".join(cell_texts(row)[0] if cell_texts(row) else "" for row in parsed.rows).lower()
+    lowered = (html or "").lower()
+    if any(token in lowered for token in ("captcha", "robot check", "access denied")):
+        kind = "access_challenge"
+        action = "retry_later_or_check_source_access"
+    elif not (parsed.rows or parsed.images or parsed.hotspots):
+        kind = "shell_or_empty_response"
+        action = "inspect_scripts_and_network_requests"
+    elif parsed.images and parsed.hotspots:
+        kind = "likely_exploded_diagram"
+        action = "try_detail_adapter_or_ajax_expansion"
+    elif links and not parsed.rows:
+        kind = "navigation_selector"
+        action = "follow_discovered_links"
+    elif parsed.rows:
+        kind = "unrecognized_table"
+        action = "inspect_headers_and_try_adapter_fallback"
+    else:
+        kind = "unknown"
+        action = "retain_for_manual_adapter_review"
+    return {
+        "classification": kind,
+        "recommended_action": action,
+        "title": title,
+        "row_count": len(parsed.rows),
+        "image_count": len(parsed.images),
+        "hotspot_count": len(parsed.hotspots),
+        "link_count": len(links or []),
+        "adapter_message": str(adapter_message)[:300],
+    }
+
+
 def fetch_page(url, timeout):
     """Fetch a catalog page with bounded retries for transient CatCar failures."""
     return fetch_html(
@@ -702,6 +739,9 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                 (review_dir / (digest + ".html")).write_text(
                     html, encoding="utf-8"
                 )
+                write_json(review_dir / (digest + ".json"), classify_unrecognized_page(
+                    html, title=title, links=links, adapter_message=str(exc)
+                ))
             else:
                 filter_values = decoded_filter(final_url)
                 brand_context = explicit_brand_context(make, filter_values)
