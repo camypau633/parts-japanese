@@ -10,12 +10,25 @@ from tools.catcar_poc.crawl_catalog import (
     ADAPTERS, allowed_catalog_url, decoded_filter,
     discover_links, market_context, explicit_brand_context, toyota_variant_context, crawl,
     build_toyota_ajax_url, resolve_toyota_ajax_rows, catalog_navigation_reason,
+    navigation_stage,
 )
 from tools.catcar_poc.catalog_registry import CATCAR_JAPANESE_CATALOGS, catalog_config
 from tools.catcar_poc.adapters import DiscoveryOnlyAdapter, MazdaAdapter, SubaruAdapter, SuzukiAdapter
 
 
 class CrawlCatalogTests(unittest.TestCase):
+    def test_navigation_stage_ranks_deeper_catcar_selectors_first(self):
+        def url_for(stage):
+            encoded = base64.b64encode(
+                ("market==euro||st==" + str(stage)).encode("utf-8")
+            ).decode("ascii")
+            return "https://www.catcar.info/toyota/?l=" + encoded
+
+        self.assertEqual(navigation_stage(url_for(20)), 20)
+        self.assertEqual(navigation_stage(url_for(60)), 60)
+        self.assertGreater(navigation_stage(url_for(70)), navigation_stage(url_for(30)))
+        self.assertEqual(navigation_stage("https://www.catcar.info/toyota/"), -1)
+
     def test_shared_toyota_lexus_root_uses_only_explicit_model_brand_labels(self):
         lexus = explicit_brand_context(
             "toyota", {"sts": '{"30":"LEXUS NX300H/200T200"}'}
