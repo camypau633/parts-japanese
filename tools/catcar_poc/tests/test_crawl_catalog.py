@@ -140,6 +140,40 @@ class CrawlCatalogTests(unittest.TestCase):
         self.assertEqual(context["market_region"], "Canada")
         self.assertEqual(context["market_code_raw"], "ca")
 
+    def test_subaru_lhd_and_rhd_are_preserved_as_distinct_markets(self):
+        def url_for(region):
+            raw = 'region==' + region + '||st==30||sts=={"20":"Europe"}'
+            encoded = base64.b64encode(raw.encode("utf-8")).decode("ascii")
+            return "https://www.catcar.info/subaru/?l=" + encoded
+        self.assertEqual(market_context({}, url_for("lhd"))["market_region"], "Europe (LHD)")
+        self.assertEqual(market_context({}, url_for("rhd"))["market_region"], "Europe (RHD)")
+
+    def test_market_context_reads_explicit_market_label_from_selector_path(self):
+        raw = 'st==30||sts=={"20":"Европа","30":"2012 ACCORD"}||modname==ACCORD'
+        encoded = base64.b64encode(raw.encode("utf-8")).decode("ascii")
+        context = market_context({}, "https://www.catcar.info/honda/?l=" + encoded)
+        self.assertEqual(context["market_region"], "Europe")
+
+    def test_honda_year_selector_is_not_parsed_as_a_detail_page(self):
+        raw = "st==20||year==2012"
+        encoded = base64.b64encode(raw.encode("utf-8")).decode("ascii")
+        html = "<html><body><table><tr><th>Model</th><th>Doors</th></tr></table></body></html>"
+        links = [{"url": "https://www.catcar.info/honda/?l=" + encoded, "label": "2012"}]
+        self.assertEqual(
+            catalog_navigation_reason("honda", "https://www.catcar.info/honda/?l=region", html, links),
+            "honda_year_selector",
+        )
+
+    def test_shared_stage_30_model_selector_is_recognized(self):
+        raw = "st==30||modelId==20002||modelCodeId==10004"
+        encoded = base64.b64encode(raw.encode("utf-8")).decode("ascii")
+        html = "<html><body><h1>Model</h1></body></html>"
+        links = [{"url": "https://www.catcar.info/isuzu/?l=" + encoded, "label": "LT"}]
+        self.assertEqual(
+            catalog_navigation_reason("isuzu", "https://www.catcar.info/isuzu/?l=market", html, links),
+            "model_selector",
+        )
+
     def test_suzuki_numeric_market_ids_are_decoded_from_verified_catalog_filters(self):
         def url_for(filter_text):
             encoded = base64.b64encode(filter_text.encode("utf-8")).decode("ascii")
