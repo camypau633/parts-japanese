@@ -1,0 +1,64 @@
+name: CatCar Mitsubishi adapter live survey
+
+on:
+  push:
+    paths:
+      - ".github/workflows/catcar-mitsubishi-survey.yml"
+      - "tools/catcar_poc/**"
+      - "!tools/catcar_poc/tests/**"
+      - "schemas/catcar-extraction-v0.1.schema.json"
+  workflow_dispatch:
+    inputs:
+      max_pages:
+        description: "Maximum Mitsubishi pages (1-100)"
+        required: true
+        default: "20"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catcar-mitsubishi-live-survey
+  cancel-in-progress: true
+
+jobs:
+  survey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install schema validation dependency
+        run: python -m pip install -r requirements-dev.txt
+      - name: Validate page limit
+        env:
+          MAX_PAGES: ${{ inputs.max_pages || '20' }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$MAX_PAGES" =~ ^[0-9]+$ ]] || (( MAX_PAGES < 1 || MAX_PAGES > 100 )); then
+            echo "max_pages must be between 1 and 100"
+            exit 2
+          fi
+      - name: Crawl Mitsubishi CatCar and resolve OEM AJAX rows
+        env:
+          MAX_PAGES: ${{ inputs.max_pages || '20' }}
+        run: |
+          set -euo pipefail
+          python -m tools.catcar_poc.crawl_catalog \
+            --make mitsubishi \
+            --start-url "https://www.catcar.info/mitsubishi/" \
+            --max-pages "$MAX_PAGES" \
+            --delay 10 \
+            --timeout 30 \
+            --output "out/catcar-mitsubishi"
+      - name: Upload Mitsubishi extraction evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: catcar-mitsubishi-live-survey-${{ github.run_id }}
+          path: out/catcar-mitsubishi/
+          if-no-files-found: warn
+          retention-days: 14
