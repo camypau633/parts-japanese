@@ -382,6 +382,25 @@ class CrawlCatalogTests(unittest.TestCase):
             self.assertEqual(records[0]["market_region"], "Asia")
             self.assertEqual(records[0]["status"], "navigation_or_unrecognized")
 
+    def test_mitsubishi_stage_50_illustrated_group_index_is_navigation(self):
+        encoded = base64.b64encode(b"market==euro||st==50").decode("ascii")
+        html = """
+        <img class="resize" src="http://ci.catcar.info/mitsubishi_2017_05/euro/1@_/index.png">
+        <table>
+          <tr><th>Группа</th><th>Название</th></tr>
+          <tr name="11"><td>11</td><td>ENGINE</td></tr>
+          <tr name="12"><td>12</td><td>LUBRICATION</td></tr>
+        </table>
+        <div class="coord" srcNum="11" srcTop="10" srcLeft="20" srcWidth="30" srcHeight="40"></div>
+        """
+        reason = catalog_navigation_reason(
+            "mitsubishi",
+            "https://www.catcar.info/mitsubishi/?l=" + encoded,
+            html,
+            [{"url": "https://www.catcar.info/mitsubishi/?l=GROUP", "label": "ENGINE"}],
+        )
+        self.assertEqual(reason, "mitsubishi_group_index")
+
     def test_scope_rejects_other_makes_and_hosts(self):
         self.assertTrue(allowed_catalog_url("https://www.catcar.info/honda/?l=x", "honda"))
         self.assertFalse(allowed_catalog_url("https://www.catcar.info/toyota/", "honda"))

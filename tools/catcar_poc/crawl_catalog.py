@@ -512,6 +512,16 @@ def catalog_navigation_reason(make, url, html, links):
     query = parse_qs(parts.query)
     parsed = parse_html(html)
     has_diagram = any(image.get("image_kind") == "diagram" for image in parsed.images)
+
+    # Mitsubishi stage 50 is a genuine illustrated group index, not a parts
+    # detail page. Keep it in navigation/review rather than counting it as a
+    # broken detail table simply because its rows lead to stage 70 groups.
+    if make == "mitsubishi" and decoded_filter(url).get("st") == "50":
+        for row in parsed.rows:
+            cells = {" ".join(value.strip().lower().split()) for value in cell_texts(row)}
+            if {"группа", "название"}.issubset(cells):
+                return "mitsubishi_group_index"
+
     if has_diagram:
         return None
 
