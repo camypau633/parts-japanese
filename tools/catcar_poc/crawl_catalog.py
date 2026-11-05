@@ -191,6 +191,56 @@ def market_context(adapter_result, source_url):
         "market_code_raw": raw_code[0] if raw_code else None,
     }
 
+def toyota_variant_context(filter_values, resolved_brand=None):
+    """Preserve Toyota/Lexus model and variant selectors exactly as CatCar exposes them."""
+    try:
+        selector = json.loads(filter_values.get("sts", "{}") or "{}")
+    except (TypeError, ValueError):
+        selector = {}
+    if not isinstance(selector, dict):
+        selector = {}
+
+    values = {
+        "catalog_id": "catalog",
+        "modification_name": "modifname",
+        "engine_code": "engine",
+        "model_code": "modelno",
+        "production_period_code_raw": "ProdPeriod",
+        "source_group_id": "group_id",
+        "series_name_raw": None,
+        "group_label_raw": None,
+        "model_label_raw": None,
+        "catalog_region_label_raw": None,
+        "catalog_market_label_raw": None,
+    }
+    result = {}
+    for target, source in values.items():
+        raw = filter_values.get(source) if source else None
+        if target == "series_name_raw":
+            raw = selector.get("60")
+        elif target == "group_label_raw":
+            raw = selector.get("70")
+        elif target == "model_label_raw":
+            raw = selector.get("30")
+        elif target == "catalog_region_label_raw":
+            raw = selector.get("10")
+        elif target == "catalog_market_label_raw":
+            raw = selector.get("20")
+        if raw is not None and str(raw).strip():
+            result[target] = str(raw).strip()
+
+    model_label = result.get("model_label_raw")
+    if model_label:
+        model_name = model_label
+        catalog_id = result.get("catalog_id")
+        if catalog_id and model_name.endswith(" " + catalog_id):
+            model_name = model_name[:-(len(catalog_id) + 1)].strip()
+        if resolved_brand and model_name.casefold().startswith(resolved_brand.casefold() + " "):
+            model_name = model_name[len(resolved_brand):].strip()
+        result["model_name"] = model_name
+    return result
+
+
 def explicit_brand_context(make, filter_values):
     """Resolve shared-root brands only from an explicit CatCar brand/model label."""
     candidates = catalog_config(make)["brands"]
@@ -516,8 +566,10 @@ def crawl(start_url, output_dir, max_pages=100, delay=10.0, timeout=30,
                 )
             else:
                 filter_values = decoded_filter(final_url)
+                brand_context = explicit_brand_context(make, filter_values)
                 context = {
-                    **explicit_brand_context(make, filter_values),
+                    **brand_context,
+                    **(toyota_variant_context(filter_values, brand_context.get("brand")) if make == "toyota" else {}),
                     "manufacturer_country": "Japan",
                     **page_market,
                     "catalog_filter_raw": filter_values,
