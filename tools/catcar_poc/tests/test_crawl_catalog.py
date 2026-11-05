@@ -295,29 +295,20 @@ class CrawlCatalogTests(unittest.TestCase):
             market_context(japan, "https://www.catcar.info/mazda/")[ "market_region" ],
         )
 
-    def test_mitsubishi_discovery_only_catalog_retains_page_without_fabricating_records(self):
-        html = "<html><head><title>Mitsubishi catalog</title></head><body><a href='/mitsubishi/?l=next'>Next</a></body></html>"
-        url = "https://www.catcar.info/mitsubishi/?l=selected"
-        with tempfile.TemporaryDirectory() as temp:
-            output = Path(temp) / "out"
-            with patch(
-                "tools.catcar_poc.crawl_catalog.fetch_page",
-                return_value=(200, url, html),
-            ):
-                report = crawl(
-                    url, output, max_pages=1, delay=10, make="mitsubishi"
-                )
-            self.assertFalse(report["complete"])
-            self.assertEqual(report["queue_remaining"], 1)
-            self.assertEqual(report["detail_pages_normalized"], 0)
-            records = [
-                json.loads(line)
-                for line in (output / "pages.jsonl").read_text(encoding="utf-8").splitlines()
-            ]
-            self.assertEqual(records[0]["status"], "navigation_or_unrecognized")
-            self.assertIn("detail_adapter_not_implemented", records[0]["adapter_message"])
-            self.assertEqual(len(list((output / "review").glob("*.html"))), 1)
-            self.assertEqual(list((output / "normalized").glob("*.json")), [])
+    def test_mitsubishi_ajax_adapter_is_registered_without_fabricating_records(self):
+        from tools.catcar_poc.crawl_catalog import ADAPTERS
+        from tools.catcar_poc.adapters import MitsubishiAdapter
+        self.assertIs(ADAPTERS["mitsubishi"], MitsubishiAdapter)
+        html = """
+        <table><tr name="01100AR" onclick="getArticles(this, 'TOKEN', 80, '/mitsubishi/')">
+        <td>01100AR</td><td>COVER ASSY,ROCKER,RH</td></tr></table>
+        <img class="resize" src="https://ci.catcar.info/mitsubishi_2017_05/euro/diagram.png">
+        <div class="coord" srcNum="01100AR" srcTop="1" srcLeft="2" srcWidth="3" srcHeight="4"></div>
+        """
+        parsed = ADAPTERS["mitsubishi"]().parse(html)
+        self.assertEqual(parsed["ajax_rows"][0]["source_row_id"], "01100AR")
+        self.assertEqual(parsed["ajax_rows"][0]["ajax_token"], "TOKEN")
+        self.assertEqual(parsed["parts"][0]["part_number_raw"], None)
 
     def test_discovery_only_pages_report_asian_market_coverage(self):
         html = """
