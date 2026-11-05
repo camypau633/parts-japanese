@@ -1,0 +1,32 @@
+name: CatCar Mitsubishi diagram watermark screening
+
+on:
+  push:
+    paths:
+      - ".github/workflows/catcar-mitsubishi-watermark.yml"
+      - "tools/catcar_poc/audit_mitsubishi_watermarks.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install bounded image inspection tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr
+          python -m pip install Pillow
+      - name: Inspect three real Mitsubishi diagram images
+        run: python tools/catcar_poc/audit_mitsubishi_watermarks.py
+      - name: Upload image samples and OCR report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: catcar-mitsubishi-watermark-samples
+          path: out/mitsubishi-watermark/
+          retention-days: 14
