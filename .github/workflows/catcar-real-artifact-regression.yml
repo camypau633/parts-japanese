@@ -225,6 +225,53 @@ jobs:
               raise SystemExit("Expected exactly eight captured Toyota groups")
           print("Verified eight live Toyota groups; part rows:", total_parts, "OEM records:", total_oem)
           PY
+      - name: Live-verify European Lexus variant and Toyota AJAX group
+        env:
+          PYTHONPATH: .
+        run: |
+          python - <<'PY'
+          import json
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          url = "https://www.catcar.info/toyota/?l=bWFya2V0PT1ldXJvfHxzdD09NzB8fHN0cz09eyIxMCI6IlJlZ2lvbiIsIjIwIjoiRXVyb3BlIiwiMzAiOiJMRVhVUyBOWDMwMEhcLzIwMFQyMDAgNTI3NTEwIiwiNjAiOiJBR1oxMEwtQVdUTFRXIiwiNzAiOiIxMS0wMyBFTkdJTkUgT1ZFUkhBVUwgR0FTS0VUIEtJVCJ9fHxjYXRhbG9nPT01Mjc1MTB8fHJlYz09QTF8fG1vZGlmbmFtZT09QUdaMTBMLUFXVExUV3x8ZW5naW5lPT04QVJGVFN8fG1vZGVsbm89PTAwN3x8UHJvZlBlcmlvZD09MjAxNDEyOTk5OTk5fHxtb2RfaW5mbzA9PVdHfHxtb2RfaW5mbzE9PUFUTXx8bW9kX2luZm8yPT02RkN8fG1vZF9pbmZvMz09TEhEfHxtb2RfaW5mbzQ9PUx8fG1vZF9pbmZvNT09VEJPfHxncm91cF9pZD09MTEwM3x8cGFnZTcwPT0w&lang=en"
+          output = Path("out/toyota-europe-lexus-nx")
+          subprocess.run([
+              sys.executable, "-m", "tools.catcar_poc.crawl_catalog",
+              "--make", "toyota", "--start-url", url,
+              "--output", str(output), "--max-pages", "1",
+              "--delay", "10", "--timeout", "30",
+          ], check=True)
+
+          report = json.loads((output / "crawl-report.json").read_text(encoding="utf-8"))
+          documents = list((output / "normalized").glob("*.json"))
+          assert report["fetch_errors"] == 0, report
+          assert report["incomplete_detail_pages"] == 0, report
+          assert report["retry_urls_pending"] == 0, report
+          assert report["detail_pages_normalized"] == 1, report
+          assert len(documents) == 1, documents
+          document = json.loads(documents[0].read_text(encoding="utf-8"))
+          context = document["catalog_context"]
+          expected = {
+              "brand": "Lexus",
+              "brand_source_field": "sts.30",
+              "market_region": "Europe",
+              "catalog_id": "527510",
+              "model_name": "NX300H/200T200",
+              "modification_name": "AGZ10L-AWTLTW",
+              "engine_code": "8ARFTS",
+              "model_code": "007",
+              "source_group_id": "1103",
+          }
+          for key, value in expected.items():
+              assert context.get(key) == value, (key, context.get(key), value)
+          assert document["validation"]["page_status"] == "complete", document["validation"]
+          assert document["parts"], "Lexus group has no part rows"
+          assert document["oem_records"], "Lexus group has no resolved OEM records"
+          print("Live European Lexus group verified:", expected)
+          print("Lexus part rows:", len(document["parts"]), "OEM records:", len(document["oem_records"]))
+          PY
       - name: Survey Toyota model and market navigation from CatCar root
         run: |
           python -m tools.catcar_poc.crawl_catalog \
