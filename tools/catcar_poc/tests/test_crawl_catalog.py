@@ -122,6 +122,16 @@ class CrawlCatalogTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "detail_adapter_not_implemented"):
             DiscoveryOnlyAdapter().parse("<html><body>unknown layout</body></html>")
 
+    def test_nissan_region_code_ca_is_resolved_as_canada(self):
+        encoded = base64.b64encode(
+            b"region==ca||st==20"
+        ).decode("ascii")
+        context = market_context(
+            {}, "https://www.catcar.info/nissan/?l=" + encoded
+        )
+        self.assertEqual(context["market_region"], "Canada")
+        self.assertEqual(context["market_code_raw"], "ca")
+
     def test_suzuki_numeric_market_ids_are_decoded_from_verified_catalog_filters(self):
         def url_for(filter_text):
             encoded = base64.b64encode(filter_text.encode("utf-8")).decode("ascii")
