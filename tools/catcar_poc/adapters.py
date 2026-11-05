@@ -351,7 +351,7 @@ class SuzukiAdapter(StaticTableAdapter):
     def parse(self, html):
         parsed = parse_html(html)
         header_index, _ = find_header_row(
-            parsed.rows, ("code", "part number", "name")
+            parsed.rows, ("code", "part number", "name", "код", "номер детали", "номер запчасти", "наименование")
         )
         if header_index is None:
             raise ValueError("Suzuki parts table header not found")
