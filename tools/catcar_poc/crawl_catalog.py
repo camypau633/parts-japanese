@@ -433,12 +433,15 @@ def resolve_toyota_ajax_rows(parsed, group_url, output_dir, timeout,
     raw_dir.mkdir(parents=True, exist_ok=True)
     oem_records = []
     errors = []
-    group_id = decoded_filter(group_url).get("group_id")
+    group_id = (decoded_filter(group_url).get("group_id")
+                or decoded_filter(group_url).get("SubGroup")
+                or decoded_filter(group_url).get("MainGroup"))
     requests_made = 0
     for index, part in enumerate(ajax_rows):
         token = part.get("ajax_token", "")
         try:
-            ajax_url = build_toyota_ajax_url(token, make=make)
+            ajax_url = (build_toyota_ajax_url(token) if make == "toyota"
+                        else build_toyota_ajax_url(token, make=make))
             # Group IDs such as 1103 repeat across different Toyota models,
             # markets and modifications. Cache identity must include the full
             # source URL, not only the local group ID.
@@ -452,12 +455,13 @@ def resolve_toyota_ajax_rows(parsed, group_url, output_dir, timeout,
             else:
                 if requests_made:
                     time.sleep(request_delay)
-                status, final_url, body = fetch_toyota_ajax_page(ajax_url, timeout, make=make)
+                status, final_url, body = (fetch_toyota_ajax_page(ajax_url, timeout) if make == "toyota"
+                                            else fetch_toyota_ajax_page(ajax_url, timeout, make=make))
                 requests_made += 1
                 if status != 200:
                     raise ValueError("toyota_ajax_http_status:%s" % status)
                 raw_path.write_text(body, encoding="utf-8")
-            records = ToyotaAdapter.parse_ajax_records(
+            records = ADAPTERS[make].parse_ajax_records(
                 body, source_row_id=part.get("source_row_id")
             )
             if not records:
