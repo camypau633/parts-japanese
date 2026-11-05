@@ -142,7 +142,8 @@ class CrawlCatalogTests(unittest.TestCase):
 
     def test_subaru_lhd_and_rhd_are_preserved_as_distinct_markets(self):
         def url_for(region):
-            raw = 'region==' + region + '||st==30||sts=={"20":"ЕВРОПА"}'
+            label = "Европа (левый руль)" if region == "lhd" else "Европа (правый руль)"
+            raw = "region==" + region + "||st==30||sts==" + json.dumps({"20": label}, ensure_ascii=False)
             encoded = base64.b64encode(raw.encode("utf-8")).decode("ascii")
             return "https://www.catcar.info/subaru/?l=" + encoded
         self.assertEqual(market_context({}, url_for("lhd"))["market_region"], "Europe (LHD)")
