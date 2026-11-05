@@ -9,7 +9,7 @@ from unittest.mock import patch
 from tools.catcar_poc.crawl_catalog import (
     ADAPTERS, allowed_catalog_url, decoded_filter,
     discover_links, market_context, explicit_brand_context, toyota_variant_context, crawl,
-    build_toyota_ajax_url, resolve_toyota_ajax_rows,
+    build_toyota_ajax_url, resolve_toyota_ajax_rows, catalog_navigation_reason,
 )
 from tools.catcar_poc.catalog_registry import CATCAR_JAPANESE_CATALOGS, catalog_config
 from tools.catcar_poc.adapters import DiscoveryOnlyAdapter, MazdaAdapter, SubaruAdapter, SuzukiAdapter
