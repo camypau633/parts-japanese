@@ -77,7 +77,7 @@ class AdapterTests(unittest.TestCase):
           <tr><td>MD173818</td><td></td><td>01.11.1990-03.05.1993</td><td>Все</td></tr>
         </table>
         """
-        records = ToyotaAdapter.parse_ajax_records(ajax, source_row_id="01100AR")
+        records = MitsubishiAdapter.parse_ajax_records(ajax, source_row_id="01100AR")
         self.assertEqual([r["oem_number_raw"] for r in records], ["MD155451", "MD173818"])
         self.assertEqual(records[0]["production_period_raw"], "01.04.1990-03.10.1990")
         self.assertEqual(records[1]["applicability_raw"], "Все")
