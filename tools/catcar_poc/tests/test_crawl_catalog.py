@@ -366,6 +366,42 @@ class CrawlCatalogTests(unittest.TestCase):
                 ["OEM-ONE", "OEM-TWO"],
             )
 
+    def test_toyota_ajax_cache_is_scoped_to_full_group_url_not_reused_group_id(self):
+        html = """
+          <table><tr name="ROW-1" onclick="getArticles(this, 'TOKEN-1', 80, '/toyota/');">
+          <td>ROW-1</td><td>PART ONE</td></tr></table>
+        """
+        camry_url = "https://www.catcar.info/toyota/?l=" + base64.b64encode(
+            b"group_id==1103||catalog==284170"
+        ).decode("ascii")
+        lexus_url = "https://www.catcar.info/toyota/?l=" + base64.b64encode(
+            b"group_id==1103||catalog==527510"
+        ).decode("ascii")
+        camry_response = "<table><tr><td>CAMRY-OEM</td><td>01/2001-</td><td>2AZFE</td></tr></table>"
+        lexus_response = "<table><tr><td>LEXUS-OEM</td><td>01/2015-</td><td>8ARFTS</td></tr></table>"
+
+        with tempfile.TemporaryDirectory() as temp:
+            with patch(
+                "tools.catcar_poc.crawl_catalog.fetch_toyota_ajax_page",
+                side_effect=[
+                    (200, "https://www.catcar.info/toyota/?l=CAMRY&st=81", camry_response),
+                    (200, "https://www.catcar.info/toyota/?l=LEXUS&st=81", lexus_response),
+                ],
+            ) as fetch, patch("tools.catcar_poc.crawl_catalog.time.sleep"):
+                camry_records, camry_errors = resolve_toyota_ajax_rows(
+                    ToyotaAdapter().parse(html), camry_url, temp, 30, request_delay=0
+                )
+                lexus_records, lexus_errors = resolve_toyota_ajax_rows(
+                    ToyotaAdapter().parse(html), lexus_url, temp, 30, request_delay=0
+                )
+
+            self.assertEqual(fetch.call_count, 2)
+            self.assertEqual(camry_errors, [])
+            self.assertEqual(lexus_errors, [])
+            self.assertEqual(camry_records[0]["oem_number_raw"], "CAMRY-OEM")
+            self.assertEqual(lexus_records[0]["oem_number_raw"], "LEXUS-OEM")
+            self.assertEqual(len(list((Path(temp) / "ajax_raw").glob("*.html"))), 2)
+
     def test_toyota_no_applicable_data_is_a_valid_resolved_ajax_state(self):
         from tools.catcar_poc.adapters import ToyotaAdapter
         parsed = ToyotaAdapter().parse("""
