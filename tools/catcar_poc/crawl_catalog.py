@@ -119,6 +119,7 @@ MARKET_LABELS = {
     "asiapacific": "Asia-Pacific",
     "africa": "Africa",
     "canada": "Canada",
+    "ca": "Canada",
     "caribbean": "Caribbean",
     "latin-america": "Latin America",
     "latinamerica": "Latin America",
