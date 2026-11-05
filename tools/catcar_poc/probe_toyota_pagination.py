@@ -17,7 +17,7 @@ DEFAULT_URL = (
     "bzE9PUFUTXx8bW9kX2luZm8yPT02RkN8fG1vZF9pbmZvMz09TEhEfHxtb2RfaW5mbzQ9PUx8fG1v"
     "ZF9pbmZvNT09VEJPfHxncm91cF9pZD09MTEwM3x8cGFnZTcwPT0w&lang=en"
 )
-NEXT_LABEL = re.compile(r"^(next|следующая|след|›|»|>|2)$", re.IGNORECASE)
+NEXT_LABEL = re.compile(r"^(next|следующая|след|›|»|>)$", re.IGNORECASE)
 
 
 async def main():
@@ -87,9 +87,9 @@ async def main():
         click_error = None
         if candidates:
             selected = candidates[0]
-            locator = page.locator("a,button,[role=button],[onclick],[class*=page],[id*=page]").filter(
-                has_text=selected.get("text") or selected.get("aria") or selected.get("title") or ""
-            ).first
+            locator = page.locator(
+                '[data-partscope-probe-index="%s"]' % selected["index"]
+            )
             try:
                 await locator.click(timeout=5000)
                 clicked = selected
