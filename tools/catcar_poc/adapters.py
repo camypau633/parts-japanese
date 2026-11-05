@@ -493,6 +493,84 @@ class SubaruAdapter(StaticTableAdapter):
         }
 
 
+class IsuzuAdapter(StaticTableAdapter):
+    """Parse Isuzu's observed multilingual parts table without discarding fitment fields."""
+
+    name = "isuzu_static"
+
+    def parse(self, html):
+        parsed = parse_html(html)
+        header_index, _ = find_header_row(
+            parsed.rows, ("part number", "номер детали")
+        )
+        if header_index is None:
+            raise ValueError("Isuzu parts table header not found")
+
+        headers = [value.strip().lower() for value in cell_texts(parsed.rows[header_index])]
+
+        def column(*names):
+            for name in names:
+                if name in headers:
+                    return headers.index(name)
+            return None
+
+        position_index = column("code", "код", "№")
+        part_number_index = column("part number", "номер детали", "номер запчасти")
+        description_index = column("name", "description", "наименование", "название")
+        side_index = column("installation side", "side", "сторона установки")
+        period_index = column("production date", "production period", "дата производства")
+        applicability_index = column("applicability", "применяемость")
+        additional_index = column("additional information", "дополнительная информация")
+        quantity_index = column("qty", "quantity", "количество")
+        related_index = column("related subgroups", "related groups", "связанные подгруппы")
+
+        if position_index is None or part_number_index is None:
+            raise ValueError("Isuzu parts table required columns are missing")
+
+        parts = []
+        for order, row in enumerate(parsed.rows[header_index + 1:], start=header_index + 1):
+            cells = cell_texts(row)
+            if len(cells) <= max(position_index, part_number_index):
+                continue
+            part_number = self._value(cells, part_number_index)
+            if not part_number:
+                continue
+            position = self._value(cells, position_index)
+            parts.append({
+                "source_row_id": str(order),
+                "source_row_order": order,
+                "diagram_position_code": position or None,
+                "part_number_raw": part_number,
+                "description_raw": self._value(cells, description_index),
+                "production_period_raw": self._value(cells, period_index),
+                "quantity_raw": self._value(cells, quantity_index),
+                "alternative_number_raw": "",
+                "row_kind": "positioned" if position else "continuation",
+                "parent_position_code": None,
+                "additional_source_fields": {
+                    "raw_cells": list(cells),
+                    "installation_side_raw": self._value(cells, side_index),
+                    "applicability_raw": self._value(cells, applicability_index),
+                    "additional_information_raw": self._value(cells, additional_index),
+                    "related_subgroups_raw": self._value(cells, related_index),
+                },
+            })
+
+        positions = [item["diagram_position_code"] for item in parts
+                     if item["diagram_position_code"]]
+        validation = detail_page_validation(parsed, parts)
+        return {
+            "adapter": self.name,
+            **validation,
+            "rows": parsed.rows,
+            "images": parsed.images,
+            "hotspots": parsed.hotspots,
+            "parts": parts,
+            "ajax_rows": [],
+            "hotspot_matching": self.match_hotspots(positions, parsed.hotspots),
+        }
+
+
 class FordAdapter(StaticTableAdapter):
     name = "ford_static"
     position_index = 0
