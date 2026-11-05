@@ -145,7 +145,7 @@ class CrawlCatalogTests(unittest.TestCase):
             label = "Европа (левый руль)" if region == "lhd" else "Европа (правый руль)"
             raw = "region==" + region + "||st==30||sts==" + json.dumps({"20": label}, ensure_ascii=False)
             encoded = base64.b64encode(raw.encode("utf-8")).decode("ascii")
-            return "https://www.catcar.info/subaru/?l=" + encoded
+            return "https://www.catcar.info/subaru/?l=" + encoded.replace("+", "%2B")
         self.assertEqual(market_context({}, url_for("lhd"))["market_region"], "Europe (LHD)")
         self.assertEqual(market_context({}, url_for("rhd"))["market_region"], "Europe (RHD)")
 
