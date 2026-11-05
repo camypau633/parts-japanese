@@ -42,16 +42,16 @@ jobs:
         run: |
           python -m pip install playwright
           python -m playwright install --with-deps chromium
-      - name: Probe Toyota pagination on one known CatCar group
+      - name: Probe Toyota getArticles AJAX transition
         run: |
-          python -m tools.catcar_poc.probe_toyota_pagination \
-            --output out/toyota-pagination-probe \
+          python -m tools.catcar_poc.probe_toyota_ajax \
+            --output out/toyota-ajax-probe \
             --timeout 45000
       - name: Upload Toyota pagination evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: toyota-pagination-probe-${{ github.run_id }}
-          path: out/toyota-pagination-probe/
+          name: toyota-ajax-probe-${{ github.run_id }}
+          path: out/toyota-ajax-probe/
           if-no-files-found: warn
           retention-days: 14
