@@ -130,7 +130,7 @@ class MitsubishiAdapter(ToyotaAdapter):
         return result
     @staticmethod
     def parse_ajax_records(html, source_row_id=None):
-        """Mitsubishi st=81 columns are OEM, blank, period, applicability."""
+        """Mitsubishi st=81 exposes OEM, period and applicability after empty-cell normalization."""
         parsed = parse_html(html)
         records = []
         for row in parsed.rows:
@@ -143,8 +143,8 @@ class MitsubishiAdapter(ToyotaAdapter):
             records.append({
                 "source_row_id": source_row_id,
                 "oem_number_raw": oem,
-                "production_period_raw": values[2].strip() or None,
-                "applicability_raw": values[3].strip() or None,
+                "production_period_raw": values[1].strip() or None,
+                "applicability_raw": values[2].strip() or None,
                 "additional_source_fields": {"raw_cells": list(values)},
                 "source_status": "available",
             })
