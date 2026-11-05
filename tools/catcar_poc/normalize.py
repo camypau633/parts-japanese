@@ -80,6 +80,7 @@ def normalize_page(adapter_result, context, source_url, oem_records=None):
                 "oem_number_raw": item.get("oem_number_raw"),
                 "production_period_raw": item.get("production_period_raw"),
                 "applicability_raw": item.get("applicability_raw"),
+                "source_detail_url": item.get("source_detail_url"),
                 "source_record_id": item.get("source_record_id"),
                 "source_row_id": item.get("source_row_id"),
                 "source_status": item.get("source_status", "available"),

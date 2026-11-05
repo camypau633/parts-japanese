@@ -158,6 +158,12 @@
               "null"
             ]
           },
+          "source_detail_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "source_record_id": {
             "type": [
               "string",

@@ -103,6 +103,7 @@ class ToyotaAdapter(BaseAdapter):
                 "oem_number_raw": None,
                 "production_period_raw": None,
                 "applicability_raw": None,
+                "source_detail_url": None,
                 "source_status": "no_applicable_data",
             }]
         for record in records:
@@ -141,11 +142,18 @@ class MitsubishiAdapter(ToyotaAdapter):
             oem = values[0]
             if oem.lower() in ("oem", "номер детали", "номер запчасти"):
                 continue
+            detail_url = next((
+                link.get("href")
+                for cell in row.get("cells", [])
+                for link in cell.get("links", [])
+                if "catcar.info/mitsubishi/" in link.get("href", "")
+            ), None)
             records.append({
                 "source_row_id": source_row_id,
                 "oem_number_raw": oem,
                 "production_period_raw": values[1] or None,
                 "applicability_raw": values[2] or None,
+                "source_detail_url": detail_url,
                 "additional_source_fields": {"raw_cells": raw_values},
                 "source_status": "available",
             })

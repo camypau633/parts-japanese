@@ -21,7 +21,11 @@ class CatalogHTMLParser(HTMLParser):
                 self._finish_row()
             self._row = {"attrs": attrs, "cells": []}
         elif tag in ("td", "th") and self._row is not None:
-            self._cell = {"tag": tag, "attrs": attrs, "text_parts": []}
+            self._cell = {"tag": tag, "attrs": attrs, "text_parts": [], "links": []}
+        elif tag == "a" and self._cell is not None:
+            href = attrs.get("href")
+            if href:
+                self._cell.setdefault("links", []).append({"href": href, "attrs": attrs})
         elif tag == "img":
             src = attrs.get("src") or attrs.get("data-src")
             if src:
