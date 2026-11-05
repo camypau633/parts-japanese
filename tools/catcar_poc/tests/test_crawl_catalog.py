@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from tools.catcar_poc.crawl_catalog import (
     ADAPTERS, allowed_catalog_url, decoded_filter,
-    discover_links, market_context, explicit_brand_context, crawl,
+    discover_links, market_context, explicit_brand_context, toyota_variant_context, crawl,
     build_toyota_ajax_url, resolve_toyota_ajax_rows,
 )
 from tools.catcar_poc.catalog_registry import CATCAR_JAPANESE_CATALOGS, catalog_config
@@ -32,6 +32,43 @@ class CrawlCatalogTests(unittest.TestCase):
         self.assertIsNone(unresolved_toyota["brand"])
         self.assertEqual(unresolved_toyota["brand_candidates"], ["Toyota", "Lexus"])
         self.assertIsNone(ambiguous["brand"])
+
+    def test_toyota_variant_context_preserves_lexus_model_market_engine_and_modification(self):
+        context = toyota_variant_context({
+            "catalog": "527510",
+            "modifname": "AGZ10L-AWTLTW",
+            "engine": "8ARFTS",
+            "modelno": "007",
+            "ProdPeriod": "201412999999",
+            "group_id": "1103",
+            "sts": json.dumps({
+                "10": "Region",
+                "20": "Europe",
+                "30": "LEXUS NX300H/200T200 527510",
+                "60": "AGZ10L-AWTLTW",
+                "70": "11-03 ENGINE OVERHAUL GASKET KIT",
+            }),
+        }, resolved_brand="Lexus")
+        self.assertEqual(context["catalog_id"], "527510")
+        self.assertEqual(context["model_label_raw"], "LEXUS NX300H/200T200 527510")
+        self.assertEqual(context["model_name"], "NX300H/200T200")
+        self.assertEqual(context["modification_name"], "AGZ10L-AWTLTW")
+        self.assertEqual(context["engine_code"], "8ARFTS")
+        self.assertEqual(context["model_code"], "007")
+        self.assertEqual(context["production_period_code_raw"], "201412999999")
+        self.assertEqual(context["source_group_id"], "1103")
+        self.assertEqual(context["series_name_raw"], "AGZ10L-AWTLTW")
+        self.assertEqual(context["group_label_raw"], "11-03 ENGINE OVERHAUL GASKET KIT")
+        self.assertEqual(context["catalog_market_label_raw"], "Europe")
+
+    def test_toyota_variant_model_label_is_preserved_without_guessing_brand(self):
+        context = toyota_variant_context({
+            "catalog": "284170",
+            "sts": '{"30":"CAMRY 284170"}',
+        }, resolved_brand=None)
+        self.assertEqual(context["model_name"], "CAMRY")
+        self.assertEqual(context["model_label_raw"], "CAMRY 284170")
+        self.assertNotIn("brand", context)
 
     def test_shared_nissan_infiniti_root_resolves_explicit_infiniti_model_label(self):
         context = explicit_brand_context(
