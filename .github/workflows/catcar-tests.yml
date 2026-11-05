@@ -46,7 +46,7 @@ jobs:
         run: |
           python -m tools.catcar_poc.probe_toyota_pagination \
             --output out/toyota-pagination-probe \
-            --delay 10 --timeout 30
+            --timeout 45000
       - name: Upload Toyota pagination evidence
         if: always()
         uses: actions/upload-artifact@v4
