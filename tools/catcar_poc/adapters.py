@@ -110,6 +110,26 @@ class ToyotaAdapter(BaseAdapter):
         return records
 
 
+
+class MitsubishiAdapter(ToyotaAdapter):
+    """Parse Mitsubishi's observed st=80 rows and preserve getArticles tokens.
+
+    The subsequent st=81 response contains OEM number, production period and
+    applicability columns. OEM rows are resolved by the crawler, not guessed
+    from the selector page.
+    """
+
+    name = "mitsubishi_ajax"
+
+    def parse(self, html):
+        result = super().parse(html)
+        if result.get("ajax_rows"):
+            result["page_warnings"] = ["mitsubishi_ajax_lookup_pending"]
+        else:
+            result["page_warnings"] = ["no_mitsubishi_ajax_rows"]
+        return result
+
+
 def detail_page_validation(parsed, parts):
     """Require actual part rows and at least one resolved diagram before export."""
     diagram_images = [
