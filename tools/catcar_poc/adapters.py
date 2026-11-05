@@ -129,7 +129,6 @@ class MitsubishiAdapter(ToyotaAdapter):
             result["page_warnings"] = ["no_mitsubishi_ajax_rows"]
         return result
     @staticmethod
-    @staticmethod
     def parse_ajax_records(html, source_row_id=None):
         """Mitsubishi st=81 rows: OEM, optional blank fields, period, applicability."""
         parsed = parse_html(html)
