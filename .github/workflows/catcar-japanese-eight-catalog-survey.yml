@@ -20,7 +20,7 @@ permissions:
 
 concurrency:
   group: catcar-japanese-eight-catalog-survey
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   survey:
