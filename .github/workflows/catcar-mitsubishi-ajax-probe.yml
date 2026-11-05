@@ -40,3 +40,22 @@ jobs:
           name: catcar-mitsubishi-ajax-detail
           path: probe/
           retention-days: 14
+
+      - name: Follow Mitsubishi OEM record to next detail stage
+        shell: bash
+        run: |
+          set -euo pipefail
+          L='bWFya2V0PT1ldXJvfHxzdD09OTB8fHN0cz09eyIxMCI6Ilx1MDQyMFx1MDQ0Ylx1MDQzZFx1MDQzZVx1MDQzYSIsIjIwIjoiXHUwNDE1XHUwNDEyXHUwNDIwXHUwNDEwIiwiMzAiOiIzMDAwR1QoRVVSKSIsIjQwIjoiWjExQSIsIjUwIjoiXHUwNDFlXHUwNDMxXHUwNDQ5XHUwNDMwXHUwNDRmIiwiNjAiOiIxMSBFTkdJTkUiLCI3MCI6IjExLTExMCBST0NLRVIgQ09WRVIiLCI4MCI6IjAxMTAwQVIgQ09WRVIgQVNTWSxST0NLRVIsUkgiLCI5MCI6Ik1EMTU1NDUxIn18fENhdGFsb2dObz09QjYwOEs0MDlBfHxDYXRTdGFydERhdGU9PTE5OTAwNDF8fENhdEVuZERhdGU9PTIwMDAwNjN8fE1vZGVsPT1aMTFBfHxjYz09MHx8TWFpbkdyb3VwPT0xMXx8U3ViR3JvdXA9PTExMHx8cGFnZTcwPT0wfHxQTkM9PTAxMTAwQVJ8fFBhcnRNb2RlbD09WjExQXx8U1BOPT1NOTAxNTE='
+          curl --get --location --fail-with-body \
+            --max-time 45 --connect-timeout 15 \
+            --user-agent "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/128.0.0.0 Safari/537.36" \
+            --dump-header probe/oem-detail.headers \
+            --output probe/oem-detail.html \
+            --write-out "http_code=%{http_code}\ncontent_type=%{content_type}\nsize_download=%{size_download}\ntime_total=%{time_total}\n" \
+            --data-urlencode "l=$L" \
+            "https://www.catcar.info/mitsubishi/" | tee probe/oem-detail-result.txt
+          echo "response_bytes=$(wc -c < probe/oem-detail.html)"
+          echo "=== next-stage preview ==="
+          sed -n '1,120p' probe/oem-detail.html | sed -E 's/(<script[^>]*>).*$/\1[script omitted]/I'
+          echo "=== diagram/part metadata markers ==="
+          grep -Eoi 'img[^>]+|coord[^>]+|srcNum|srcTop|srcLeft|srcWidth|srcHeight|MD155451|period|production|number|name' probe/oem-detail.html | head -100 || true
